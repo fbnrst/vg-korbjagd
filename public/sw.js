@@ -1,4 +1,4 @@
-const VERSION = 'v14';
+const VERSION = 'v15';
 const CACHE = 'korbjagd-' + VERSION;
 const FILES = ['./', './index.html', './app.js', './store.js', './vg.js', './i18n.js', './legal-config.js', './privacy.html', './docs/index.html', './firebase-config.js', './manifest.json', './icon.svg',
   './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png', './icons/apple-touch-icon.png',
@@ -18,7 +18,9 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
-  e.respondWith(fetch(req).then(res => {
+  // `no-cache`: always ask the server whether the file changed (cheap 304). GitHub Pages allows browsers to keep files
+  // for 10 minutes (max-age=600), which would otherwise delay every new version by up to 10 minutes.
+  e.respondWith(fetch(req, { cache: 'no-cache' }).then(res => {
     if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); }
     return res;
   }).catch(() => caches.match(req, { ignoreSearch: true }).then(r => r || (req.mode === 'navigate' ? caches.match('./index.html') : Response.error()))));
