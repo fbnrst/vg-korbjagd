@@ -265,7 +265,7 @@ async function enter(c) {
 }
 function startList() {
   $('#vWelcome').classList.add('hide'); $('#tabs').classList.remove('hide'); $('#shareBtn').classList.remove('hide');
-  $('#title').textContent = `🛒 ${code}`; show('vList');
+  show('vList');
   store.join(code, myKey());
   connect();
 }
