@@ -1,6 +1,6 @@
-# vg-app-2 – gemeinsame Einkaufsliste
+# vg-korbjagd – gemeinsame Einkaufsliste mit Rangliste
 
-Nachbau der Idee der [VG-App](https://gitlab.com/pyfox/vg-app) (Einkaufsliste mit VG-Nummern) mit Live-Sync zwischen Handys und einer Rangliste („wer hat am meisten in den Korb gelegt“).
+Eine unabhängige, inoffizielle Einkaufslisten-App mit Live-Sync zwischen Handys und einer Rangliste („wer hat am meisten in den Korb gelegt“). Idee und Datengrundlage: die [VG-App](https://gitlab.com/pyfox/vg-app) der VG Dresden; mit der VG Dresden ist dieses Projekt nicht verbunden.
 
 ## Start
     npm start            # http://localhost:3000  (PORT=… DATA=… möglich)

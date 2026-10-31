@@ -30,6 +30,6 @@ Die App ruft zuerst `getChecksums.php` ab, vergleicht je Tabelle mit der lokal g
 
 Die App ruft außerdem `shareList.php`, `getSharedList.php` und `sendFeedback.php` auf (Listen teilen/importieren, Feedback). Sie wurden bewusst nicht ausprobiert; Details siehe Quelltext der Original-App.
 
-## Pläne für vg-app-2
+## Pläne für vg-korbjagd
 
 Server-Proxy mit Zwischenspeicher (z. B. 24 h plus Prüfsummenvergleich) und Verknüpfung mit der VG-Nummer-Eingabe (Titel, Einheit, Hersteller, Land automatisch eintragen, Pfand). Noch nicht umgesetzt.

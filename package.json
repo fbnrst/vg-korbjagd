@@ -1,1 +1,1 @@
-{"name":"vg-app-2","version":"0.1.0","private":true,"scripts":{"start":"node server.js","test":"node --test"},"engines":{"node":">=18"}}
+{"name":"vg-korbjagd","version":"0.1.0","private":true,"scripts":{"start":"node server.js","test":"node --test"},"engines":{"node":">=18"}}
