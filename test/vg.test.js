@@ -84,6 +84,7 @@ test('VG numbers are read from shelf label codes like in the original app', () =
   assert.equal(vgNumFromCode('VG 7344 kg Äpfel Deutschland'), 7344); // QR label
   assert.equal(vgNumFromCode('vg 12 Stück Brot'), 12);
   assert.equal(vgNumFromCode('4006381333931'), null);               // ordinary EAN-13: number would be far too large
+  assert.equal(vgNumFromCode('40123455'), null);                    // ordinary EAN-8 (small package): not a VG label
   assert.equal(vgNumFromCode('12345'), null);
   assert.equal(vgNumFromCode('VG abc'), null);
   assert.equal(vgNumFromCode(''), null);

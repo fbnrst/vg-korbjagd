@@ -434,12 +434,10 @@ $('#shareLink').onclick = async () => {
   try { if (navigator.share) return await navigator.share({ title: t('shareTitleText'), text: t('shareText', { code }), url }); } catch (e) { return; }
   try { await navigator.clipboard.writeText(url); toast(t('linkCopied')); } catch (e) { prompt(t('linkPrompt'), url); }
 };
-document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
-  document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
-  show(b.dataset.t);
-});
+document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => show(b.dataset.t));
 function show(id) {
   if (isLocal() && id === 'vScore') id = 'vList'; // the game only exists once the list is shared
+  document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x.dataset.t === id)); // also when the app switches lists
   $('#vWelcome').classList.add('hide');
   for (const v of ['vList', 'vDeposit', 'vCheckout', 'vScore']) $('#' + v).classList.toggle('hide', v !== id);
   $('#addBar').classList.toggle('hide', id !== 'vList'); // the input bar belongs to the list tab
@@ -517,6 +515,8 @@ async function handleCode(raw, opts = {}) {
       store.add(code, { id: it.id, title: it.title, vgNum: n }, myKey()); store.check(code, it.id, myKey(), true);
       toast(t('vgNotInDb', { n })); closeScanner(); return;
     }
+    // zxing (iOS) also reads QR codes: anything that is not a barcode number (a URL, some text) is ignored, keep looking
+    if (!/^\d{8,14}$/.test(ean)) { $('#scanMsg').textContent = t('scanUnknown'); return; }
     let it = Object.values(state.items).find(i => i.ean === ean);
     if (!it) {
       $('#scanMsg').textContent = t('lookingUp');
@@ -679,7 +679,9 @@ async function init() {
   if (!firebaseConfig) $('#demoBanner').classList.remove('hide');
   render();
   loadVg().then(v => { vg = v; render(); }).catch(() => {});
-  const urlCode = (new URLSearchParams(location.search).get('list') || '').toUpperCase();
+  const urlList = new URLSearchParams(location.search).get('list');
+  const urlCode = parseListCode(urlList); // same check as typed and scanned codes
+  if (urlList && !urlCode) toast(t('notAList'));
   const savedCode = LS.get('code', '');
   if (urlCode && urlCode !== savedCode) joinShared(urlCode);
   else if (savedCode && me.name) startShared(savedCode).catch(() => { toast(t('noDb')); startLocal(); }); // offline: local list, saved code is kept

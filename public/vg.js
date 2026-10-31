@@ -95,14 +95,15 @@ export async function loadVg() {
 /* ---------- Scanned codes ---------- */
 // VG shelf labels carry the VG number in their code (same rules as the original app):
 //  - QR code text "VG <number> <unit> <name> <country>"
-//  - 8 digits incl. check digit: "00073448" -> 7344
+//  - 8 digits incl. check digit: "00073448" -> 7344. Only codes starting with 0 or 2: GS1 keeps those EAN-8 ranges for
+//    in-store numbering, every other EAN-8 is an ordinary product (a small package) and must not be read as a VG number
 //  - 13 digits incl. check digit: the first 12 digits are the number, zero padded
 // Anything else (an ordinary product EAN) returns null.
 export function vgNumFromCode(text) {
   const s = String(text).trim();
   let n = NaN;
   if (/^VG\s/i.test(s)) n = Number(s.split(/\s+/)[1]);
-  else if (/^\d{8}$/.test(s)) n = Number(s.slice(3, 7));
+  else if (/^[02]\d{7}$/.test(s)) n = Number(s.slice(3, 7));
   else if (/^\d{13}$/.test(s)) n = Number(s.slice(0, 12));
   return Number.isInteger(n) && n >= 1 && n <= 9999999 ? n : null;
 }
