@@ -1,6 +1,6 @@
 // Draws the app icon (a fox face on the VG green) and renders it to the files the PWA needs:
 //
-//   npm run icons          # writes public/icon.svg and public/icons/*.png
+//   npm run icons          # writes public/icon.svg, public/logo.svg (fox without tile) and public/icons/*.png
 //
 // One drawing, four outputs: rounded for "any" (192, 512), full bleed for "maskable" (motif shrunk into the safe zone)
 // and for the iOS home screen (iOS rounds the corners itself). Needs Google Chrome (or CHROME_PATH), like the
@@ -44,6 +44,8 @@ const outputs = [
 ];
 
 fs.writeFileSync(path.join(PUBLIC, 'icon.svg'), svg({ rounded: true, scale: 1 }));
+// The fox alone, without the green tile: for the header, where it sits on the green bar
+fs.writeFileSync(path.join(PUBLIC, 'logo.svg'), `<svg xmlns="http://www.w3.org/2000/svg" viewBox="64 88 384 366">${motif(1)}</svg>`);
 const browser = await launch();
 try {
   const page = await browser.newPage();
