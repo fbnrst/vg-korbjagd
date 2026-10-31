@@ -111,11 +111,12 @@ function render() {
   const MEDAL = { 1: '🥇', 2: '🥈', 3: '🥉' };
   const max = Math.max(1, placed[0] ? placed[0].n : 1);
   const at = p => placed.filter(x => x.place === p && x.n > 0);
-  const podium = [...at(2), ...at(1), ...at(3)];
+  // nobody has a point yet: everyone stands on the podium with 0 (no medals), instead of an empty field
+  const podium = placed.some(x => x.n > 0) ? [...at(2), ...at(1), ...at(3)] : placed;
   $('#podium').innerHTML = podium.map(({ k, n, place }) => {
     const w = splitKey(k), h = 30 + 80 * n / max;
-    return `<div class="pod"><div class="e">${esc(w.emoji)}</div><div>${esc(w.name)}</div><div class="bar" style="height:${h}px">${MEDAL[place]} ${esc(n)}</div></div>`;
-  }).join('') || `<span class="muted">${t('noPoints')}</span>`;
+    return `<div class="pod"><div class="e">${esc(w.emoji)}</div><div>${esc(w.name)}</div><div class="bar" style="height:${h}px">${n > 0 ? MEDAL[place] + ' ' : ''}${esc(n)}</div></div>`;
+  }).join('');
   $('#ranks').innerHTML = placed.map(({ k, n, place }) => `<div class="rank"><span>${n > 0 && MEDAL[place] ? MEDAL[place] : place + '.'}</span><span>${esc(k)}</span><b>${esc(n)}</b></div>`).join('');
 }
 
