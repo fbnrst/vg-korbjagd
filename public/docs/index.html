@@ -14,6 +14,8 @@ html{scroll-behavior:smooth}
 body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans-serif}
 header{background:var(--hdr);color:var(--hdr-fg);padding:12px 16px}
 header a{color:var(--hdr-fg);text-decoration:none;font-weight:600}
+body.dev{--hdr:#7d8de6;--hdr-fg:#0d1138} /* the dev site: same blue as the app */
+.devtag{margin-left:10px;background:#12163f;color:#d8defe;border-radius:999px;padding:1px 9px;font-size:12px;font-weight:800;letter-spacing:.5px}
 main{max-width:1000px;margin:0 auto;padding:16px 16px 8px;overflow-wrap:anywhere}
 h1{font-size:28px;margin:8px 0 4px}
 h2{font-size:21px;margin:0 0 8px}
@@ -41,6 +43,18 @@ figure.phone figcaption{margin-top:8px;color:var(--mute);font-size:13px;line-hei
   .sec{display:grid;grid-template-columns:minmax(0,1fr) 480px;gap:28px;padding:24px}
   .sec .figs{margin-top:0;position:sticky;top:16px;align-self:start}
 }
+code{font-size:13px;overflow-wrap:anywhere}
+.ic{vertical-align:-3px}
+.how{border:1px solid var(--line);border-radius:10px;margin:8px 0;padding:0 12px}
+.how[open]{padding-bottom:4px}
+.how summary{cursor:pointer;font-weight:600;padding:10px 0}
+.how ol{margin:4px 0 8px}
+.note{background:var(--bg);border-radius:10px;padding:10px 12px;font-size:15px}
+.qrbox{text-align:center;padding:4px 0}
+.qr svg{width:220px;height:220px;background:#fff;padding:10px;border-radius:12px;border:1px solid var(--line)}
+a.open{display:inline-block;background:var(--green);color:#fff;text-decoration:none;font-weight:600;padding:10px 22px;border-radius:10px}
+@media(prefers-color-scheme:dark){a.open{color:#12170e}}
+@media(max-width:819px){.qr,.qrcap{display:none}.sec .figs.qrcol{margin-top:6px}}
 html[lang=de] [lang=en],html[lang=en] [lang=de]{display:none}
 </style>
 </head>
@@ -53,13 +67,25 @@ html[lang=de] [lang=en],html[lang=en] [lang=de]{display:none}
 <p class="lead">A shopping list for the whole family. Use it alone, or share it so everyone sees what is still missing and who put what in the basket.</p>
 <nav class="toc" aria-label="Contents"><a href="#en-install">Install</a><a href="#en-start">Getting started</a><a href="#en-share">Share and play</a><a href="#en-shop">Empties and checkout</a><a href="#en-tidy">Tidy up</a><a href="#en-more">Good to know</a></nav>
 <section class="sec" id="en-install"><div class="txt"><h2>Install</h2>
-<p>Korbjagd is a web app: there is no app store and nothing to download. Add it to your home screen and it opens like an app, with its own icon, full screen and no browser bar.</p>
-<ul>
-  <li><strong>iPhone (Safari):</strong> tap the Share symbol, then <strong>Add to Home Screen</strong>.</li>
-  <li><strong>Android (Chrome):</strong> open the menu (⋮), then <strong>Install app</strong> or <strong>Add to home screen</strong>.</li>
-  <li><strong>Computer (Chrome or Edge):</strong> click the install symbol at the right end of the address bar.</li>
-</ul>
-<p><strong>Good to know on the iPhone:</strong> the installed app has its own storage and does not see a list you started in the browser. Install first and then start your list, or share the list and join it in the app.</p></div><div class="figs"></div></section>
+<p>Korbjagd is a web app: no app store and nothing to download. You open it in the browser and put it on your home screen. Then it works like an app, with its own icon, full screen and no browser bar.</p>
+<h3>1. Open the app</h3>
+<p>On your phone, open <a href="../">the app</a> (<code data-url></code>). Reading this on a computer? Scan the code on the right with your phone's camera.</p>
+<h3>2. Put it on your home screen</h3>
+<details class="how" data-os="ios"><summary>iPhone (Safari)</summary>
+<ol>
+  <li>Tap the share button <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="ic"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/></svg> (a box with an arrow pointing up) at the bottom of the screen.</li>
+  <li>Scroll down in the list and tap <strong>Add to Home Screen</strong>.</li>
+  <li>Tap <strong>Add</strong> at the top right.</li>
+</ol></details>
+<details class="how" data-os="android"><summary>Android (Chrome)</summary>
+<ol>
+  <li>Tap the menu <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="ic"><circle cx="12" cy="5" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="19" r="1.6" fill="currentColor"/></svg> (three dots) at the top right.</li>
+  <li>Tap <strong>Install app</strong> or <strong>Add to Home screen</strong>.</li>
+  <li>Confirm with <strong>Install</strong>.</li>
+</ol></details>
+<details class="how" data-os="desktop"><summary>Computer (Chrome or Edge)</summary>
+<p>Click the install icon at the right end of the address bar, then <strong>Install</strong>.</p></details>
+<p class="note"><strong>iPhone:</strong> the installed app has its own storage and does not see a list you started in the browser. Install first and then start your list, or share the list and join it in the app.</p></div><div class="figs qrcol"><div class="qrbox"><div class="qr" data-qr></div><p class="muted qrcap">Scan with your phone to open the app</p><p><a class="open" href="../">Open the app</a></p><p class="muted"><code data-url></code></p></div></div></section>
 <section class="sec" id="en-start"><div class="txt"><h2>Getting started</h2>
 <p>Open the app and add items. Your list lives <strong>on your phone</strong>, works without internet and needs no name.</p>
 <ul>
@@ -129,13 +155,25 @@ html[lang=de] [lang=en],html[lang=en] [lang=de]{display:none}
 <p class="lead">Eine Einkaufsliste für die ganze Familie. Du kannst sie allein benutzen oder teilen, damit alle sehen, was noch fehlt und wer was in den Korb gelegt hat.</p>
 <nav class="toc" aria-label="Inhalt"><a href="#de-install">Installieren</a><a href="#de-start">Loslegen</a><a href="#de-share">Teilen und mitspielen</a><a href="#de-shop">Leergut und Kasse</a><a href="#de-tidy">Aufräumen</a><a href="#de-more">Gut zu wissen</a></nav>
 <section class="sec" id="de-install"><div class="txt"><h2>Installieren</h2>
-<p>Korbjagd ist eine Web-App: Du brauchst keinen App Store und lädst nichts herunter. Füge sie zum Home-Bildschirm hinzu, dann öffnet sie sich wie eine App, mit eigenem Symbol, im Vollbild und ohne Browserleiste.</p>
-<ul>
-  <li><strong>iPhone (Safari):</strong> auf das Teilen-Symbol tippen, dann <strong>Zum Home-Bildschirm</strong>.</li>
-  <li><strong>Android (Chrome):</strong> Menü (⋮) öffnen, dann <strong>App installieren</strong> oder <strong>Zum Startbildschirm hinzufügen</strong>.</li>
-  <li><strong>Computer (Chrome oder Edge):</strong> auf das Installieren-Symbol am rechten Ende der Adressleiste klicken.</li>
-</ul>
-<p><strong>Gut zu wissen auf dem iPhone:</strong> Die installierte App hat einen eigenen Speicher und sieht eine Liste nicht, die du vorher im Browser angelegt hast. Installiere zuerst und lege dann deine Liste an, oder teile die Liste und tritt ihr in der App bei.</p></div><div class="figs"></div></section>
+<p>Korbjagd ist eine Web-App: Du brauchst keinen App Store und lädst nichts herunter. Du öffnest sie im Browser und legst sie auf den Home-Bildschirm. Dann verhält sie sich wie eine App, mit eigenem Symbol, im Vollbild und ohne Browserleiste.</p>
+<h3>1. App öffnen</h3>
+<p>Öffne <a href="../">die App</a> (<code data-url></code>) auf deinem Handy. Liest du das am Computer? Scanne den Code rechts mit der Handykamera.</p>
+<h3>2. Auf den Home-Bildschirm legen</h3>
+<details class="how" data-os="ios"><summary>iPhone (Safari)</summary>
+<ol>
+  <li>Tippe unten auf den Teilen-Knopf <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="ic"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/></svg> (ein Kasten mit einem Pfeil nach oben).</li>
+  <li>Scrolle in der Liste nach unten und tippe auf <strong>Zum Home-Bildschirm</strong>.</li>
+  <li>Tippe oben rechts auf <strong>Hinzufügen</strong>.</li>
+</ol></details>
+<details class="how" data-os="android"><summary>Android (Chrome)</summary>
+<ol>
+  <li>Tippe oben rechts auf das Menü <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="ic"><circle cx="12" cy="5" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="19" r="1.6" fill="currentColor"/></svg> (drei Punkte).</li>
+  <li>Tippe auf <strong>App installieren</strong> oder <strong>Zum Startbildschirm hinzufügen</strong>.</li>
+  <li>Bestätige mit <strong>Installieren</strong>.</li>
+</ol></details>
+<details class="how" data-os="desktop"><summary>Computer (Chrome oder Edge)</summary>
+<p>Klicke am rechten Ende der Adressleiste auf das Installieren-Symbol, dann auf <strong>Installieren</strong>.</p></details>
+<p class="note"><strong>iPhone:</strong> Die installierte App hat einen eigenen Speicher und sieht keine Liste, die du vorher im Browser angelegt hast. Installiere zuerst und lege dann deine Liste an, oder teile die Liste und tritt ihr in der App bei.</p></div><div class="figs qrcol"><div class="qrbox"><div class="qr" data-qr></div><p class="muted qrcap">Mit dem Handy scannen, um die App zu öffnen</p><p><a class="open" href="../">App öffnen</a></p><p class="muted"><code data-url></code></p></div></div></section>
 <section class="sec" id="de-start"><div class="txt"><h2>Loslegen</h2>
 <p>Öffne die App und füge Artikel hinzu. Deine Liste liegt <strong>auf deinem Handy</strong>, funktioniert ohne Internet und braucht keinen Namen.</p>
 <ul>
@@ -203,9 +241,25 @@ html[lang=de] [lang=en],html[lang=en] [lang=de]{display:none}
 </main>
 <script type="module">
 import { lang } from '../i18n.js';
+import { IS_DEV } from '../env.js';
 document.documentElement.lang = lang;
 document.title = lang === 'de' ? 'Hilfe' : 'Help';
 document.getElementById('back').textContent = lang === 'de' ? '← Einkaufsliste' : '← Shopping list';
+// the instructions of the device you are on are open, the others fold away
+const ua = navigator.userAgent, os = /iPhone|iPad|iPod/.test(ua) ? 'ios' : /Android/.test(ua) ? 'android' : 'desktop';
+document.querySelectorAll(`details.how[data-os="${os}"]`).forEach(d => { d.open = true; });
+const appUrl = new URL('../', location.href).href;
+document.querySelectorAll('[data-url]').forEach(el => { el.textContent = appUrl.replace(/^https?:\/\//, '').replace(/\/$/, ''); });
+if (matchMedia('(min-width: 820px)').matches) {
+  const sc = document.createElement('script'); sc.src = '../vendor/qrcode.js';
+  sc.onload = () => { const q = window.qrcode(0, 'M'); q.addData(appUrl); q.make(); document.querySelectorAll('[data-qr]').forEach(el => { el.innerHTML = q.createSvgTag({ cellSize: 6, margin: 2, scalable: true }); }); };
+  document.head.appendChild(sc);
+}
+if (IS_DEV) {
+  document.body.classList.add('dev'); document.title += ' DEV';
+  document.querySelector('meta[name=theme-color]').content = '#7d8de6';
+  document.getElementById('back').insertAdjacentHTML('afterend', '<span class="devtag">DEV</span>');
+}
 </script>
 </body>
 </html>

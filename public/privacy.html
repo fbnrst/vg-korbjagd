@@ -13,6 +13,8 @@
 body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans-serif}
 header{background:var(--hdr);color:var(--hdr-fg);padding:12px 16px}
 header a{color:var(--hdr-fg);text-decoration:none;font-weight:600}
+body.dev{--hdr:#7d8de6;--hdr-fg:#0d1138} /* the dev site: same blue as the app */
+.devtag{margin-left:10px;background:#12163f;color:#d8defe;border-radius:999px;padding:1px 9px;font-size:12px;font-weight:800;letter-spacing:.5px}
 main{max-width:720px;margin:0 auto;padding:16px}
 h1{font-size:24px;margin:8px 0 4px}h2{font-size:18px;margin:26px 0 6px}
 a{color:var(--green)}
@@ -115,10 +117,16 @@ html[lang=de] [lang=en],html[lang=en] [lang=de]{display:none}
 </main>
 <script type="module">
 import { lang } from './i18n.js';
+import { IS_DEV } from './env.js';
 import legal from './legal-config.js';
 document.documentElement.lang = lang;
 document.title = lang === 'de' ? 'Datenschutz' : 'Privacy';
 document.getElementById('back').textContent = lang === 'de' ? '← Einkaufsliste' : '← Shopping list';
+if (IS_DEV) {
+  document.body.classList.add('dev'); document.title += ' DEV';
+  document.querySelector('meta[name=theme-color]').content = '#7d8de6';
+  document.getElementById('back').insertAdjacentHTML('afterend', '<span class="devtag">DEV</span>');
+}
 document.querySelectorAll('.who').forEach(el => { el.textContent = legal.name; });
 document.querySelectorAll('.contact').forEach(el => {
   const a = document.createElement('a');
