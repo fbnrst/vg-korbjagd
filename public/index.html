@@ -7,30 +7,33 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<meta name="theme-color" content="#4c8c2b">
+<meta name="theme-color" content="#8bad73">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Korbjagd">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <style>
-:root{--bg:#f4f8ee;--card:#fff;--fg:#1d2b14;--mute:#6b7a60;--green:#4c8c2b;--green2:#e3f0d8;--line:#dfe8d5;--red:#c0392b}
-@media(prefers-color-scheme:dark){:root{--bg:#141a10;--card:#1e2718;--fg:#e8f0e0;--mute:#93a186;--green:#7bc24f;--green2:#2a3a20;--line:#2c3a24;--red:#e46a5c}}
+:root{--bg:#f1f4ea;--card:#fff;--fg:#2b2f26;--mute:#666;--green:#587f06;--on-green:#fff;--accent:#669c03;--green2:#e8edde;--line:#d4dac8;--red:#b3322a;--hdr:#8bad73;--hdr-fg:#17210f;--hdr-btn:rgba(0,0,0,.1);--orange:#f7a642}
+@media(prefers-color-scheme:dark){:root{--bg:#12170e;--card:#1b2216;--fg:#e8edde;--mute:#a3b09a;--green:#8bad73;--on-green:#10150c;--accent:#8bad73;--green2:#2a3323;--line:#2e3828;--red:#e46a5c;--hdr:#232d1b;--hdr-fg:#e8edde;--hdr-btn:rgba(255,255,255,.12);--orange:#f7a642}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.4 system-ui,sans-serif;padding-bottom:env(safe-area-inset-bottom)}
-header{position:sticky;top:0;z-index:5;background:var(--green);color:#fff;padding:10px 16px;display:flex;align-items:center;gap:10px}
-header h1{font-size:18px;margin:0;flex:1}
-header button{background:rgba(255,255,255,.2);color:#fff;border:0;border-radius:8px;padding:6px 10px;font-size:14px}
-header .ibtn{width:38px;height:38px;padding:0;display:grid;place-items:center}
+header{position:sticky;top:0;z-index:5;background:var(--hdr);color:var(--hdr-fg);padding:6px 12px;display:flex;align-items:center;gap:10px}
+header h1{font-size:17px;margin:0;flex:1}
+header button{background:var(--hdr-btn);color:var(--hdr-fg);border:0;border-radius:8px;padding:6px 10px;font-size:14px}
+header .ibtn{width:36px;height:36px;padding:0;display:grid;place-items:center}
 header .ibtn.hide{display:none}
-#dot{width:10px;height:10px;border-radius:50%;background:#e74c3c}#dot.on{background:#8cff6a}
-main{max-width:640px;margin:0 auto;padding:12px 16px calc(150px + env(safe-area-inset-bottom))}
+#dot{width:10px;height:10px;border-radius:50%;background:var(--red)}#dot.on{background:var(--green)}
+main{max-width:640px;margin:0 auto;padding:8px 16px calc(150px + env(safe-area-inset-bottom))}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
 input,button{font:inherit}
 input[type=text],input[type=number]{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg)}
-.btn{background:var(--green);color:#fff;border:0;border-radius:10px;padding:10px 14px;font-weight:600}
+.btn{background:var(--green);color:var(--on-green);border:0;border-radius:10px;padding:10px 14px;font-weight:600}
 .btn.sec{background:var(--green2);color:var(--fg)}
-.btn.sec.on{background:var(--green);color:#fff}
+.btn.sec.on{background:var(--green);color:var(--on-green)}
+a{color:var(--green)}
 .btn.danger{color:var(--red)}
+.opt{display:flex;gap:10px;align-items:center;padding:8px 0;cursor:pointer}
+.opt input{width:20px;height:20px;accent-color:var(--green)}
 .row{display:flex;gap:8px;align-items:center}
 /* Input bar pinned above the tab bar; while typing it moves onto the keyboard (--kb comes from visualViewport) */
 :root{--tabs:46px}
@@ -46,17 +49,21 @@ body.typing main{padding-bottom:90px}
 .tabs button.on{color:var(--green);font-weight:700}
 .item{display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--line)}
 .item:last-child{border:0}
-.chk{width:30px;height:30px;border-radius:50%;border:2px solid var(--green);background:none;flex:none;color:#fff;font-size:18px;line-height:1}
+.chk{width:30px;height:30px;border-radius:50%;border:2px solid var(--green);background:none;flex:none;color:var(--on-green);font-size:18px;line-height:1}
 .item.done .chk{background:var(--green)}
 .item.done .t{text-decoration:line-through;color:var(--mute)}
 .t{flex:1;min-width:84px;overflow-wrap:anywhere}#addSuggest{display:flex;flex-direction:column;gap:6px;margin-bottom:8px;max-height:38vh;overflow:auto}
 #addSuggest .sug{display:flex;gap:12px;align-items:baseline;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;color:var(--fg);font:inherit}
 #addSuggest .sug b{min-width:48px;color:var(--green);font-variant-numeric:tabular-nums}
 #addSuggest .miss{padding:6px 4px;color:var(--mute);font-size:14px}
-.dep{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}.dep:last-child{border:0}.dep .t{flex:1}.dep .n{min-width:28px;text-align:center;font-weight:700;font-size:18px}.dep button{width:38px;height:38px;border-radius:50%;border:2px solid var(--green);background:none;color:var(--fg);font-size:22px;line-height:1}.dep button.add{background:var(--green);color:#fff}
+.dep{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}.dep:last-child{border:0}.dep .t{flex:1}.dep .n{min-width:28px;text-align:center;font-weight:700;font-size:18px}.dep button{width:38px;height:38px;border-radius:50%;border:2px solid var(--green);background:none;color:var(--fg);font-size:22px;line-height:1}.dep button.add{background:var(--green);color:var(--on-green)}
 .ks{margin-bottom:12px}.ks h3{margin:0 0 4px;font-size:14px;color:var(--mute);text-transform:uppercase;letter-spacing:.5px}.kr{display:flex;align-items:center;gap:10px;padding:12px 4px;border-bottom:1px solid var(--line);cursor:pointer}.kr:last-child{border:0}.kr .nm{flex:1;min-width:0;overflow-wrap:anywhere}.kr .nm small{color:var(--mute);margin-left:6px}.kr .no{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}.kr .no small{font-size:15px;font-weight:400;color:var(--mute)}.kr.off{opacity:.35}.kr.off .nm{text-decoration:line-through}
 #codeIn::placeholder{text-transform:none}
-#legalLinks a,.privacyLink{color:var(--green)}
+.privacyLink{color:var(--green)}
+.menu{position:absolute;right:12px;top:100%;margin-top:4px;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.3);min-width:180px;z-index:7;overflow:hidden}
+.menu a,.menu a.privacyLink{display:block;padding:12px 16px;color:var(--fg);text-decoration:none}
+.menu a+a{border-top:1px solid var(--line)}
+.menu.hide{display:none}
 .t small{display:block;color:var(--mute);font-size:12px}
 .item input.vg{width:64px;padding:6px 8px;font-size:14px}.item form{flex:none}
 .badge{flex:none;background:var(--green2);border-radius:999px;padding:2px 8px;font-size:12px;white-space:nowrap}
@@ -66,7 +73,7 @@ body.typing main{padding-bottom:90px}
 .emojis button.on{border-color:var(--green)}
 .podium{display:flex;align-items:flex-end;justify-content:center;gap:10px;margin:14px 0;min-height:150px}
 .pod{text-align:center;flex:1;max-width:110px}
-.pod .bar{background:var(--green);border-radius:10px 10px 0 0;color:#fff;font-weight:700;padding-top:6px}
+.pod .bar{background:var(--green);border-radius:10px 10px 0 0;color:var(--on-green);font-weight:700;padding-top:6px}
 .pod .e{font-size:34px}
 .rank{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
 .rank b{margin-left:auto;font-size:20px}
@@ -74,7 +81,7 @@ body.typing main{padding-bottom:90px}
 #toast.show{transform:translateX(-50%) translateY(0)}
 .muted{color:var(--mute)}.hide{display:none!important}
 .big{font-size:22px;letter-spacing:4px;font-weight:700}
-#shareDlg,#importDlg{position:fixed;inset:0;z-index:30;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px}
+#shareDlg,#importDlg,#resetDlg{position:fixed;inset:0;z-index:30;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px}
 #qr svg{width:100%;max-width:260px;height:auto;background:#fff;border-radius:10px}
 #scanner{position:fixed;inset:0;z-index:30;background:#000;color:#fff;display:flex;flex-direction:column;align-items:center;gap:12px;padding:16px}
 #scanner video{width:100%;max-width:520px;flex:1;min-height:0;object-fit:cover;border-radius:14px}
@@ -86,9 +93,11 @@ body.typing main{padding-bottom:90px}
 <body>
 <header>
   <span id="dot" title="Connection"></span>
-  <h1 id="title">🛒 Shopping list</h1>
-  <button id="newBtn" class="hide ibtn" type="button" aria-label="New list" title="New list"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 11v6M9 14h6"/></svg></button>
+  <h1 id="headInfo">🛒 0/0</h1>
+  <button id="listBtn" class="hide ibtn" type="button" aria-label="Reset list" title="Reset list"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg></button>
+  <button id="helpBtn" class="ibtn" type="button" aria-label="Help &amp; privacy" title="Help &amp; privacy" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2.5-3 4"/><path d="M12 17.5h.01"/></svg></button>
   <button id="shareBtn" class="hide ibtn" type="button" aria-label="Share" title="Share"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/></svg></button>
+  <div id="helpMenu" class="menu hide" role="menu"><a href="docs/index.html" id="helpLink" role="menuitem">Help</a><a href="privacy.html" class="privacyLink" role="menuitem">Privacy</a></div>
 </header>
 <div id="toast"></div>
 <div id="shareDlg" class="hide">
@@ -110,6 +119,20 @@ body.typing main{padding-bottom:90px}
       <p class="big" id="shareCode" style="margin:10px 0"></p>
       <div class="row" style="justify-content:center"><button class="btn sec" id="shareLink" type="button">Send link</button><button class="btn" id="shareClose" type="button">Done</button></div>
       <p style="margin:8px 0 0"><button class="btn sec danger" id="deleteBtn" type="button">Delete this list for everyone</button></p>
+    </div>
+  </div>
+</div>
+<div id="resetDlg" class="hide">
+  <div class="card" style="max-width:360px;width:100%">
+    <h2 id="resetTitle" style="margin:0 0 6px">Reset list</h2>
+    <p id="resetShared" class="muted hide" style="margin:0 0 8px;font-size:13px">This applies to everyone on the shared list.</p>
+    <label class="opt"><input type="radio" name="resetWhat" value="done" checked> <span id="resetDoneLbl">Checked-off items only</span></label>
+    <label class="opt"><input type="radio" name="resetWhat" value="all"> <span id="resetAllLbl">All items</span></label>
+    <label class="opt"><input type="checkbox" id="resetEmpties" checked> <span id="resetEmptiesLbl">Also clear empties</span></label>
+    <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn sec" id="resetCancel" type="button">Cancel</button><button class="btn" id="resetGo" type="button">Reset</button></div>
+    <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px">
+      <button class="btn sec" id="resetImport" type="button">📥 Import from the VG app</button>
+      <button class="btn sec hide" id="resetLeave" type="button">Leave this list</button>
     </div>
   </div>
 </div>
@@ -158,17 +181,12 @@ body.typing main{padding-bottom:90px}
     </div>
     <div class="card" id="items"></div>
     <div class="card hide" id="doneCard"><div id="doneHead" class="muted" style="font-weight:600;margin-bottom:4px"></div><div id="doneItems"></div></div>
-    <div class="row" style="flex-wrap:wrap">
-      <button class="btn sec" id="clearBtn">Remove done</button>
-      <button class="btn sec" id="importBtn" title="Fetch a list from the VG app">📥 VG app</button>
-      <span class="muted" id="count" style="margin-left:auto"></span>
-    </div>
   </section>
 
   <!-- Empties -->
   <section id="vDeposit" class="hide">
     <div class="card" id="depItems"></div>
-    <div class="row" style="flex-wrap:wrap"><button class="btn sec" id="depClear">Clear empties</button><span class="muted" id="depTotal" style="margin-left:auto"></span></div>
+    <div class="row"><span class="muted" id="depTotal" style="margin-left:auto"></span></div>
     <p id="emptiesHint" class="muted" style="font-size:13px">Each piece scores one point on the leaderboard.</p>
   </section>
 
@@ -187,7 +205,6 @@ body.typing main{padding-bottom:90px}
       <button class="btn sec" id="resetBtn" style="margin-top:12px">New round</button>
     </div>
   </section>
-  <p id="legalLinks" class="muted" style="text-align:center;font-size:13px;margin:24px 0 0"><a href="docs/index.html" id="helpLink">Help</a> · <a href="privacy.html" class="privacyLink">Privacy</a></p>
 </main>
 <nav class="tabs hide" id="tabs">
   <button data-t="vList" class="on">📝 List</button>

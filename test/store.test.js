@@ -180,3 +180,17 @@ test('deleteList removes the whole list', async () => {
   assert.equal(await db.get(c, 'items'), null);
   assert.equal(await db.get(c, 'scores'), null);
 });
+
+test('clearAll removes all items but keeps points and empties; clearChecked keeps open items', async () => {
+  const { s, db } = setup(); const c = await s.create();
+  await s.add(c, item('c1', 'Milk'), A); await s.add(c, item('c2', 'Bread'), A);
+  await s.check(c, 'c1', A, true); await s.depositAdd(c, '1', A);
+  await s.clearChecked(c);
+  assert.deepEqual(Object.keys(await db.get(c, 'items')), ['c2']);
+  await s.clearAll(c);
+  assert.equal(await db.get(c, 'items'), null);
+  assert.equal((await db.get(c, 'scores'))[A], 2);                  // item point + empties point stay
+  assert.equal((await db.get(c, 'deposit'))['1'][A], 1);            // empties are cleared separately
+  await s.clearDeposit(c);
+  assert.equal(await db.get(c, 'deposit'), null);
+});

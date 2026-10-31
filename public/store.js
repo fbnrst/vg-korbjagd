@@ -171,6 +171,8 @@ export function createStore(db) {
       }
       await db.update(code, `scores/${user}`, n => (n == null ? 0 : undefined));
     },
+    // Remove every item (points and empties stay, like clearChecked)
+    clearAll: code => db.remove(code, 'items'),
     async clearChecked(code) {
       const items = (await db.get(code, 'items')) || {};
       await Promise.all(Object.values(items).filter(i => i.checked).map(i => db.remove(code, `items/${i.id}`)));
@@ -194,7 +196,7 @@ export function createStore(db) {
     touched[code] = now;
     return touch0(code);
   };
-  for (const name of ['join', 'add', 'check', 'setNum', 'remove', 'depositAdd', 'depositRemove', 'clearDeposit', 'clearChecked', 'resetScores', 'importList']) {
+  for (const name of ['join', 'add', 'check', 'setNum', 'remove', 'depositAdd', 'depositRemove', 'clearDeposit', 'clearChecked', 'clearAll', 'resetScores', 'importList']) {
     const fn = store[name];
     store[name] = async (code, ...args) => { const r = await fn(code, ...args); touch(code); return r; };
   }

@@ -71,7 +71,8 @@ function render() {
   $('#doneCard').classList.toggle('hide', !done.length);
   $('#doneHead').textContent = t('inBasketHead', { n: done.length });
   $('#doneItems').innerHTML = done.map(itemHtml).join('');
-  $('#count').textContent = t('countInBasket', { done: done.length, all: all.length });
+  $('#headInfo').textContent = `🛒 ${done.length}/${all.length}`;
+  $('#headInfo').title = t('countInBasket', { done: done.length, all: all.length });
   renderDeposit(); renderCheckout();
 
   const rank = Object.entries(state.scores).sort((a, b) => b[1] - a[1]);
@@ -223,7 +224,6 @@ function openImport(text = '') {
   $('#importDlg').classList.remove('hide'); $('#importIn').value = text; $('#importMsg').textContent = '';
   if (text) $('#importGo').click();
 }
-$('#importBtn').onclick = () => openImport();
 $('#importClose').onclick = () => $('#importDlg').classList.add('hide');
 $('#importGo').onclick = async () => {
   const link = parseShareLink($('#importIn').value), msg = $('#importMsg');
@@ -244,8 +244,6 @@ $('#importGo').onclick = async () => {
     toast(t('toastImported', { n: added }));
   } catch (e) { msg.textContent = t('importFail'); }
 };
-$('#clearBtn').onclick = () => { if (confirm(t('confirmClearDone'))) store.clearChecked(code); };
-$('#depClear').onclick = () => { if (confirm(t('confirmClearEmpties'))) store.clearDeposit(code); };
 $('#resetBtn').onclick = () => { if (confirm(t('confirmReset'))) store.resetScores(code); };
 /* ---------- Sharing (QR code + link) ---------- */
 const shareUrl = () => new URL(`?list=${code}`, location.href.split('?')[0]).href;
@@ -277,15 +275,36 @@ $('#shareDlg').onclick = e => { if (e.target.id === 'shareDlg') closeShareDialog
 $('#shareStart').onclick = () => { closeShareDialog(); me.name ? shareLocalList() : askIdentity(shareLocalList); };
 $('#joinBtn').onclick = () => { const c = $('#codeIn').value.trim().toUpperCase(); if (c) { closeShareDialog(); joinShared(c); } };
 const forgetShared = () => { LS.set('code', ''); history.replaceState(null, '', location.pathname); };
-// "New list": on the local list it clears it, on a shared list it leaves it for a fresh local list
-$('#newBtn').onclick = async () => {
-  if (isLocal()) {
-    if (!Object.keys(state.items).length && !Object.keys(state.deposit).length) return; // nothing to throw away
-    if (confirm(t('confirmNewLocal'))) await localDb.remove(LOCAL, ''); // the subscription shows the empty list
-    return;
-  }
+// "?" menu in the header: help and privacy
+{
+  const menu = $('#helpMenu'), btn = $('#helpBtn');
+  const setOpen = open => { menu.classList.toggle('hide', !open); btn.setAttribute('aria-expanded', String(open)); };
+  btn.onclick = e => { e.stopPropagation(); setOpen(menu.classList.contains('hide')); };
+  document.addEventListener('click', e => { if (!e.target.closest('#helpMenu')) setOpen(false); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') setOpen(false); });
+}
+
+// Reset dialog (header): choose what to clear (default: checked-off items and empties). Also the home of the
+// VG app import and, on a shared list, of "leave this list".
+const closeReset = () => $('#resetDlg').classList.add('hide');
+$('#listBtn').onclick = () => {
+  document.querySelector('input[name=resetWhat][value=done]').checked = true; $('#resetEmpties').checked = true;
+  $('#resetShared').classList.toggle('hide', isLocal()); $('#resetLeave').classList.toggle('hide', isLocal());
+  $('#resetDlg').classList.remove('hide');
+};
+$('#resetCancel').onclick = closeReset;
+$('#resetDlg').onclick = e => { if (e.target.id === 'resetDlg') closeReset(); };
+$('#resetGo').onclick = async () => {
+  const all = document.querySelector('input[name=resetWhat]:checked').value === 'all';
+  if (all && Object.keys(state.items).length && !confirm(t(isLocal() ? 'confirmClearAll' : 'confirmClearAllShared'))) return;
+  closeReset();
+  await (all ? store.clearAll(code) : store.clearChecked(code));
+  if ($('#resetEmpties').checked) await store.clearDeposit(code);
+};
+$('#resetImport').onclick = () => { closeReset(); openImport(); };
+$('#resetLeave').onclick = () => {
   if (!confirm(t('confirmLeave'))) return;
-  forgetShared(); startLocal();
+  closeReset(); forgetShared(); startLocal();
 };
 $('#deleteBtn').onclick = async () => {
   if (!confirm(t('confirmDeleteList'))) return;
@@ -397,7 +416,7 @@ $('#newList').onclick = () => {
   const next = pending; pending = null; if (next) next();
 };
 function enterApp() {
-  $('#tabs').classList.remove('hide'); $('#shareBtn').classList.remove('hide'); $('#newBtn').classList.remove('hide');
+  $('#tabs').classList.remove('hide'); $('#shareBtn').classList.remove('hide'); $('#listBtn').classList.remove('hide');
   document.body.classList.toggle('local', isLocal());
   show('vList');
   connect();

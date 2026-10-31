@@ -4,15 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Help</title>
-<meta name="theme-color" content="#4c8c2b">
+<meta name="theme-color" content="#8bad73">
 <link rel="icon" href="../icon.svg" type="image/svg+xml">
 <style>
-:root{--bg:#f4f8ee;--card:#fff;--fg:#1d2b14;--mute:#6b7a60;--green:#4c8c2b;--line:#dfe8d5}
-@media(prefers-color-scheme:dark){:root{--bg:#141a10;--card:#1e2718;--fg:#e8f0e0;--mute:#93a186;--green:#7bc24f;--line:#2c3a24}}
+:root{--bg:#f1f4ea;--card:#fff;--fg:#2b2f26;--mute:#666;--green:#587f06;--line:#d4dac8;--hdr:#8bad73;--hdr-fg:#17210f}
+@media(prefers-color-scheme:dark){:root{--bg:#12170e;--card:#1b2216;--fg:#e8edde;--mute:#a3b09a;--green:#8bad73;--line:#2e3828;--hdr:#232d1b;--hdr-fg:#e8edde}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans-serif}
-header{background:var(--green);color:#fff;padding:12px 16px}
-header a{color:#fff;text-decoration:none;font-weight:600}
+header{background:var(--hdr);color:var(--hdr-fg);padding:12px 16px}
+header a{color:var(--hdr-fg);text-decoration:none;font-weight:600}
 main{max-width:720px;margin:0 auto;padding:16px;overflow-wrap:anywhere}
 h1{font-size:24px;margin:8px 0 4px}h2{font-size:18px;margin:26px 0 6px}
 a{color:var(--green)}
@@ -43,7 +43,7 @@ html[lang=de] [lang=en],html[lang=en] [lang=de]{display:none}
   <li><a href="#en-checkout">Checkout</a></li>
   <li><a href="#en-share">Sharing a list</a></li>
   <li><a href="#en-ranking">Ranking and points</a></li>
-  <li><a href="#en-local">Start a new list</a></li>
+  <li><a href="#en-local">Reset the list</a></li>
   <li><a href="#en-offline">No internet?</a></li>
   <li><a href="#en-install">Put it on your home screen</a></li>
   <li><a href="#en-privacy">Privacy</a></li>
@@ -61,18 +61,18 @@ html[lang=de] [lang=en],html[lang=en] [lang=de]{display:none}
   <li><strong>By name:</strong> type a name and tap <strong>+</strong>. While you type, the app suggests products from the VG product list.</li>
   <li><strong>By VG number:</strong> type the number. From three digits on, a list of matching products appears: tap one to add it right away. The <strong>123</strong> switch gives you a number keyboard that accepts digits only.</li>
   <li><strong>By barcode:</strong> tap <strong>📷</strong> and hold the barcode inside the frame. If the item is already on your list, it is checked off. If not, it is added and checked off right away. The first time, your phone asks for permission to use the camera.</li>
-  <li><strong>From the VG app:</strong> share a list in the VG app and copy the link. Then paste it into the bar, or tap <strong>📥 VG app</strong> and paste it there. The items arrive as open items. Items that are already on your list are skipped.</li>
+  <li><strong>From the VG app:</strong> share a list in the VG app and copy the link. Then paste it into the bar, or tap the <strong>reset symbol</strong> at the top and choose <strong>📥 Import from the VG app</strong>. The items arrive as open items. Items that are already on your list are skipped.</li>
 </ul>
 <p><strong>Only a name, no number?</strong> The item shows a small <strong>No.</strong> field. Type the VG number there to add it later. This also puts the item in the basket.</p>
 <p>Tap <strong>×</strong> to delete an item. The app asks first.</p>
 
 <h2 id="en-basket">Checking items off</h2>
 <p>Tap the circle next to an item when it is in your basket. The item moves from the open list to the separate section <strong>In the basket</strong>. Tapped by mistake? Tap the check mark there and the item goes back to the open list.</p>
-<p><strong>Remove done</strong> deletes all items in the basket from the list.</p>
+<p>To tidy up after shopping, tap the <strong>reset symbol</strong> at the top (see “Reset the list”). By default it removes the items in the basket and clears the empties.</p>
 
 <h2 id="en-empties">Empties</h2>
 <p>The <strong>Empties</strong> tab lists the deposit types with their VG numbers. Tap <strong>+</strong> for every bottle or jar you bring back and <strong>−</strong> to take one away.</p>
-<p>Once the list is shared, every piece scores one point. <strong>Clear empties</strong> sets the counters back to zero. Points you already earned stay.</p>
+<p>Once the list is shared, every piece scores one point. The reset dialog can set the counters back to zero. Points you already earned stay.</p>
 
 <h2 id="en-checkout">Checkout</h2>
 <p>The <strong>Checkout</strong> tab shows everything in your basket in alphabetical order, with the VG numbers in big print, so you can type them in quickly at the checkout.</p>
@@ -106,15 +106,16 @@ html[lang=de] [lang=en],html[lang=en] [lang=de]{display:none}
   <li>Items that were already checked off at the moment of sharing give no points.</li>
   <li>From then on, every item you check off gives you <strong>1 point</strong>. Every empties piece you add gives <strong>1 point</strong>.</li>
   <li>If you un-check or delete an item, the point is taken away again.</li>
-  <li>Removing items with <strong>Remove done</strong> or <strong>Clear empties</strong> keeps the points.</li>
+  <li>Removing items or clearing empties with the reset button keeps the points.</li>
   <li>Equal points share the same place. Two people can both have gold.</li>
   <li><strong>New round</strong> (in the <strong>Ranking</strong> tab) sets everyone's points to what is in the basket and in the empties right now.</li>
 </ul>
 <p>A list that is not shared has no <strong>Ranking</strong> tab.</p>
 
-<h2 id="en-local">Start a new list</h2>
-<p>Tap the <strong>New list</strong> button (the page with a plus) in the top bar, next to the share button. On your local list it clears the list after you confirm. On a shared list you leave it and get an empty list on your phone; the shared list stays online for the others and you can join it again with the code.</p>
-<p><strong>Delete a list:</strong> in the same dialog, <strong>Delete this list for everyone</strong> removes the shared list permanently, for all members. This cannot be undone. Shared lists that nobody has opened or changed for 30 days are deleted automatically. Your local list on your phone is never deleted automatically.</p>
+<h2 id="en-local">Reset the list</h2>
+<p>Tap the <strong>reset symbol</strong> (circular arrow) in the top bar. Choose what to remove: <strong>Checked-off items only</strong> (default) or <strong>All items</strong>, and whether to <strong>Also clear empties</strong> (default: yes). Then tap <strong>Reset</strong>. Points are never removed by a reset.</p>
+<p>On a shared list the reset applies to everyone, and the dialog also offers <strong>Leave this list</strong>: you leave the shared list and get an empty list on your phone. The shared list stays online for the others and you can join it again with the code.</p>
+<p><strong>Delete a list:</strong> tap the share symbol, then <strong>Delete this list for everyone</strong> removes the shared list permanently, for all members. This cannot be undone. Shared lists that nobody has opened or changed for 30 days are deleted automatically. Your local list on your phone is never deleted automatically.</p>
 
 <h2 id="en-offline">No internet?</h2>
 <ul>
@@ -166,7 +167,7 @@ html[lang=de] [lang=en],html[lang=en] [lang=de]{display:none}
   <li><a href="#de-checkout">Kasse</a></li>
   <li><a href="#de-share">Liste teilen</a></li>
   <li><a href="#de-ranking">Rangliste und Punkte</a></li>
-  <li><a href="#de-local">Neue Liste beginnen</a></li>
+  <li><a href="#de-local">Liste zurücksetzen</a></li>
   <li><a href="#de-offline">Kein Internet?</a></li>
   <li><a href="#de-install">Auf den Startbildschirm legen</a></li>
   <li><a href="#de-privacy">Datenschutz</a></li>
@@ -184,18 +185,18 @@ html[lang=de] [lang=en],html[lang=en] [lang=de]{display:none}
   <li><strong>Mit Namen:</strong> Namen eintippen und <strong>+</strong> tippen. Beim Tippen schlägt die App Produkte aus der VG-Produktliste vor.</li>
   <li><strong>Mit VG-Nummer:</strong> die Zahl eintippen. Ab drei Ziffern erscheint eine Liste passender Produkte: Ein Tipp darauf fügt das Produkt sofort ein. Mit dem Schalter <strong>123</strong> bekommst du eine Zahlentastatur, die nur Ziffern annimmt.</li>
   <li><strong>Mit Barcode:</strong> <strong>📷</strong> tippen und den Strichcode in den Rahmen halten. Steht der Artikel schon auf der Liste, wird er abgehakt. Sonst wird er neu angelegt und gleich abgehakt. Beim ersten Mal fragt dein Handy, ob die App die Kamera benutzen darf.</li>
-  <li><strong>Aus der VG-App:</strong> In der VG-App eine Liste teilen und den Link kopieren. Dann den Link in die Leiste einfügen oder <strong>📥 VG-App</strong> tippen und ihn dort einfügen. Die Artikel kommen offen auf die Liste. Was schon auf der Liste steht, wird übersprungen.</li>
+  <li><strong>Aus der VG-App:</strong> In der VG-App eine Liste teilen und den Link kopieren. Dann den Link in die Leiste einfügen oder oben auf das <strong>Zurücksetzen-Symbol</strong> tippen und <strong>📥 Aus der VG-App importieren</strong> wählen. Die Artikel kommen offen auf die Liste. Was schon auf der Liste steht, wird übersprungen.</li>
 </ul>
 <p><strong>Nur ein Name, keine Nummer?</strong> Der Artikel hat ein kleines Feld <strong>Nr.</strong>. Dort kannst du die VG-Nummer später eintragen. Das legt den Artikel auch gleich in den Korb.</p>
 <p>Mit <strong>×</strong> löschst du einen Artikel. Die App fragt vorher nach.</p>
 
 <h2 id="de-basket">Abhaken</h2>
 <p>Tippe auf den Kreis neben einem Artikel, wenn er im Korb liegt. Der Artikel wandert aus der offenen Liste in den eigenen Bereich <strong>Im Korb</strong>. Aus Versehen getippt? Tippe dort auf das Häkchen, dann geht der Artikel zurück auf die offene Liste.</p>
-<p><strong>Erledigte entfernen</strong> löscht alle Artikel im Korb von der Liste.</p>
+<p>Zum Aufräumen nach dem Einkauf oben auf das <strong>Zurücksetzen-Symbol</strong> tippen (siehe „Liste zurücksetzen“). Voreingestellt entfernt es die Artikel im Korb und leert das Leergut.</p>
 
 <h2 id="de-empties">Leergut</h2>
 <p>Im Reiter <strong>Leergut</strong> stehen die Pfand-Sorten mit ihren VG-Nummern. Tippe <strong>+</strong> für jede Flasche oder jedes Glas, das du zurückbringst, und <strong>−</strong>, um eines abzuziehen.</p>
-<p>Sobald die Liste geteilt ist, zählt jedes Stück einen Punkt. <strong>Leergut leeren</strong> setzt die Zähler auf null. Punkte, die du schon hast, bleiben.</p>
+<p>Sobald die Liste geteilt ist, zählt jedes Stück einen Punkt. Der Zurücksetzen-Dialog kann die Zähler auf null setzen. Punkte, die du schon hast, bleiben.</p>
 
 <h2 id="de-checkout">Kasse</h2>
 <p>Im Reiter <strong>Kasse</strong> steht alles aus deinem Korb in alphabetischer Reihenfolge, mit den VG-Nummern in großer Schrift. So kannst du sie an der Kasse schnell eintippen.</p>
@@ -229,15 +230,16 @@ html[lang=de] [lang=en],html[lang=en] [lang=de]{display:none}
   <li>Artikel, die beim Teilen schon abgehakt waren, geben keine Punkte.</li>
   <li>Ab dann gibt jeder Artikel, den du abhakst, <strong>1 Punkt</strong>. Jedes Stück Leergut, das du einträgst, gibt <strong>1 Punkt</strong>.</li>
   <li>Wenn du einen Artikel wieder zurücklegst oder löschst, geht der Punkt wieder ab.</li>
-  <li>Wenn du Artikel mit <strong>Erledigte entfernen</strong> oder <strong>Leergut leeren</strong> wegräumst, bleiben die Punkte.</li>
+  <li>Wenn du Artikel oder Leergut mit dem Zurücksetzen-Knopf wegräumst, bleiben die Punkte.</li>
   <li>Gleich viele Punkte bedeuten denselben Platz. Zwei Leute können beide Gold haben.</li>
   <li><strong>Neue Runde</strong> (im Reiter <strong>Rangliste</strong>) setzt die Punkte aller auf das, was gerade im Korb und beim Leergut ist.</li>
 </ul>
 <p>Eine Liste, die nicht geteilt ist, hat keinen Reiter <strong>Rangliste</strong>.</p>
 
-<h2 id="de-local">Neue Liste beginnen</h2>
-<p>Tippe oben in der Leiste neben dem Teilen-Symbol auf <strong>Neue Liste</strong> (das Blatt mit Plus). Auf deiner lokalen Liste leert es die Liste nach einer Rückfrage. Bei einer geteilten Liste verlässt du sie und bekommst eine leere Liste auf deinem Handy; die geteilte Liste bleibt für die anderen online, und mit dem Code kannst du wieder beitreten.</p>
-<p><strong>Liste löschen:</strong> im selben Fenster entfernt <strong>Liste für alle löschen</strong> die geteilte Liste endgültig, für alle Mitglieder. Das lässt sich nicht rückgängig machen. Geteilte Listen, die 30 Tage lang niemand geöffnet oder geändert hat, werden automatisch gelöscht. Deine lokale Liste auf dem Handy wird nie automatisch gelöscht.</p>
+<h2 id="de-local">Liste zurücksetzen</h2>
+<p>Tippe oben in der Leiste auf das <strong>Zurücksetzen-Symbol</strong> (runder Pfeil). Wähle, was entfernt wird: <strong>Nur erledigte Artikel</strong> (Voreinstellung) oder <strong>Alle Artikel</strong>, und ob auch das Leergut geleert wird (Voreinstellung: ja). Dann tippe auf <strong>Zurücksetzen</strong>. Punkte werden beim Zurücksetzen nie entfernt.</p>
+<p>Bei einer geteilten Liste gilt das für alle, und im Dialog gibt es außerdem <strong>Diese Liste verlassen</strong>: Du verlässt die geteilte Liste und bekommst eine leere Liste auf deinem Handy. Die geteilte Liste bleibt für die anderen online, und mit dem Code kannst du wieder beitreten.</p>
+<p><strong>Liste löschen:</strong> tippe auf das Teilen-Symbol, dann entfernt <strong>Liste für alle löschen</strong> die geteilte Liste endgültig, für alle Mitglieder. Das lässt sich nicht rückgängig machen. Geteilte Listen, die 30 Tage lang niemand geöffnet oder geändert hat, werden automatisch gelöscht. Deine lokale Liste auf dem Handy wird nie automatisch gelöscht.</p>
 
 <h2 id="de-offline">Kein Internet?</h2>
 <ul>
