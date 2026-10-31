@@ -40,7 +40,7 @@ Technical details, data model and offline behaviour: [docs/architecture.md](docs
 
 ## Releases and the dev site
 
-The site has two versions: the root shows the latest release (the newest git tag `v*`), `/dev/` shows the current `main`. Everyday work goes to `main` and only changes `/dev/`; tagging (`git tag v1.2.0 && git push origin v1.2.0`) publishes a release. `/dev/` is its own app (blue header, own icon, own storage) with a second Firebase project (`public/firebase-config.dev.js`), so trying things never touches real lists.
+The site has two versions: the root shows the latest release (the newest git tag `v*`), `/dev/` shows the current `main`. Everyday work goes to `main` and only changes `/dev/`; a release is a tag (for example `gh release create v1.2.0`) followed by `gh workflow run pages.yml --ref main`. `/dev/` is its own app (blue header, own icon, own storage) with a second Firebase project (`public/firebase-config.dev.js`), so trying things never touches real lists.
 
 ## Development
 

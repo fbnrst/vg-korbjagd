@@ -38,7 +38,7 @@ Guidance for AI agents and humans working on **vg-korbjagd**: a shared shopping 
 
 ## Release and dev site
 
-One GitHub Pages site shows two versions (`.github/workflows/pages.yml`, `scripts/build-site.mjs`): the **root is the latest release** (the newest tag `v*`; until the first tag exists it is main), **`/dev/` is the current main**. Work and push to main as usual: only `/dev/` changes. A release is cut by the user's word: `git tag vX.Y.Z && git push origin vX.Y.Z`, the workflow publishes it. Never tag on your own.
+One GitHub Pages site shows two versions (`.github/workflows/pages.yml`, `scripts/build-site.mjs`): the **root is the latest release** (the newest tag `v*`; until the first tag exists it is main), **`/dev/` is the current main**. Work and push to main as usual: only `/dev/` changes. A release is cut by the user's word: `gh release create vX.Y.Z --target main --notes-file …` (or `git tag` + push), then `gh workflow run pages.yml --ref main` publishes it (a run started by the tag itself is rejected: the environment github-pages only accepts the branch main). Check the run, then the live site. Never tag on your own.
 
 - The dev copy is its own app. `public/env.js` derives `IS_DEV` from the path and `NS`, a prefix for **every** localStorage key (`LS` in `app.js`, the local database in `store.js`, the VG cache in `vg.js`) and for the service worker's cache names, because both sites share one origin. A new storage key or cache must use `NS`, otherwise a dev build can damage the data of the release.
 - It looks different on purpose (blue header, "DEV" tag, blue icons `public/icons/dev-*.png` from `npm run icons`), and `build-site.mjs` gives it its own manifest name, so both can sit on one home screen.
