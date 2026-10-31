@@ -21,7 +21,7 @@ Wer den Code kennt, kann die Liste ansehen, ändern und löschen. Gib ihn nur Le
 - **Text:** Namen eintippen und **+** tippen. Beim Tippen schlägt die App Produkte der VG vor.
 - **VG-Nummer:** Nur die Zahl eintippen. Ab drei Ziffern erscheint eine Liste passender Produkte; ein Tipp darauf legt das Produkt gleich auf die Liste. Mit dem Schalter **123** erscheint die Zahlentastatur.
 - **Barcode:** das **Barcode-Symbol** neben dem Eingabefeld tippen und den Strichcode in den Rahmen halten (Kamera erlauben). VG-Etiketten werden als VG-Nummer gelesen, andere Strichcodes bei Open Food Facts nachgeschlagen. Der Artikel landet gleich im Korb. Geht die Kamera nicht, kann man die Zahl unter dem Bild eintippen. Neben dem Nummernfeld eines Artikels gibt es außerdem ein kleines Barcode-Symbol, um die Nummer vom Regaletikett zu scannen (bei stark abweichendem Namen wird nachgefragt); der Haken daneben bestätigt die Nummer, weil die iPhone-Zahlentastatur keine Return-Taste hat.
-- **Aus der VG-App:** In der VG-App die Liste teilen, den Link kopieren und hier einfügen, entweder ins Eingabefeld oder über **Zurücksetzen** (Kreispfeil oben) und **Aus der VG-App importieren**. Die Artikel kommen offen auf die Liste; was schon darauf steht, wird übersprungen.
+- **Aus der VG-App:** In der VG-App die Liste teilen, den Link kopieren und hier einfügen, entweder ins Eingabefeld oder über das **⋯-Menü** (oben rechts) und **Aus der VG-App importieren**. Die Artikel kommen offen auf die Liste; was schon darauf steht, wird übersprungen.
 - **Nummer nachtragen:** Offene Artikel ohne Nummer haben ein kleines Feld „Nr.“. Nummer eingeben legt den Artikel auch in den Korb.
 - **Nummer ändern:** Auf die kleine VG-Nummer unter dem Artikel tippen (bei Artikeln im Korb auf „＋ Nr.“), neue Nummer eingeben, bestätigen. Leeres Feld entfernt die Nummer; der Artikel bleibt, wo er ist.
 
@@ -38,12 +38,12 @@ Im Reiter **🧾 Kasse** stehen die Artikel im Korb, die eine VG-Nummer haben, d
 Den Reiter **🏆 Rangliste** gibt es nur auf geteilten Listen. Er zeigt das Podest und alle Punkte. Bei gleich vielen Punkten teilt man sich den Platz. Mit **Neue Runde** (mit Rückfrage) werden die Zähler einfach auf null gesetzt. Was schon im Korb liegt, zählt für niemanden.
 
 ## Nach dem Einkauf: Zurücksetzen
-Oben auf **Zurücksetzen** tippen (Kreispfeil). Dort wählst du:
+Oben rechts das **⋯-Menü** öffnen und **Liste zurücksetzen** wählen. Dort wählst du:
 - **Nur erledigte Artikel** (voreingestellt): räumt alles Abgehakte weg, offene Artikel bleiben.
 - **Alle Artikel:** leert die ganze Liste (mit Rückfrage).
 - **Auch Leergut leeren:** setzt die Leergut-Zähler zurück (voreingestellt an).
 
-Auf einer geteilten Liste gilt das für alle. Die Punkte bleiben immer erhalten. Hier gibt es auch **Diese Liste verlassen**: Du landest dann auf einer leeren lokalen Liste, die geteilte bleibt für die anderen bestehen.
+Auf einer geteilten Liste gilt das für alle. Die Punkte bleiben immer erhalten. Im selben Menü gibt es **Diese Liste verlassen** (nur bei geteilten Listen): Du landest dann auf einer leeren lokalen Liste, die geteilte bleibt für die anderen unverändert. Mit Code oder Link kannst du wieder beitreten.
 
 ## Liste löschen
 Auf einer geteilten Liste im Teilen-Fenster **Liste für alle löschen** (mit Rückfrage): Die Liste ist dann für alle endgültig weg, auch Punkte und Leergut. Alle, die sie noch offen haben, landen automatisch wieder auf ihrer lokalen Liste. Ohne Zutun werden geteilte Listen nach 30 Tagen ohne Aktivität gelöscht.

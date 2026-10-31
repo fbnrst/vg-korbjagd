@@ -356,22 +356,22 @@ $('#shareDlg').onclick = e => { if (e.target.id === 'shareDlg') closeShareDialog
 $('#shareStart').onclick = () => { closeShareDialog(); me.name ? shareLocalList() : askIdentity(shareLocalList); };
 $('#joinBtn').onclick = () => { const c = $('#codeIn').value.trim().toUpperCase(); if (c) { closeShareDialog(); joinShared(c); } };
 const forgetShared = () => { LS.set('code', ''); history.replaceState(null, '', location.pathname); };
-// "?" menu in the header: help and privacy
+// "..." menu in the header: reset, VG import, leave (shared lists only), help and privacy
 {
-  const menu = $('#helpMenu'), btn = $('#helpBtn');
+  const menu = $('#menu'), btn = $('#menuBtn');
   const setOpen = open => { menu.classList.toggle('hide', !open); btn.setAttribute('aria-expanded', String(open)); };
   btn.onclick = e => { e.stopPropagation(); dismissKeyboard(); setOpen(menu.classList.contains('hide')); };
-  document.addEventListener('click', e => { if (!e.target.closest('#helpMenu')) setOpen(false); });
+  document.addEventListener('click', e => { if (!e.target.closest('#menu')) setOpen(false); });
+  menu.addEventListener('click', e => { if (e.target.closest('button')) setOpen(false); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') setOpen(false); });
 }
 
-// Reset dialog (header): choose what to clear (default: checked-off items and empties). Also the home of the
-// VG app import and, on a shared list, of "leave this list".
+// Reset dialog (menu): choose what to clear (default: checked-off items and empties)
 const closeReset = () => $('#resetDlg').classList.add('hide');
-$('#listBtn').onclick = () => {
+$('#menuReset').onclick = () => {
   dismissKeyboard();
   document.querySelector('input[name=resetWhat][value=done]').checked = true; $('#resetEmpties').checked = true;
-  $('#resetShared').classList.toggle('hide', isLocal()); $('#resetLeave').classList.toggle('hide', isLocal());
+  $('#resetShared').classList.toggle('hide', isLocal());
   $('#resetDlg').classList.remove('hide');
 };
 $('#resetCancel').onclick = closeReset;
@@ -383,10 +383,10 @@ $('#resetGo').onclick = async () => {
   await (all ? store.clearAll(code) : store.clearChecked(code));
   if ($('#resetEmpties').checked) await store.clearDeposit(code);
 };
-$('#resetImport').onclick = () => { closeReset(); openImport(); };
-$('#resetLeave').onclick = () => {
+$('#menuImport').onclick = () => openImport();
+$('#menuLeave').onclick = () => {
   if (!confirm(t('confirmLeave'))) return;
-  closeReset(); forgetShared(); startLocal();
+  forgetShared(); startLocal();
 };
 $('#deleteBtn').onclick = async () => {
   if (!confirm(t('confirmDeleteList'))) return;
@@ -575,7 +575,8 @@ $('#newList').onclick = () => {
   const next = pending; pending = null; if (next) next();
 };
 function enterApp() {
-  $('#tabs').classList.remove('hide'); $('#shareBtn').classList.remove('hide'); $('#listBtn').classList.remove('hide');
+  $('#tabs').classList.remove('hide'); $('#shareBtn').classList.remove('hide');
+  for (const id of ['#menuReset', '#menuImport', '#menuLeave']) $(id).classList.remove('hide'); // #menuLeave is hidden on the local list by CSS (body.local)
   document.body.classList.toggle('local', isLocal());
   show('vList');
   connect();

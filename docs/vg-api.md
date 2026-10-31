@@ -38,7 +38,7 @@ Die Original-App teilt Listen als Link `https://app.vg-dresden.de/list?shareId=<
 - Der Text ist mit CryptoJS-AES (Passphrase-Modus) verschlüsselt. Der Schlüssel steht nur im Link-Fragment (`#…`) und geht nie an den Server.
 - Entschlüsselt ergibt sich ein JSON-Array von `{title, id, amount, unit?, vgNum?, country?, checked, date, hasVgNum, order}`.
 
-vg-korbjagd importiert solche Links (im Zurücksetzen-Dialog „Aus der VG-App importieren“ oder Link ins Eingabefeld einfügen), siehe `fetchSharedList` / `decryptShared` in `public/vg.js`.
+vg-korbjagd importiert solche Links (im Menü „Aus der VG-App importieren“ oder Link ins Eingabefeld einfügen), siehe `fetchSharedList` / `decryptShared` in `public/vg.js`.
 
 ## Weitere Endpunkte (nicht abgefragt)
 

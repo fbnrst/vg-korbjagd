@@ -1,51 +1,51 @@
-# vg-korbjagd – gemeinsame Einkaufsliste mit Rangliste
+# vg-korbjagd – a shared shopping list with a leaderboard
 
 [![Checks](https://github.com/fbnrst/vg-korbjagd/actions/workflows/checks.yml/badge.svg)](https://github.com/fbnrst/vg-korbjagd/actions/workflows/checks.yml)
 [![Deploy](https://github.com/fbnrst/vg-korbjagd/actions/workflows/pages.yml/badge.svg)](https://github.com/fbnrst/vg-korbjagd/actions/workflows/pages.yml)
 
-**App: <https://fbnrst.github.io/vg-korbjagd/>** · [Hilfe](https://fbnrst.github.io/vg-korbjagd/docs/) · [Datenschutz](https://fbnrst.github.io/vg-korbjagd/privacy.html)
+**App: <https://fbnrst.github.io/vg-korbjagd/>** · [Help](https://fbnrst.github.io/vg-korbjagd/docs/) · [Privacy](https://fbnrst.github.io/vg-korbjagd/privacy.html)
 
-Eine unabhängige, inoffizielle Einkaufslisten-App: Die Liste liegt zuerst nur auf dem Handy, beim Teilen gibt es Live-Sync zwischen Handys und eine Rangliste („wer hat am meisten in den Korb gelegt“). Idee und Datengrundlage: die [VG-App](https://gitlab.com/pyfox/vg-app) der VG Dresden; mit der VG Dresden ist dieses Projekt nicht verbunden.
+An independent, unofficial shopping list app. The list lives on your phone first; once you share it, phones sync live and a leaderboard ("who puts the most in the basket") starts. Idea and product data: the [VG app](https://gitlab.com/pyfox/vg-app) of VG Dresden. This project is not affiliated with VG Dresden.
 
-Kein eigener Server nötig: statische Seite (GitHub Pages) + Firebase Realtime Database (Gratis-Stufe).
+No server of your own needed: a static site (GitHub Pages) plus a Firebase Realtime Database (free tier).
 
-## Funktionen
-- Die Liste liegt zuerst lokal auf dem Handy (ohne Konto und Namen, auch offline); erst beim Teilen läuft sie über den Server, mit Live-Sync, Beitritt per QR-Code, Link oder 6-stelligem Code, und das Spiel startet. Name und Emoji werden erst dann abgefragt
-- Oberfläche in der Systemsprache (Deutsch oder Englisch)
-- Kopfzeile mit Korbzähler und Knöpfen für Zurücksetzen, Hilfe/Datenschutz („?“) und Teilen
-- Artikel per Text (Namensvorschläge), VG-Nummer (ab drei Ziffern antippbare Produktliste aus den VG-Stammdaten) oder Barcode-Scanner (Open Food Facts)
-- Import von Listen der Original-VG-App (Teilen-Link, im Zurücksetzen-Fenster)
-- Abhaken legt Artikel in den Korb; auf geteilten Listen sehen alle, wer es war
-- Zurücksetzen: nur Erledigtes oder alle Artikel entfernen, optional auch das Leergut leeren; Punkte bleiben unverändert
-- Reiter Leergut (Pfand-Stücke zählen), Kasse (nur Artikel mit VG-Nummer, Backwaren getrennt, plus Leergut; Bildschirm bleibt an) und, nur auf geteilten Listen, Rangliste (Punkte fürs Abhaken und pro Leergut-Stück)
-- Geteilte Listen lassen sich für alle löschen und verfallen nach 30 Tagen ohne Aktivität ([Aufbewahrung](docs/retention.md))
-- Installierbar als PWA; Demo-Modus ohne Firebase
+## Features
+- The list lives on the phone first (no account, no name, works offline). Only when you share it does it go through the server, with live sync, joining by QR code, link or 6-character code, and the game starts. Name and emoji are asked for only then
+- UI in the system language (German or English)
+- Header with the basket counter, a share button and a "…" menu: reset list, import from the VG app, leave the list (shared lists only), help and privacy
+- Add items by text (name suggestions), VG number (from three digits a tappable list of products from the VG master data) or barcode scanner (Open Food Facts)
+- Import of lists from the original VG app (share link, in the menu)
+- Checking off puts an item in the basket; on shared lists everyone sees who did it
+- Reset: remove only the checked-off items or all items, optionally clear the empties too; points stay as they are. On a shared list the reset applies to everyone
+- Tabs: Empties (count deposit pieces), Checkout (only items with a VG number, bakery items separate, plus empties; the screen stays on) and, on shared lists only, Ranking (points for checking off and per empties piece)
+- Shared lists can be deleted for everyone and expire after 30 days without activity ([retention](docs/retention.md))
+- Installable as a PWA; demo mode without Firebase
 
-Dokumentation: [Hilfeseite in der App](https://fbnrst.github.io/vg-korbjagd/docs/) · [Datenschutzhinweise](public/privacy.html) · [Anleitung für Eltern und Kinder](docs/anleitung.md) · [Architektur](docs/architecture.md) · [Aufbewahrung und Löschen](docs/retention.md) · [Sicherheit](docs/security.md) · [VG-Endpunkte](docs/vg-api.md)
+Documentation: [help page in the app](https://fbnrst.github.io/vg-korbjagd/docs/) · [privacy notice](public/privacy.html) · [guide for parents and kids](docs/anleitung.md) (German) · [architecture](docs/architecture.md) (German) · [retention and deletion](docs/retention.md) (German) · [security](docs/security.md) (German) · [VG endpoints](docs/vg-api.md) (German)
 
-## Lokal ausprobieren (Demo-Modus)
+## Try it locally (demo mode)
     npm start      # http://localhost:3000
-    npm test       # 36 Tests: store, rules, vg, i18n, cleanup
+    npm test       # store, rules, vg, i18n, cleanup tests
 
-Ohne Firebase-Konfiguration läuft die App im Demo-Modus: auch geteilte Listen liegen nur im Browser, Tabs im selben Browser synchronisieren sich. Zum Testen mit mehreren Handys braucht es Firebase.
+Without a Firebase configuration the app runs in demo mode: shared lists live in the browser only, and tabs in the same browser sync with each other. Testing with several phones needs Firebase.
 
-## Einrichtung mit Firebase (einmalig, kostenlos)
-1. In der [Firebase-Konsole](https://console.firebase.google.com) ein Projekt anlegen, dort **Realtime Database** erstellen (Region Europa).
-2. Unter *Realtime Database → Regeln* den Inhalt von `database.rules.json` einfügen und veröffentlichen. Listen sind nur über ihren 6-stelligen Code erreichbar und nicht auflistbar; wer den Code kennt, kann lesen, ändern und die Liste löschen.
-3. Unter *Projekteinstellungen → Allgemein → Web-App hinzufügen* die Konfiguration kopieren und in `public/firebase-config.js` eintragen (öffentliche Kennungen, keine Geheimnisse).
-4. Optional, aber nötig für die versprochene Löschung nach 30 Tagen: den Aufräum-Job einrichten (Secret `FIREBASE_SERVICE_ACCOUNT`, siehe [docs/retention.md](docs/retention.md)).
-5. Auf GitHub unter *Settings → Pages → Source: GitHub Actions* stellen. Jeder Push auf `main` testet und veröffentlicht `public/` (`.github/workflows/pages.yml`).
+## Setup with Firebase (once, free)
+1. Create a project in the [Firebase console](https://console.firebase.google.com) and create a **Realtime Database** there (region Europe).
+2. Under *Realtime Database → Rules* paste the contents of `database.rules.json` and publish. Lists are reachable only through their 6-character code and cannot be listed; anyone who knows the code can read, change and delete the list.
+3. Under *Project settings → General → Add web app* copy the configuration into `public/firebase-config.js` (public identifiers, no secrets).
+4. Optional, but needed for the promised deletion after 30 days: set up the cleanup job (secret `FIREBASE_SERVICE_ACCOUNT`, see [docs/retention.md](docs/retention.md)).
+5. On GitHub set *Settings → Pages → Source: GitHub Actions*. Every push to `main` tests and publishes `public/` (`.github/workflows/pages.yml`).
 
-Technik, Datenmodell und Offline-Verhalten: [docs/architecture.md](docs/architecture.md). Die VG-Daten werden direkt vom VG-Server geladen, Endpunkte in [docs/vg-api.md](docs/vg-api.md).
+Technical details, data model and offline behaviour: [docs/architecture.md](docs/architecture.md). The VG data is loaded directly from the VG server, endpoints in [docs/vg-api.md](docs/vg-api.md).
 
-## Entwicklung
+## Development
 
-Konventionen für Menschen und Agenten stehen in [AGENTS.md](AGENTS.md): Quelltext und Kommentare sind englisch, die Oberfläche folgt der Systemsprache.
+Conventions for humans and agents are in [AGENTS.md](AGENTS.md): source code and comments are English, the UI follows the system language.
 
-Code-Checks laufen lokal als Git-Hook über [prek](https://github.com/j178/prek) (Konfiguration: `.pre-commit-config.yaml`): Dateihygiene, JSON/YAML, JavaScript-Syntax, Tests und gitleaks (Geheimnisse; die öffentliche Firebase-Konfiguration ist in `.gitleaks.toml` freigegeben). Einmalig `prek install`, manuell `prek run --all-files`. Die Screenshots der Hilfeseite entstehen lokal aus der echten App (`npm install`, dann `npm run docs:screenshots`; Chrome nötig, Beispieldaten statt echter VG-Daten) und nur auf ausdrücklichen Wunsch. Jedes Bild wird vor dem Einchecken angesehen. Dieselben Prüfungen laufen in GitHub Actions (`.github/workflows/checks.yml`), dort scannt gitleaks zusätzlich die ganze Historie.
+Code checks run locally as a git hook through [prek](https://github.com/j178/prek) (configuration: `.pre-commit-config.yaml`): file hygiene, JSON/YAML, JavaScript syntax, tests and gitleaks (secrets; the public Firebase configuration is allowed in `.gitleaks.toml`). Run `prek install` once, `prek run --all-files` manually. The screenshots of the help page are built locally from the real app (`npm install`, then `npm run docs:screenshots`; needs Chrome, sample data instead of real VG data) and only on explicit request. Every image is looked at before it is committed. The same checks run in GitHub Actions (`.github/workflows/checks.yml`), where gitleaks also scans the whole history.
 
-## Lizenz
+## License
 
-BSD 3-Clause, siehe [LICENSE](LICENSE). Die VG-Daten (siehe `docs/vg-api.md`) gehören der VG Dresden und sind nicht Teil dieser Lizenz.
+BSD 3-Clause, see [LICENSE](LICENSE.md). The VG data (see `docs/vg-api.md`) belongs to VG Dresden and is not part of this license.
 
-Enthaltene Fremdsoftware (MIT, Hinweise in den Dateiköpfen): `public/vendor/qrcode.js` (qrcode-generator 1.4.4), `public/vendor/crypto-js.js` (CryptoJS 4.2.0).
+Bundled third-party software (MIT, notices in the file headers): `public/vendor/qrcode.js` (qrcode-generator 1.4.4), `public/vendor/crypto-js.js` (CryptoJS 4.2.0).

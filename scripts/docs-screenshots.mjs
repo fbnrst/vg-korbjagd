@@ -101,14 +101,16 @@ async function scenes(browser, base, lang) {
   await add('790');
   for (const t of ['Roggenbrot', 'Balsamico', 'Möhren']) { await row('#items', t).locator('[data-chk]').click(); await page.waitForTimeout(150); }
   await tab('vCheckout'); await shot('checkout');
-  // 5) reset dialog
+  // 5) reset dialog (opened from the menu)
   await tab('vList');
-  await page.click('#listBtn'); await shot('reset'); await page.click('#resetCancel');
-  // 6) share (demo mode keeps the shared list in the browser), then the dialog with the QR code
+  await page.click('#menuBtn'); await page.click('#menuReset'); await shot('reset'); await page.click('#resetCancel');
+  // 6) share (demo mode keeps the shared list in the browser), the dialog with the QR code, then the menu
   await page.click('#shareBtn'); await page.click('#shareStart');
   await page.fill('#nameIn', 'Mia'); await page.click('#newList');
   await page.waitForSelector('#qr svg'); await shot('share');
   await page.click('#shareClose');
+  // the menu on a shared list (this is where "Leave this list" lives)
+  await page.click('#menuBtn'); await shot('menu'); await page.keyboard.press('Escape');
   // 7) ranking: Mia collects points, then Ben joins the same list and collects some too
   for (const t of ['Haferdrink', 'Vollkornbrot']) { await row('#items', t).locator('[data-chk]').click(); await page.waitForTimeout(150); }
   await tab('vDeposit'); for (let i = 0; i < 3; i++) { await page.click('[data-dep-add="1"]'); await page.waitForTimeout(80); }   // Mia: 2 items + 3 pieces = 5

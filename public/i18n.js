@@ -4,7 +4,7 @@
 export const STRINGS = {
   en: {
     pageTitle: 'Shopping list',
-    helpMenu: 'Help & privacy',
+    menu: 'Menu',
     connection: 'Connection',
     share: 'Share',
     shareTitle: 'Scan with your phone',
@@ -16,7 +16,7 @@ export const STRINGS = {
     confirmDeleteList: 'Delete this list for everyone? Items, points and empties are removed permanently and cannot be restored.',
     toastListDeleted: 'The list was deleted.',
     toastListGone: 'This list was deleted. You are back on your local list.',
-    confirmLeave: 'Leave the shared list and start a new empty list on this phone? The shared list stays online for the others.',
+    confirmLeave: 'Leave the shared list and start a new empty list on this phone? The list stays as it is for the others, and you can join again with the code or link.',
     resetTitle: 'Reset list',
     resetShared: 'This applies to everyone on the shared list.',
     resetDone: 'Checked-off items only',
@@ -111,7 +111,7 @@ export const STRINGS = {
   },
   de: {
     pageTitle: 'Einkaufsliste',
-    helpMenu: 'Hilfe & Datenschutz',
+    menu: 'Menü',
     connection: 'Verbindung',
     share: 'Teilen',
     shareTitle: 'Mit dem Handy scannen',
@@ -123,7 +123,7 @@ export const STRINGS = {
     confirmDeleteList: 'Diese Liste für alle löschen? Artikel, Punkte und Leergut werden endgültig entfernt und können nicht wiederhergestellt werden.',
     toastListDeleted: 'Die Liste wurde gelöscht.',
     toastListGone: 'Diese Liste wurde gelöscht. Du bist wieder auf deiner lokalen Liste.',
-    confirmLeave: 'Die geteilte Liste verlassen und eine neue leere Liste auf diesem Handy beginnen? Die geteilte Liste bleibt für die anderen online.',
+    confirmLeave: 'Die geteilte Liste verlassen und eine neue leere Liste auf diesem Handy beginnen? Die Liste bleibt für die anderen unverändert, mit Code oder Link kannst du wieder beitreten.',
     resetTitle: 'Liste zurücksetzen',
     resetShared: 'Das gilt für alle in der geteilten Liste.',
     resetDone: 'Nur erledigte Artikel',
@@ -238,14 +238,14 @@ export function t(key, params = {}, language = lang) {
 
 // Static texts in index.html: [selector, key, what to set]
 export const STATIC = [
-  ['#helpBtn', 'helpMenu', 'aria-label'], ['#helpBtn', 'helpMenu', 'title'], ['#dot', 'connection', 'title'], ['#shareBtn', 'share', 'aria-label'], ['#shareBtn', 'share', 'title'],
+  ['#menuBtn', 'menu', 'aria-label'], ['#menuBtn', 'menu', 'title'], ['#dot', 'connection', 'title'], ['#shareBtn', 'share', 'aria-label'], ['#shareBtn', 'share', 'title'],
   ['#shareSharedBox h2', 'shareTitle', 'text'], ['#shareHint', 'shareHint', 'text'],
   ['#shareLocalBox h2', 'shareLocalTitle', 'text'], ['#shareLocalHint', 'shareLocalHint', 'text'],
   ['#privacyNoteShare', 'privacyNoteShare', 'text'], ['#privacyNoteName', 'privacyNoteName', 'text'],
   ['.privacyLink', 'linkPrivacy', 'text'], ['#helpLink', 'linkHelp', 'text'],
-  ['#shareStart', 'shareStart', 'text'], ['#listBtn', 'resetTitle', 'aria-label'], ['#listBtn', 'resetTitle', 'title'],
+  ['#shareStart', 'shareStart', 'text'], ['#menuReset', 'resetTitle', 'text'], ['#menuImport', 'resetImport', 'text'], ['#menuLeave', 'resetLeave', 'text'],
   ['#resetTitle', 'resetTitle', 'text'], ['#resetShared', 'resetShared', 'text'], ['#resetDoneLbl', 'resetDone', 'text'], ['#resetAllLbl', 'resetAll', 'text'],
-  ['#resetEmptiesLbl', 'resetEmpties', 'text'], ['#resetCancel', 'close', 'aria-label'], ['#resetGo', 'resetGo', 'text'], ['#resetImportLbl', 'resetImport', 'text'], ['#resetLeave', 'resetLeave', 'text'],
+  ['#resetEmptiesLbl', 'resetEmpties', 'text'], ['#resetCancel', 'close', 'aria-label'], ['#resetGo', 'resetGo', 'text'],
   ['#deleteBtn', 'deleteList', 'text'],
   ['#shareLink', 'sendLink', 'text'], ['#shareClose', 'close', 'aria-label'],
   ['#importDlg h2', 'importTitle', 'text'], ['#importHint', 'importHint', 'text'],

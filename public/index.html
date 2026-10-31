@@ -59,7 +59,7 @@ a{color:var(--green)}
 #addBar{position:relative;flex:none;z-index:6;background:var(--bg);border-top:1px solid var(--line);padding:8px 12px}
 #addBar>form{max-width:640px;margin-left:auto;margin-right:auto}
 #addBar form{margin:0}
-body.local .tabs [data-t=vScore],body.local #dot{display:none}
+body.local .tabs [data-t=vScore],body.local #dot,body.local #menuLeave{display:none}
 body.typing .tabs{display:none}
 .tabs{flex:none;display:flex;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
 .tabs button{flex:1;height:var(--tabs);padding:0 2px;border:0;background:none;color:var(--mute);font-size:13px;white-space:nowrap} /* never wrap: a wider system font would otherwise push "Rangliste" onto two lines */
@@ -80,8 +80,8 @@ body.typing .tabs{display:none}
 #codeIn::placeholder{text-transform:none}
 .privacyLink{color:var(--green)}
 .menu{position:absolute;right:12px;top:100%;margin-top:4px;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.3);min-width:180px;z-index:7;overflow:hidden}
-.menu a,.menu a.privacyLink{display:block;padding:12px 16px;color:var(--fg);text-decoration:none}
-.menu a+a{border-top:1px solid var(--line)}
+.menu a,.menu a.privacyLink,header .menu button{display:block;width:100%;padding:12px 16px;border:0;border-radius:0;background:none;color:var(--fg);font:inherit;text-align:left;text-decoration:none}
+.menu>*+*{border-top:1px solid var(--line)}
 .menu.hide{display:none}
 .numedit{background:none;border:0;padding:0 2px;font:inherit;font-size:12px;color:var(--mute);text-decoration:underline dotted;cursor:pointer}
 .t small{display:inline;margin-left:6px;color:var(--mute);font-size:12px;white-space:nowrap}
@@ -145,15 +145,11 @@ body.typing .tabs{display:none}
   <div class="card" style="max-width:360px;width:100%">
     <button class="dlg-x" id="resetCancel" type="button" aria-label="Close"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     <h2 id="resetTitle" style="margin:0 0 6px">Reset list</h2>
-    <p id="resetShared" class="muted hide" style="margin:0 0 8px;font-size:13px">This applies to everyone on the shared list.</p>
+    <p id="resetShared" class="hide" style="margin:0 0 10px;font-weight:600">This applies to everyone on the shared list.</p>
     <label class="opt"><input type="radio" name="resetWhat" value="done" checked> <span id="resetDoneLbl">Checked-off items only</span></label>
     <label class="opt"><input type="radio" name="resetWhat" value="all"> <span id="resetAllLbl">All items</span></label>
     <label class="opt"><input type="checkbox" id="resetEmpties" checked> <span id="resetEmptiesLbl">Also clear empties</span></label>
     <div style="margin-top:12px"><button class="btn" id="resetGo" type="button" style="width:100%">Reset</button></div>
-    <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px">
-      <button class="btn sec" id="resetImport" type="button"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v11"/><path d="M7.5 10.5 12 15l4.5-4.5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg><span id="resetImportLbl">Import from the VG app</span></button>
-      <button class="btn sec hide" id="resetLeave" type="button">Leave this list</button>
-    </div>
   </div>
 </div>
 <div id="importDlg" class="hide">
@@ -178,10 +174,14 @@ body.typing .tabs{display:none}
 <header>
   <span id="dot" title="Connection"></span>
   <h1 id="headInfo">🛒 0/0</h1>
-  <button id="listBtn" class="hide ibtn" type="button" aria-label="Reset list" title="Reset list"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg></button>
-  <button id="helpBtn" class="ibtn" type="button" aria-label="Help &amp; privacy" title="Help &amp; privacy" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2.5-3 4"/><path d="M12 17.5h.01"/></svg></button>
   <button id="shareBtn" class="hide ibtn" type="button" aria-label="Share" title="Share"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/></svg></button>
-  <div id="helpMenu" class="menu hide" role="menu"><a href="docs/index.html" id="helpLink" role="menuitem">Help</a><a href="privacy.html" class="privacyLink" role="menuitem">Privacy</a></div>
+  <button id="menuBtn" class="ibtn" type="button" aria-label="Menu" title="Menu" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
+  <div id="menu" class="menu hide" role="menu">
+    <button id="menuReset" class="hide" type="button" role="menuitem">Reset list</button>
+    <button id="menuImport" class="hide" type="button" role="menuitem">Import from the VG app</button>
+    <button id="menuLeave" class="hide" type="button" role="menuitem">Leave this list</button>
+    <a href="docs/index.html" id="helpLink" role="menuitem">Help</a><a href="privacy.html" class="privacyLink" role="menuitem">Privacy</a>
+  </div>
 </header>
 <main>
   <p id="demoBanner" class="card hide" style="background:var(--green2)">Demo mode: no database set up yet, the list is only visible in this browser (see README).</p>
