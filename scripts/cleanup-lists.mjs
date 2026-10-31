@@ -13,6 +13,9 @@ export function buildJwt(sa, nowSec, scope = 'https://www.googleapis.com/auth/fi
   return `${head}.${body}.${sig}`;
 }
 
+// REST URL of the Realtime Database: `.json` belongs right after the path, before the query string
+export const dbUrl = (base, path, query = '') => `${base.replace(/\/$/, '')}/${path}.json${query ? `?${query}` : ''}`;
+
 // A list counts as active at the latest of its activity stamp and its creation time (both in ms).
 export const lastActivity = e => Math.max(Number(e?.activity) || 0, Number(e?.created) || 0);
 
@@ -24,7 +27,9 @@ export function selectExpired(entries, now, maxAgeMs) {
 async function main() {
   const { FIREBASE_SERVICE_ACCOUNT, DATABASE_URL, MAX_AGE_DAYS = '365', DRY_RUN = 'false' } = process.env;
   if (!FIREBASE_SERVICE_ACCOUNT || !DATABASE_URL) throw new Error('FIREBASE_SERVICE_ACCOUNT and DATABASE_URL are required');
-  const sa = JSON.parse(FIREBASE_SERVICE_ACCOUNT);
+  let sa;
+  try { sa = JSON.parse(FIREBASE_SERVICE_ACCOUNT); } catch { throw new Error('FIREBASE_SERVICE_ACCOUNT is not valid JSON: paste the complete contents of the downloaded key file'); }
+  if (!sa.client_email || !sa.private_key) throw new Error('FIREBASE_SERVICE_ACCOUNT is missing client_email or private_key: use a service account key file');
   const days = Number(MAX_AGE_DAYS);
   if (!(days >= 30)) throw new Error('MAX_AGE_DAYS must be at least 30');
   const now = Date.now(), dry = DRY_RUN === 'true';
@@ -35,10 +40,15 @@ async function main() {
   });
   if (!tokenRes.ok) throw new Error(`token request failed: ${tokenRes.status}`);
   const auth = { Authorization: `Bearer ${(await tokenRes.json()).access_token}` };
-  const db = path => `${DATABASE_URL.replace(/\/$/, '')}/${path}.json`;
-  const get = async path => { const r = await fetch(db(path), { headers: auth }); if (!r.ok) throw new Error(`GET ${path}: ${r.status}`); return r.json(); };
+  const db = (path, query) => dbUrl(DATABASE_URL, path, query);
+  const json = async (r, what) => {
+    const text = await r.text();
+    if (!r.ok) throw new Error(`${what}: HTTP ${r.status} ${text.slice(0, 120)}`);
+    try { return JSON.parse(text); } catch { throw new Error(`${what}: response is not JSON (${text.slice(0, 40).replace(/\s+/g, ' ')}…)`); }
+  };
+  const get = async (path, query) => json(await fetch(db(path, query), { headers: auth }), `GET ${path}`);
 
-  const codes = Object.keys((await get('lists?shallow=true')) || {});
+  const codes = Object.keys((await get('lists', 'shallow=true')) || {});
   const entries = {};
   for (const code of codes) entries[code] = { activity: await get(`lists/${code}/activity`), created: await get(`lists/${code}/meta/created`) };
   const expired = selectExpired(entries, now, days * 86400000);

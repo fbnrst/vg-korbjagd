@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert';
 import { generateKeyPairSync, createVerify } from 'node:crypto';
-import { buildJwt, lastActivity, selectExpired } from '../scripts/cleanup-lists.mjs';
+import { buildJwt, dbUrl, lastActivity, selectExpired } from '../scripts/cleanup-lists.mjs';
 
 const DAY = 86400000, now = Date.UTC(2027, 0, 1);
 
@@ -32,4 +32,10 @@ test('buildJwt signs a valid RS256 token for the service account', () => {
   assert.equal(claims.exp - claims.iat, 3600);
   assert.equal(claims.aud, 'https://oauth2.googleapis.com/token');
   assert.ok(createVerify('RSA-SHA256').update(`${h}.${b}`).verify(publicKey, Buffer.from(s, 'base64url')));
+});
+
+test('dbUrl puts .json before the query string (the wrong order redirects to an HTML page)', () => {
+  const base = 'https://x-default-rtdb.europe-west1.firebasedatabase.app/';
+  assert.equal(dbUrl(base, 'lists', 'shallow=true'), 'https://x-default-rtdb.europe-west1.firebasedatabase.app/lists.json?shallow=true');
+  assert.equal(dbUrl(base, 'lists/ABC234/meta/created'), 'https://x-default-rtdb.europe-west1.firebasedatabase.app/lists/ABC234/meta/created.json');
 });
