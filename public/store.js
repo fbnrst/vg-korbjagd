@@ -108,18 +108,16 @@ export function createStore(db) {
     },
     async exists(code) { return !!(await db.get(code, 'meta')); },
     // Change name or emoji on a list: points, empties and the "by <name>" marks move to the new key, so the old
-    // name does not stay behind in the ranking as a second player
+    // name does not stay behind in the ranking as a second player. Points and empties move in one transaction each, so a
+    // point that lands on the old name meanwhile is not lost.
     async renameUser(code, from, to) {
       if (!isUserKey(from) || !isUserKey(to) || from === to) return;
-      const pts = await db.get(code, `scores/${from}`);
-      await db.update(code, `scores/${to}`, n => Math.min(100000, (n || 0) + (pts || 0)));
-      if (pts != null) await db.remove(code, `scores/${from}`);
-      for (const [typ, users] of Object.entries((await db.get(code, 'deposit')) || {})) {
-        if (!users || users[from] == null) continue;
-        const cnt = users[from];
-        await db.update(code, `deposit/${typ}/${to}`, n => Math.min(100000, (n || 0) + cnt));
-        await db.remove(code, `deposit/${typ}/${from}`);
-      }
+      const move = group => { const next = { ...group, [to]: Math.min(100000, (group[to] || 0) + (group[from] || 0)) }; delete next[from]; return next; };
+      await db.update(code, 'scores', s => (s && s[from] != null) || !(s && s[to] != null) ? move(s || {}) : undefined);
+      await db.update(code, 'deposit', d => {
+        if (!d || !Object.values(d).some(users => users && users[from] != null)) return undefined;
+        return Object.fromEntries(Object.entries(d).map(([typ, users]) => [typ, users && users[from] != null ? move(users) : users]));
+      });
       for (const [id, it] of Object.entries((await db.get(code, 'items')) || {})) {
         if (!it || !isId(id) || (it.checkedBy !== from && it.addedBy !== from)) continue;
         await db.update(code, `items/${id}`, old => old ? { ...old, ...(old.checkedBy === from ? { checkedBy: to } : {}), ...(old.addedBy === from ? { addedBy: to } : {}) } : undefined);

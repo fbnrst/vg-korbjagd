@@ -265,4 +265,7 @@ test('renameUser moves points, empties and marks to the new name and leaves othe
   assert.equal(list.items.x2.checkedBy, B);
   await s.renameUser(code, C, C); await s.renameUser(code, 'bad key <', C);   // same or invalid key: nothing happens
   assert.equal((await db.get(code, 'scores'))[C], 3);
+  const D = userKey('🦊', 'Neu'), E = userKey('🦊', 'Neuer');
+  await s.renameUser(code, D, E);                                             // no points yet: the new name joins with 0
+  assert.equal((await db.get(code, 'scores'))[E], 0);
 });
