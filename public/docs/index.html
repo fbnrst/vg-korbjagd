@@ -23,6 +23,11 @@ nav.toc li{margin:2px 0}
 dt{font-weight:600;margin-top:12px}
 dd{margin:2px 0 0}
 footer{border-top:1px solid var(--line);margin-top:32px;padding-top:12px;text-align:center}
+figure.phone{margin:16px auto;width:min(240px,70%);text-align:center}
+figure.phone .frame{position:relative;background:#111;border:10px solid #111;border-radius:34px;box-shadow:0 6px 18px rgba(0,0,0,.28),0 0 0 1px rgba(255,255,255,.12);overflow:hidden}
+figure.phone .frame::before{content:"";position:absolute;top:4px;left:50%;width:22%;height:6px;margin-left:-11%;background:#111;border-radius:6px;z-index:1}
+figure.phone img{display:block;width:100%;height:auto;border-radius:24px}
+figure.phone figcaption{margin-top:8px;color:var(--mute);font-size:13px;line-height:1.35}
 html[lang=de] [lang=en],html[lang=en] [lang=de]{display:none}
 </style>
 </head>
@@ -54,6 +59,7 @@ html[lang=de] [lang=en],html[lang=en] [lang=de]{display:none}
 <h2 id="en-start">Getting started</h2>
 <p>Just open the app and start adding items. Your list lives <strong>on your phone</strong>. It works without internet and you do not need to enter a name.</p>
 <p>At the bottom you find four tabs: <strong>List</strong>, <strong>Empties</strong>, <strong>Checkout</strong> and (once the list is shared) <strong>Ranking</strong>.</p>
+<figure class="phone"><div class="frame"><img src="img/en-list.jpg" width="600" height="1300" loading="lazy" decoding="async" alt="A shopping list with open items and an "In the basket" section with two checked-off items."></div><figcaption>The list with items in the basket</figcaption></figure>
 
 <h2 id="en-add">Adding items</h2>
 <p>Use the bar at the bottom of the <strong>List</strong> tab.</p>
@@ -63,6 +69,7 @@ html[lang=de] [lang=en],html[lang=en] [lang=de]{display:none}
   <li><strong>By barcode:</strong> tap the <strong>barcode symbol</strong> next to the input and hold the barcode inside the frame. VG shelf labels (the barcode or QR code on the label) are read as VG numbers: the product is found, or added, and checked off right away. Other product barcodes are looked up in Open Food Facts. The first time, your phone asks for permission to use the camera.</li>
   <li><strong>From the VG app:</strong> share a list in the VG app and copy the link. Then paste it into the bar, or tap the <strong>reset symbol</strong> at the top and choose <strong>📥 Import from the VG app</strong>. The items arrive as open items. Items that are already on your list are skipped.</li>
 </ul>
+<figure class="phone"><div class="frame"><img src="img/en-suggest.jpg" width="600" height="1300" loading="lazy" decoding="async" alt="The add bar with the number 790 typed in and a list of matching products above it."></div><figcaption>Typing a number shows matching products</figcaption></figure>
 <p><strong>Only a name, no number?</strong> An open item shows a small <strong>No.</strong> field. Type the VG number there to add it. This also puts the item in the basket.</p>
 <p><strong>Scan instead of typing:</strong> next to the number field of an item there is a small <strong>barcode symbol</strong>. Scan the shelf label of that product to fill in its number. If the scanned product has a completely different name than the item on your list, the app asks first. The same question appears when you type a number whose product does not fit the item (an apple item with the number of an orange); similar names such as Apfel and Äpfel Elstar, and common synonyms such as Porree and Lauch, pass without a question. The app also asks when you enter a number that the VG database marks as unused ("unbesetzt"), because that is usually a typo; if the shop really uses it, confirm. The check mark next to the field confirms the number (iPhones have no Return key on the number pad); it only works once a number is entered. In the scanner dialog you can also type a number by hand (below the camera): matching products are suggested from three digits on, tap one to use it.</p>
 <p><strong>Change or add a number later:</strong> tap the small VG number under an item (or <strong>＋ No.</strong> on an item in the basket), type the new number and confirm. An empty field removes the number. The item stays where it is.</p>
@@ -75,6 +82,7 @@ html[lang=de] [lang=en],html[lang=en] [lang=de]{display:none}
 <h2 id="en-empties">Empties</h2>
 <p>The <strong>Empties</strong> tab lists the deposit types with their VG numbers. Tap <strong>+</strong> for every bottle or jar you bring back and <strong>−</strong> to take one away.</p>
 <p>Once the list is shared, every piece scores one point. The reset dialog can set the counters back to zero. Points you already earned stay.</p>
+<figure class="phone"><div class="frame"><img src="img/en-empties.jpg" width="600" height="1300" loading="lazy" decoding="async" alt="The Empties tab with deposit types and plus and minus buttons, a few counters set."></div><figcaption>The Empties tab</figcaption></figure>
 
 <h2 id="en-checkout">Checkout</h2>
 <p>The <strong>Checkout</strong> tab shows everything in your basket in alphabetical order, with the VG numbers in big print, so you can type them in quickly at the checkout.</p>
@@ -85,6 +93,7 @@ html[lang=de] [lang=en],html[lang=en] [lang=de]{display:none}
   <li>Tap a row to mark it as done. This only shows on your phone.</li>
   <li>While this tab is open, the screen stays on (if your phone allows it).</li>
 </ul>
+<figure class="phone"><div class="frame"><img src="img/en-checkout.jpg" width="600" height="1300" loading="lazy" decoding="async" alt="The Checkout tab with the basket items, bakery items and empties and their VG numbers in big print."></div><figcaption>The Checkout tab</figcaption></figure>
 
 <h2 id="en-share">Sharing a list</h2>
 <p><strong>Share it:</strong></p>
@@ -93,6 +102,7 @@ html[lang=de] [lang=en],html[lang=en] [lang=de]{display:none}
   <li>The first time, you choose a name and an emoji. Everyone on the list sees them.</li>
   <li>Your list moves to the server. You now see a QR code, a 6-character code and the button <strong>Send link</strong>.</li>
 </ol>
+<figure class="phone"><div class="frame"><img src="img/en-share.jpg" width="600" height="1300" loading="lazy" decoding="async" alt="The share dialog with a QR code, the list code and the buttons Send link and Done."></div><figcaption>Share dialog with QR code and list code</figcaption></figure>
 <p><strong>Join a list:</strong></p>
 <ul>
   <li>Open the link you received, or scan the QR code with your camera.</li>
@@ -112,10 +122,12 @@ html[lang=de] [lang=en],html[lang=en] [lang=de]{display:none}
   <li>Equal points share the same place. Two people can both have gold.</li>
   <li><strong>New round</strong> (in the <strong>Ranking</strong> tab) sets everyone's points back to zero. What already lies in the basket counts for nobody.</li>
 </ul>
+<figure class="phone"><div class="frame"><img src="img/en-ranking.jpg" width="600" height="1300" loading="lazy" decoding="async" alt="The Ranking tab with a podium for two players and the list of points."></div><figcaption>The Ranking tab</figcaption></figure>
 <p>A list that is not shared has no <strong>Ranking</strong> tab.</p>
 
 <h2 id="en-local">Reset the list</h2>
 <p>Tap the <strong>reset symbol</strong> (circular arrow) in the top bar. Choose what to remove: <strong>Checked-off items only</strong> (default) or <strong>All items</strong>, and whether to <strong>Also clear empties</strong> (default: yes). Then tap <strong>Reset</strong>. Points are never removed by a reset.</p>
+<figure class="phone"><div class="frame"><img src="img/en-reset.jpg" width="600" height="1300" loading="lazy" decoding="async" alt="The reset dialog with the options Checked-off items only, All items and Also clear empties."></div><figcaption>The reset dialog</figcaption></figure>
 <p>On a shared list the reset applies to everyone, and the dialog also offers <strong>Leave this list</strong>: you leave the shared list and get an empty list on your phone. The shared list stays online for the others and you can join it again with the code.</p>
 <p><strong>Delete a list:</strong> tap the share symbol, then <strong>Delete this list for everyone</strong> removes the shared list permanently, for all members. This cannot be undone. Shared lists that nobody has opened or changed for 30 days are deleted automatically. Your local list on your phone is never deleted automatically.</p>
 
@@ -180,6 +192,7 @@ html[lang=de] [lang=en],html[lang=en] [lang=de]{display:none}
 <h2 id="de-start">Loslegen</h2>
 <p>Öffne die App und füge einfach Artikel hinzu. Deine Liste liegt <strong>auf deinem Handy</strong>. Sie funktioniert ohne Internet und du musst keinen Namen eingeben.</p>
 <p>Unten findest du vier Reiter: <strong>Liste</strong>, <strong>Leergut</strong>, <strong>Kasse</strong> und (sobald die Liste geteilt ist) <strong>Rangliste</strong>.</p>
+<figure class="phone"><div class="frame"><img src="img/de-list.jpg" width="600" height="1300" loading="lazy" decoding="async" alt="Eine Einkaufsliste mit offenen Artikeln und dem Bereich "Im Korb" mit zwei abgehakten Artikeln."></div><figcaption>Die Liste mit Artikeln im Korb</figcaption></figure>
 
 <h2 id="de-add">Artikel hinzufügen</h2>
 <p>Benutze die Leiste unten im Reiter <strong>Liste</strong>.</p>
@@ -189,6 +202,7 @@ html[lang=de] [lang=en],html[lang=en] [lang=de]{display:none}
   <li><strong>Mit Barcode:</strong> das <strong>Barcode-Symbol</strong> neben dem Eingabefeld tippen und den Strichcode in den Rahmen halten. VG-Etiketten (Strichcode oder QR-Code auf dem Etikett) werden als VG-Nummer gelesen: Das Produkt wird gefunden oder neu angelegt und gleich abgehakt. Andere Produkt-Strichcodes werden bei Open Food Facts nachgeschlagen. Beim ersten Mal fragt dein Handy, ob die App die Kamera benutzen darf.</li>
   <li><strong>Aus der VG-App:</strong> In der VG-App eine Liste teilen und den Link kopieren. Dann den Link in die Leiste einfügen oder oben auf das <strong>Zurücksetzen-Symbol</strong> tippen und <strong>📥 Aus der VG-App importieren</strong> wählen. Die Artikel kommen offen auf die Liste. Was schon auf der Liste steht, wird übersprungen.</li>
 </ul>
+<figure class="phone"><div class="frame"><img src="img/de-suggest.jpg" width="600" height="1300" loading="lazy" decoding="async" alt="Die Eingabeleiste mit der getippten Nummer 790 und einer Liste passender Produkte darüber."></div><figcaption>Beim Tippen einer Nummer erscheinen passende Produkte</figcaption></figure>
 <p><strong>Nur ein Name, keine Nummer?</strong> Ein offener Artikel hat ein kleines Feld <strong>Nr.</strong>. Dort kannst du die VG-Nummer eintragen. Das legt den Artikel auch gleich in den Korb.</p>
 <p><strong>Scannen statt tippen:</strong> Neben dem Nummernfeld eines Artikels gibt es ein kleines <strong>Barcode-Symbol</strong>. Scanne das Regaletikett dieses Produkts, dann wird die Nummer eingetragen. Heißt das gescannte Produkt ganz anders als der Artikel auf deiner Liste, fragt die App vorher nach. Dieselbe Rückfrage kommt, wenn du eine Nummer tippst, deren Produkt nicht zum Artikel passt (ein Apfel-Artikel mit der Nummer einer Orange); ähnliche Namen wie Apfel und Äpfel Elstar und gängige Synonyme wie Porree und Lauch gehen ohne Frage durch. Auch bei einer Nummer, die in der VG-Datenbank als „unbesetzt“ eingetragen ist, fragt die App nach, weil das meist ein Tippfehler ist; benutzt der Laden sie wirklich, bestätige einfach. Der Haken neben dem Feld bestätigt die Nummer (auf dem iPhone hat die Zahlentastatur keine Return-Taste); er funktioniert erst, wenn eine Nummer eingegeben ist. Im Scanner-Fenster kannst du eine Nummer auch von Hand eintippen (unter der Kamera): Ab drei Ziffern werden passende Produkte vorgeschlagen, ein Tipp übernimmt sie.</p>
 <p><strong>Nummer später ändern oder ergänzen:</strong> Tippe auf die kleine VG-Nummer unter einem Artikel (bei Artikeln im Korb auf <strong>＋ Nr.</strong>), gib die neue Nummer ein und bestätige. Ein leeres Feld entfernt die Nummer. Der Artikel bleibt, wo er ist.</p>
@@ -201,6 +215,7 @@ html[lang=de] [lang=en],html[lang=en] [lang=de]{display:none}
 <h2 id="de-empties">Leergut</h2>
 <p>Im Reiter <strong>Leergut</strong> stehen die Pfand-Sorten mit ihren VG-Nummern. Tippe <strong>+</strong> für jede Flasche oder jedes Glas, das du zurückbringst, und <strong>−</strong>, um eines abzuziehen.</p>
 <p>Sobald die Liste geteilt ist, zählt jedes Stück einen Punkt. Der Zurücksetzen-Dialog kann die Zähler auf null setzen. Punkte, die du schon hast, bleiben.</p>
+<figure class="phone"><div class="frame"><img src="img/de-empties.jpg" width="600" height="1300" loading="lazy" decoding="async" alt="Der Reiter Leergut mit Pfand-Sorten und Plus- und Minus-Knöpfen, einige Zähler sind gesetzt."></div><figcaption>Der Reiter Leergut</figcaption></figure>
 
 <h2 id="de-checkout">Kasse</h2>
 <p>Im Reiter <strong>Kasse</strong> steht alles aus deinem Korb in alphabetischer Reihenfolge, mit den VG-Nummern in großer Schrift. So kannst du sie an der Kasse schnell eintippen.</p>
@@ -211,6 +226,7 @@ html[lang=de] [lang=en],html[lang=en] [lang=de]{display:none}
   <li>Tippe auf eine Zeile, um sie als erledigt zu markieren. Das siehst nur du auf deinem Handy.</li>
   <li>Solange der Reiter offen ist, bleibt der Bildschirm an (wenn dein Handy das erlaubt).</li>
 </ul>
+<figure class="phone"><div class="frame"><img src="img/de-checkout.jpg" width="600" height="1300" loading="lazy" decoding="async" alt="Der Reiter Kasse mit den Artikeln im Korb, Backwaren und Leergut samt VG-Nummern in großer Schrift."></div><figcaption>Der Reiter Kasse</figcaption></figure>
 
 <h2 id="de-share">Liste teilen</h2>
 <p><strong>Teilen:</strong></p>
@@ -219,6 +235,7 @@ html[lang=de] [lang=en],html[lang=en] [lang=de]{display:none}
   <li>Beim ersten Mal wählst du einen Namen und ein Emoji. Alle in der Liste sehen sie.</li>
   <li>Deine Liste zieht auf den Server um. Du siehst jetzt einen QR-Code, einen 6-stelligen Code und den Knopf <strong>Link senden</strong>.</li>
 </ol>
+<figure class="phone"><div class="frame"><img src="img/de-share.jpg" width="600" height="1300" loading="lazy" decoding="async" alt="Das Teilen-Fenster mit QR-Code, Listencode und den Knöpfen Link senden und Fertig."></div><figcaption>Teilen-Fenster mit QR-Code und Listencode</figcaption></figure>
 <p><strong>Beitreten:</strong></p>
 <ul>
   <li>Öffne den Link, den du bekommen hast, oder scanne den QR-Code mit der Kamera.</li>
@@ -238,10 +255,12 @@ html[lang=de] [lang=en],html[lang=en] [lang=de]{display:none}
   <li>Gleich viele Punkte bedeuten denselben Platz. Zwei Leute können beide Gold haben.</li>
   <li><strong>Neue Runde</strong> (im Reiter <strong>Rangliste</strong>) setzt die Punkte aller auf null. Was schon im Korb liegt, zählt für niemanden.</li>
 </ul>
+<figure class="phone"><div class="frame"><img src="img/de-ranking.jpg" width="600" height="1300" loading="lazy" decoding="async" alt="Der Reiter Rangliste mit einem Podest für zwei Mitspieler und der Punkteliste."></div><figcaption>Der Reiter Rangliste</figcaption></figure>
 <p>Eine Liste, die nicht geteilt ist, hat keinen Reiter <strong>Rangliste</strong>.</p>
 
 <h2 id="de-local">Liste zurücksetzen</h2>
 <p>Tippe oben in der Leiste auf das <strong>Zurücksetzen-Symbol</strong> (runder Pfeil). Wähle, was entfernt wird: <strong>Nur erledigte Artikel</strong> (Voreinstellung) oder <strong>Alle Artikel</strong>, und ob auch das Leergut geleert wird (Voreinstellung: ja). Dann tippe auf <strong>Zurücksetzen</strong>. Punkte werden beim Zurücksetzen nie entfernt.</p>
+<figure class="phone"><div class="frame"><img src="img/de-reset.jpg" width="600" height="1300" loading="lazy" decoding="async" alt="Der Zurücksetzen-Dialog mit den Optionen Nur erledigte Artikel, Alle Artikel und Auch Leergut leeren."></div><figcaption>Der Zurücksetzen-Dialog</figcaption></figure>
 <p>Bei einer geteilten Liste gilt das für alle, und im Dialog gibt es außerdem <strong>Diese Liste verlassen</strong>: Du verlässt die geteilte Liste und bekommst eine leere Liste auf deinem Handy. Die geteilte Liste bleibt für die anderen online, und mit dem Code kannst du wieder beitreten.</p>
 <p><strong>Liste löschen:</strong> tippe auf das Teilen-Symbol, dann entfernt <strong>Liste für alle löschen</strong> die geteilte Liste endgültig, für alle Mitglieder. Das lässt sich nicht rückgängig machen. Geteilte Listen, die 30 Tage lang niemand geöffnet oder geändert hat, werden automatisch gelöscht. Deine lokale Liste auf dem Handy wird nie automatisch gelöscht.</p>
 
