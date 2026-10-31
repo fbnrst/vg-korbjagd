@@ -161,13 +161,17 @@ export const SYNONYM_GROUPS = [
 ];
 const SYNONYM_OF = new Map();
 SYNONYM_GROUPS.forEach((g, i) => g.forEach(w => SYNONYM_OF.set(normName(w), i)));
+// Collective words: the plain word fits every compound that ends in it ("Brot" ~ "Vollkornbrot", but Roggenbrot vs Dinkelbrot
+// are two products and stay questioned)
+const COLLECTIVES = ['brot'];
+const collective = (x, y) => COLLECTIVES.some(c => (x === c && y.endsWith(c)) || (y === c && x.endsWith(c)));
 const synonyms = (x, y) => SYNONYM_OF.has(x) && SYNONYM_OF.get(x) === SYNONYM_OF.get(y);
 
 export function nameSimilarity(a, b) {
   const wa = nameWords(a), wb = nameWords(b);
   if (!wa.length || !wb.length) return 1;
   let best = 0;
-  for (const x of wa) for (const y of wb) best = Math.max(best, synonyms(x, y) ? 1 : dice(x, y));
+  for (const x of wa) for (const y of wb) best = Math.max(best, synonyms(x, y) || collective(x, y) ? 1 : dice(x, y));
   return best;
 }
 // Below this the app asks "is that really the same product?"

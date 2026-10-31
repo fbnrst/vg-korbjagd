@@ -98,7 +98,8 @@ test('similarNames lets alike names pass and asks for different products', () =>
     ['Weintrauben', 'Traube weiß Sugraone kernlos'],
     ['Tomate', 'Cherrytomaten'], ['Salat', 'Bataviasalat'], ['Walnüsse', 'Walnusskerne'], ['Rosinen', 'Sultaninen'], ['Marmelade', 'Fruchtaufstrich'],
     ['Zwiebeln', 'Gemüsezwiebel'], ['Rote Beete', 'Rande'], ['Kürbis', 'Hokkaidokürbis'], ['Bohnen', 'Buschbohnen'], ['Melone', 'Wassermelone'],
-    ['Müsli', 'Muesli'], ['Kartoffeln', 'Frühkartoffeln'], ['Gurke', 'Minigurke'], ['Champignons', 'Egerlinge'], ['Äpfel', 'Tafelapfel']];
+    ['Müsli', 'Muesli'], ['Kartoffeln', 'Frühkartoffeln'], ['Gurke', 'Minigurke'], ['Champignons', 'Egerlinge'], ['Äpfel', 'Tafelapfel'],
+    ['Brot', 'Vollkornbrot'], ['Brot', 'Roggenbrot Natur'], ['Landbrot', 'Brot']];
   for (const [x, y] of same) assert.ok(similarNames(x, y), `${x} ~ ${y} should pass without a question (${nameSimilarity(x, y).toFixed(2)})`);
   const different = [['Apfel', 'Orange'], ['Apfel', 'Orangensaft'], ['Apfel', 'Apfelsaft'], ['Milch', 'Vollmilchschokolade'],
     ['Bio Apfel', 'Bio Orange'], ['Datteln', 'Reformationsbrot'], ['Milch', 'Zucchini'],
@@ -116,6 +117,6 @@ test('synonym groups do not overlap and keep different products apart', () => {
     seen.set(k, i);
   }));
   for (const [x, y] of [['Apfel', 'Apfelsaft'], ['Orange', 'Orangensaft'], ['Tomate', 'Tomatenmark'], ['Gurke', 'Tomate'], ['Salat', 'Feldsalat'],
-    ['Zwiebel', 'Frühlingszwiebel'], ['Walnüsse', 'Haselnüsse'], ['Traube', 'Johannisbeere'], ['Kürbis', 'Kartoffel'], ['Bohnen', 'Erbsen']])
+    ['Zwiebel', 'Frühlingszwiebel'], ['Walnüsse', 'Haselnüsse'], ['Traube', 'Johannisbeere'], ['Roggenbrot', 'Dinkelbrot'], ['Brot', 'Brötchen'], ['Brot', 'Brotaufstrich'], ['Kürbis', 'Kartoffel'], ['Bohnen', 'Erbsen']])
     assert.ok(!similarNames(x, y), `${x} vs ${y} must still be questioned (${nameSimilarity(x, y).toFixed(2)})`);
 });
