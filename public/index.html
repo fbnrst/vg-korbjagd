@@ -15,9 +15,9 @@
 <style>
 :root{--bg:#f1f4ea;--card:#fff;--fg:#2b2f26;--mute:#666;--green:#587f06;--fill:#587f06;--on-fill:#fff;--accent:#669c03;--green2:#e8edde;--line:#d4dac8;--red:#b3322a;--hdr:#8bad73;--hdr-fg:#17210f;--hdr-btn:rgba(0,0,0,.1);--orange:#f7a642}
 @media(prefers-color-scheme:dark){:root{--bg:#12170e;--card:#1b2216;--fg:#e8edde;--mute:#a3b09a;--green:#8bad73;--fill:#587f06;--on-fill:#fff;--accent:#8bad73;--green2:#2a3323;--line:#2e3828;--red:#e46a5c;--hdr:#232d1b;--hdr-fg:#e8edde;--hdr-btn:rgba(255,255,255,.12);--orange:#f7a642}}
-*{box-sizing:border-box}
+*{box-sizing:border-box;touch-action:manipulation} /* no double-tap zoom; pinch zoom stays available */
 body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.4 system-ui,sans-serif;padding-bottom:env(safe-area-inset-bottom)}
-header{position:sticky;top:0;z-index:5;background:var(--hdr);color:var(--hdr-fg);padding:6px 12px;display:flex;align-items:center;gap:10px}
+header{position:sticky;top:0;z-index:5;transform:translateY(var(--vvtop,0px));background:var(--hdr);color:var(--hdr-fg);padding:6px 12px;display:flex;align-items:center;gap:10px}
 header h1{font-size:17px;margin:0;flex:1}
 header button{background:var(--hdr-btn);color:var(--hdr-fg);border:0;border-radius:8px;padding:6px 10px;font-size:14px}
 header .ibtn{width:36px;height:36px;padding:0;display:grid;place-items:center}
@@ -70,7 +70,7 @@ body.typing main{padding-bottom:90px}
 .menu.hide{display:none}
 .numedit{background:none;border:0;padding:0 2px;font:inherit;font-size:12px;color:var(--mute);text-decoration:underline dotted;cursor:pointer}
 .t small{display:inline;margin-left:6px;color:var(--mute);font-size:12px;white-space:nowrap}
-.item input.vg{width:56px;padding:4px 6px;font-size:14px}.item form{flex:none;display:flex;gap:4px;align-items:center}
+.item input.vg{width:56px;padding:4px 6px;font-size:16px} /* below 16px iOS zooms into the page when a field gets focus */.item form{flex:none;display:flex;gap:4px;align-items:center}
 .rowbtn{width:30px;height:30px;padding:0;border:0;border-radius:8px;background:var(--green2);color:var(--fg);display:grid;place-items:center;font-size:16px;line-height:1}
 .rowbtn.ok{background:var(--fill);color:var(--on-fill)}
 .badge{flex:none;background:var(--green2);border-radius:999px;padding:2px 8px;font-size:12px;white-space:nowrap}
@@ -84,7 +84,7 @@ body.typing main{padding-bottom:90px}
 .pod .e{font-size:34px}
 .rank{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
 .rank b{margin-left:auto;font-size:20px}
-#toast{position:fixed;top:60px;left:50%;transform:translateX(-50%) translateY(-120px);background:#222;color:#fff;border-radius:12px;padding:10px 16px;transition:.3s;z-index:20;max-width:90vw;text-align:center}
+#toast{position:fixed;top:calc(60px + var(--vvtop,0px));left:50%;transform:translateX(-50%) translateY(-120px);background:#222;color:#fff;border-radius:12px;padding:10px 16px;transition:.3s;z-index:20;max-width:90vw;text-align:center}
 #toast.show{transform:translateX(-50%) translateY(0)}
 .muted{color:var(--mute)}.hide{display:none!important}
 .big{font-size:22px;letter-spacing:4px;font-weight:700}

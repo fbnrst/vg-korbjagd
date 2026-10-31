@@ -234,10 +234,15 @@ applyMode(false);
 // (iOS only moves the visual viewport; Chrome/Android resize the page thanks to resizes-content)
 {
   const vv = window.visualViewport, bar = $('#addBar');
-  const place = () => { const kb = vv ? Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)) : 0; document.body.style.setProperty('--kb', kb + 'px'); };
+  // While the keyboard is open iOS pans the visual viewport; the header follows it (--vvtop) so it stays visible
+  const place = () => {
+    const top = vv ? Math.max(0, Math.round(vv.offsetTop)) : 0;
+    const kb = vv ? Math.max(0, Math.round(window.innerHeight - vv.height - top)) : 0;
+    document.body.style.setProperty('--kb', kb + 'px'); document.body.style.setProperty('--vvtop', top + 'px');
+  };
   $('#addIn').addEventListener('focus', () => { document.body.classList.add('typing'); place(); });
-  $('#addIn').addEventListener('blur', () => setTimeout(() => { if (document.activeElement !== $('#addIn')) { document.body.classList.remove('typing'); document.body.style.removeProperty('--kb'); } }, 100));
-  if (vv) { vv.addEventListener('resize', place); vv.addEventListener('scroll', place); }
+  $('#addIn').addEventListener('blur', () => setTimeout(() => { if (document.activeElement !== $('#addIn')) { document.body.classList.remove('typing'); document.body.style.removeProperty('--kb'); document.body.style.removeProperty('--vvtop'); } }, 100));
+  if (vv) { const follow = () => { if (document.body.classList.contains('typing')) place(); }; vv.addEventListener('resize', follow); vv.addEventListener('scroll', follow); }
   // buttons in the bar must not steal focus, otherwise the keyboard closes
   bar.addEventListener('pointerdown', e => { if (e.target.closest('button') && e.target.id !== 'scanBtn') e.preventDefault(); });
 }
