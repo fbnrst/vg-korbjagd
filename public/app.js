@@ -14,7 +14,7 @@ const LOCAL = 'LOCAL';
 let code = LOCAL;
 const isLocal = () => code === LOCAL;
 let state = { items: {}, scores: {}, deposit: {} };
-let store = null, localDb = null, localStore = null, remotePromise = null, pending = null;
+let store = null, localDb = null, localStore = null, remotePromise = null, pending = null, pendingCancel = null;
 let unsub = null, first = true, vg = null;
 let editingId = null; // item whose VG number is being edited
 
@@ -593,8 +593,9 @@ function buildEmojis() {
   $('#emojis').onclick = ev => { const b = ev.target.closest('button'); if (!b) return; me.emoji = b.textContent; buildEmojis(); };
 }
 // Name and emoji are only needed once there are other people (sharing or joining).
-function askIdentity(next) {
-  pending = next;
+function askIdentity(next, onCancel = null) {
+  pending = next; pendingCancel = onCancel;
+  $('#nameCancel').classList.toggle('hide', !onCancel);
   $('#welcomeErr').textContent = ''; $('#nameIn').value = me.name;
   for (const v of ['vList', 'vDeposit', 'vCheckout', 'vScore']) $('#' + v).classList.add('hide');
   $('#tabs').classList.add('hide'); $('#addBar').classList.add('hide'); $('#vWelcome').classList.remove('hide');
@@ -603,7 +604,18 @@ $('#newList').onclick = () => {
   const n = $('#nameIn').value.trim().slice(0, 20);
   if (!n) { $('#welcomeErr').textContent = t('needName'); return; }
   me.name = n; LS.set('me', me);
-  const next = pending; pending = null; if (next) next();
+  const next = pending; pending = pendingCancel = null; if (next) next();
+};
+$('#nameCancel').onclick = () => { const back = pendingCancel; pending = pendingCancel = null; if (back) back(); };
+// Ranking tab: the one place where the name is visible, so this is where it can be changed. Points move along.
+$('#renameBtn').onclick = () => {
+  const before = { ...me }, oldKey = myKey();
+  const back = () => { $('#vWelcome').classList.add('hide'); $('#tabs').classList.remove('hide'); $('.tabs [data-t=vScore]').click(); };
+  askIdentity(async () => {
+    const newKey = myKey(); back();
+    if (newKey === oldKey) return;
+    try { await store.renameUser(code, oldKey, newKey); toast(t('toastRenamed', { who: newKey })); } catch (e) { toast(t('noDb')); }
+  }, () => { me.name = before.name; me.emoji = before.emoji; buildEmojis(); back(); });
 };
 function enterApp() {
   $('#tabs').classList.remove('hide'); $('#shareBtn').classList.remove('hide');

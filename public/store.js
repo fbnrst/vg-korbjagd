@@ -106,6 +106,24 @@ export function createStore(db) {
       return code;
     },
     async exists(code) { return !!(await db.get(code, 'meta')); },
+    // Change name or emoji on a list: points, empties and the "by <name>" marks move to the new key, so the old
+    // name does not stay behind in the ranking as a second player
+    async renameUser(code, from, to) {
+      if (!isUserKey(from) || !isUserKey(to) || from === to) return;
+      const pts = await db.get(code, `scores/${from}`);
+      await db.update(code, `scores/${to}`, n => Math.min(100000, (n || 0) + (pts || 0)));
+      if (pts != null) await db.remove(code, `scores/${from}`);
+      for (const [typ, users] of Object.entries((await db.get(code, 'deposit')) || {})) {
+        if (!users || users[from] == null) continue;
+        const cnt = users[from];
+        await db.update(code, `deposit/${typ}/${to}`, n => Math.min(100000, (n || 0) + cnt));
+        await db.remove(code, `deposit/${typ}/${from}`);
+      }
+      for (const [id, it] of Object.entries((await db.get(code, 'items')) || {})) {
+        if (!it || !isId(id) || (it.checkedBy !== from && it.addedBy !== from)) continue;
+        await db.update(code, `items/${id}`, old => old ? { ...old, ...(old.checkedBy === from ? { checkedBy: to } : {}), ...(old.addedBy === from ? { addedBy: to } : {}) } : undefined);
+      }
+    },
     join: (code, user) => !isUserKey(user) ? null : db.update(code, `scores/${user}`, n => (n == null ? 0 : undefined)),
     add(code, item, user) {
       const title = String(item.title || '').trim().slice(0, 120);
@@ -215,7 +233,7 @@ export function createStore(db) {
     touched[code] = now;
     return touch0(code);
   };
-  for (const name of ['join', 'add', 'check', 'setNum', 'setEan', 'remove', 'depositAdd', 'depositRemove', 'clearDeposit', 'clearChecked', 'clearAll', 'resetScores', 'importList']) {
+  for (const name of ['join', 'add', 'check', 'setNum', 'setEan', 'remove', 'depositAdd', 'depositRemove', 'clearDeposit', 'clearChecked', 'clearAll', 'resetScores', 'importList', 'renameUser']) {
     const fn = store[name];
     store[name] = async (code, ...args) => { const r = await fn(code, ...args); touch(code); return r; };
   }

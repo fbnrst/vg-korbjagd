@@ -207,6 +207,7 @@ body.typing .tabs{display:none}
     </div>
     <div class="card">
       <button class="btn" id="newList" style="width:100%">Continue</button>
+      <button class="btn sec hide" id="nameCancel" type="button" style="width:100%;margin-top:8px">Cancel</button>
       <p id="welcomeErr" class="muted" style="color:var(--red)"></p>
     </div>
   </section>
@@ -234,7 +235,7 @@ body.typing .tabs{display:none}
     <div class="card">
       <div class="podium" id="podium"></div>
       <div id="ranks"></div>
-      <button class="btn sec" id="resetBtn" style="margin-top:12px">New round</button>
+      <div class="row" style="margin-top:12px"><button class="btn sec" id="resetBtn">New round</button><button class="btn sec" id="renameBtn">Change name</button></div>
     </div>
   </section>
 </main>

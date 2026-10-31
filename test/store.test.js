@@ -246,3 +246,23 @@ test('parseListCode takes a typed code or the link of a shared list and nothing 
   assert.equal(parseListCode('https://fbnrst.github.io/vg-korbjagd/?list=ab12cd'), 'AB12CD');
   for (const bad of ['', 'K7M2Q', 'K7M2QXX', 'K7 M2Q', 'https://example.com/', 'VG 4455', '4455', null, undefined]) assert.equal(parseListCode(bad), null, String(bad));
 });
+
+test('renameUser moves points, empties and marks to the new name and leaves others alone', async () => {
+  const { db, s } = setup();
+  const code = await s.create();
+  await s.join(code, A); await s.join(code, B);
+  await s.add(code, item('x1', 'Milch'), A); await s.check(code, 'x1', A, true);
+  await s.add(code, item('x2', 'Brot'), B); await s.check(code, 'x2', B, true);
+  await s.depositAdd(code, '1', A); await s.depositAdd(code, '1', A); await s.depositAdd(code, '3', B);
+  const C = userKey('🐯', 'Mia Neu');
+  await s.renameUser(code, A, C);
+  const list = await db.get(code, '');
+  assert.equal(list.scores[A], undefined);
+  assert.equal(list.scores[C], 3);            // 1 item + 2 pieces
+  assert.equal(list.scores[B], 2);            // unchanged
+  assert.equal(list.deposit['1'][C], 2); assert.equal(list.deposit['1'][A], undefined); assert.equal(list.deposit['3'][B], 1);
+  assert.equal(list.items.x1.checkedBy, C); assert.equal(list.items.x1.addedBy, C);
+  assert.equal(list.items.x2.checkedBy, B);
+  await s.renameUser(code, C, C); await s.renameUser(code, 'bad key <', C);   // same or invalid key: nothing happens
+  assert.equal((await db.get(code, 'scores'))[C], 3);
+});
