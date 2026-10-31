@@ -98,7 +98,7 @@ function render() {
   $('#doneCard').classList.toggle('hide', !done.length);
   $('#doneHead').textContent = t('inBasketHead', { n: done.length });
   $('#doneItems').innerHTML = done.map(itemHtml).join('');
-  $('#headInfo').textContent = `🛒 ${done.length}/${all.length}`;
+  $('#headCount').textContent = `${done.length}/${all.length}`;
   $('#headInfo').title = t('countInBasket', { done: done.length, all: all.length });
   renderDeposit(); renderCheckout();
   if (editingId) {

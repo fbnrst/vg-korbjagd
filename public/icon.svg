@@ -1,1 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#669c03"/><circle cx="50" cy="50" r="34" fill="#e8edde"/><text x="50" y="63" font-size="38" text-anchor="middle">🛒</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8cbc50"/><stop offset="1" stop-color="#4c7005"/></linearGradient></defs>
+  <rect width="512" height="512" rx="112" fill="url(#g)"/>
+
+  <g transform="translate(256 271) scale(1) translate(-256 -271)">
+    <path d="M92 92 L226 190 Q256 182 286 190 L420 92 Q444 224 392 330 Q336 440 256 450 Q176 440 120 330 Q68 224 92 92 Z" fill="#f08a24"/>
+    <path d="M92 92 L168 150 L120 214 Q96 150 92 92 Z M420 92 L344 150 L392 214 Q416 150 420 92 Z" fill="#2b2f26" opacity=".85"/>
+    <path d="M124 332 Q196 306 256 372 Q316 306 388 332 Q336 440 256 450 Q176 440 124 332 Z" fill="#ffffff"/>
+    <circle cx="196" cy="274" r="19" fill="#2b2f26"/><circle cx="316" cy="274" r="19" fill="#2b2f26"/>
+    <ellipse cx="256" cy="388" rx="26" ry="20" fill="#2b2f26"/>
+  </g>
+</svg>
