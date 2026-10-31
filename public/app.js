@@ -316,6 +316,11 @@ function openImport(text = '') {
   dismissKeyboard();
   $('#importDlg').classList.remove('hide'); $('#importIn').value = text; $('#importMsg').textContent = '';
   if (text) $('#importGo').click();
+  else clipboardLink().then(l => { if (l && !$('#importIn').value && !$('#importDlg').classList.contains('hide')) openImport(l); });
+}
+// A share link on the clipboard is imported right away (needs a user gesture; unreadable clipboard or no link: nothing happens)
+async function clipboardLink() {
+  try { const text = await navigator.clipboard.readText(); return parseShareLink(text) ? text.trim() : ''; } catch (e) { return ''; }
 }
 $('#importClose').onclick = () => $('#importDlg').classList.add('hide');
 $('#importGo').onclick = async () => {
