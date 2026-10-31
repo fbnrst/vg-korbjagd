@@ -98,8 +98,6 @@ function render() {
   $('#doneCard').classList.toggle('hide', !done.length);
   $('#doneHead').textContent = t('inBasketHead', { n: done.length });
   $('#doneItems').innerHTML = done.map(itemHtml).join('');
-  $('#headCount').textContent = `${done.length}/${all.length}`;
-  $('#headInfo').title = t('countInBasket', { done: done.length, all: all.length });
   renderDeposit(); renderCheckout();
   if (editingId) {
     const input = document.querySelector('[data-vgedit] input');

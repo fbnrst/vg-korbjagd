@@ -3,7 +3,7 @@
 Eine Einkaufsliste für die Familie. Du sammelst die Wünsche die Woche über auf deinem Handy, ganz ohne Anmeldung. Wenn es zum Einkaufen geht, teilst du die Liste: Dann sehen alle sofort, was auf der Liste steht und wer etwas in den Korb gelegt hat. Wer am meisten einpackt, steht in der Rangliste oben.
 
 ## Die Woche über: Liste auf dem Handy
-Seite öffnen und loslegen: Die Liste liegt zunächst nur auf deinem Handy. Du brauchst weder Namen noch Emoji, und sie funktioniert auch ohne Netz. Oben steht der Korbzähler, z. B. „🛒 2/7“ (2 von 7 Artikeln im Korb). Eine Rangliste gibt es auf der lokalen Liste noch nicht.
+Seite öffnen und loslegen: Die Liste liegt zunächst nur auf deinem Handy. Du brauchst weder Namen noch Emoji, und sie funktioniert auch ohne Netz. Eine Rangliste gibt es auf der lokalen Liste noch nicht.
 
 ## Zum Einkaufen: Liste teilen
 1. Oben auf **Teilen** tippen (Pfeil aus dem Kasten) und **Liste teilen** wählen.
