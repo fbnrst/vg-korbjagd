@@ -21,7 +21,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: main          # the dev site is always main
           fetch-depth: 0     # all tags
@@ -38,8 +38,8 @@ jobs:
           echo "Release: $tag"
       - run: git worktree add --detach ../release "${{ steps.release.outputs.ref }}"
       - run: node scripts/build-site.mjs ../release/public public _site
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: _site
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
