@@ -3,7 +3,7 @@
 [![Checks](https://github.com/fbnrst/vg-korbjagd/actions/workflows/checks.yml/badge.svg)](https://github.com/fbnrst/vg-korbjagd/actions/workflows/checks.yml)
 [![Deploy](https://github.com/fbnrst/vg-korbjagd/actions/workflows/pages.yml/badge.svg)](https://github.com/fbnrst/vg-korbjagd/actions/workflows/pages.yml)
 
-**App: <https://fbnrst.github.io/vg-korbjagd/>** · [Help](https://fbnrst.github.io/vg-korbjagd/docs/) · [Privacy](https://fbnrst.github.io/vg-korbjagd/privacy.html)
+**App: <https://fbnrst.github.io/vg-korbjagd/>** · [Help](https://fbnrst.github.io/vg-korbjagd/docs/) · [Privacy](https://fbnrst.github.io/vg-korbjagd/privacy.html) · [Dev version](https://fbnrst.github.io/vg-korbjagd/dev/) (current `main`, see [Releases and the dev site](#releases-and-the-dev-site))
 
 An independent, unofficial shopping list app. The list lives on your phone first; once you share it, phones sync live and a leaderboard ("who puts the most in the basket") starts. Idea and product data: the [VG app](https://gitlab.com/pyfox/vg-app) of VG Dresden. This project is not affiliated with VG Dresden.
 
