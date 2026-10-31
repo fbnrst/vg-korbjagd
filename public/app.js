@@ -166,6 +166,18 @@ function applyMode(focus) {
 $('#modeBtn').onclick = () => { numMode = !numMode; LS.set('numMode', numMode); applyMode(true); };
 applyMode(false);
 
+// Eingabeleiste über der Tastatur: Tab-Leiste ausblenden, Leiste an die Unterkante des sichtbaren Bereichs legen
+// (iOS verschiebt nur den sichtbaren Bereich, Chrome/Android ändert dank resizes-content die Seitenhöhe)
+{
+  const vv = window.visualViewport, bar = $('#addBar');
+  const place = () => { const kb = vv ? Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)) : 0; document.body.style.setProperty('--kb', kb + 'px'); };
+  $('#addIn').addEventListener('focus', () => { document.body.classList.add('typing'); place(); });
+  $('#addIn').addEventListener('blur', () => setTimeout(() => { if (document.activeElement !== $('#addIn')) { document.body.classList.remove('typing'); document.body.style.removeProperty('--kb'); } }, 100));
+  if (vv) { vv.addEventListener('resize', place); vv.addEventListener('scroll', place); }
+  // Knöpfe in der Leiste dürfen den Fokus nicht stehlen, sonst klappt die Tastatur zu
+  bar.addEventListener('pointerdown', e => { if (e.target.closest('button') && e.target.id !== 'scanBtn') e.preventDefault(); });
+}
+
 // Beim Tippen: Namen -> Vorschläge ohne Nummer, Nummer -> Produktvorschau
 $('#addIn').oninput = () => {
   if (numMode) $('#addIn').value = $('#addIn').value.replace(/\D/g, '');
