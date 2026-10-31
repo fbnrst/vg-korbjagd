@@ -97,6 +97,8 @@ body.typing .tabs{display:none}
 #scanSuggest{display:flex;flex-direction:column;gap:6px;width:100%;max-width:520px;max-height:30%;overflow:auto}
 #scanFrame{position:absolute;top:30%;left:50%;width:70%;max-width:340px;height:90px;transform:translateX(-50%);border:3px solid #8cff6a;border-radius:12px;pointer-events:none}
 #scanMsg{margin:0;text-align:center}
+#scanner.manual{justify-content:flex-end} /* a number is being typed: no camera, the field and its suggestions get the room */
+#scanner.manual #cam,#scanner.manual #scanFrame,#scanner.manual #scanMsg{display:none}
 #eanForm{width:100%;max-width:520px}
 </style>
 </head>

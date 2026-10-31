@@ -23,6 +23,13 @@ const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(
 const myKey = () => userKey(me.emoji, me.name || 'Me');
 const splitKey = k => { const i = k.indexOf(' '); return { emoji: k.slice(0, i), name: k.slice(i + 1) }; };
 
+// Opening a dialog, menu or the scanner while a field has focus: the keyboard must go away first (iOS keeps it open
+// when a button is tapped)
+function dismissKeyboard() {
+  const el = document.activeElement;
+  if (el && el !== document.body && typeof el.blur === 'function') el.blur();
+}
+
 function toast(msg) {
   const el = $('#toast'); el.textContent = msg; el.classList.add('show');
   clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), 2600);
@@ -294,6 +301,7 @@ function loadCrypto() {
   });
 }
 function openImport(text = '') {
+  dismissKeyboard();
   $('#importDlg').classList.remove('hide'); $('#importIn').value = text; $('#importMsg').textContent = '';
   if (text) $('#importGo').click();
 }
@@ -329,6 +337,7 @@ function loadQr() {
   });
 }
 async function openShareDialog() {
+  dismissKeyboard();
   $('#shareLocalBox').classList.toggle('hide', !isLocal());
   $('#shareSharedBox').classList.toggle('hide', isLocal());
   $('#shareDlg').classList.remove('hide');
@@ -352,7 +361,7 @@ const forgetShared = () => { LS.set('code', ''); history.replaceState(null, '', 
 {
   const menu = $('#helpMenu'), btn = $('#helpBtn');
   const setOpen = open => { menu.classList.toggle('hide', !open); btn.setAttribute('aria-expanded', String(open)); };
-  btn.onclick = e => { e.stopPropagation(); setOpen(menu.classList.contains('hide')); };
+  btn.onclick = e => { e.stopPropagation(); dismissKeyboard(); setOpen(menu.classList.contains('hide')); };
   document.addEventListener('click', e => { if (!e.target.closest('#helpMenu')) setOpen(false); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') setOpen(false); });
 }
@@ -361,6 +370,7 @@ const forgetShared = () => { LS.set('code', ''); history.replaceState(null, '', 
 // VG app import and, on a shared list, of "leave this list".
 const closeReset = () => $('#resetDlg').classList.add('hide');
 $('#listBtn').onclick = () => {
+  dismissKeyboard();
   document.querySelector('input[name=resetWhat][value=done]').checked = true; $('#resetEmpties').checked = true;
   $('#resetShared').classList.toggle('hide', isLocal()); $('#resetLeave').classList.toggle('hide', isLocal());
   $('#resetDlg').classList.remove('hide');
@@ -482,40 +492,56 @@ async function handleCode(raw, opts = {}) {
     closeScanner();
   } finally { scanBusy = false; }
 }
-async function openScanner() {
-  $('#scanner').classList.remove('hide'); $('#scanMsg').textContent = t('scanHint');
-  const video = $('#cam');
+// The camera can be stopped while it is still starting (typing a number): a token invalidates pending starts.
+let camToken = 0;
+function stopCamera() {
+  camToken++;
+  if (zxingReader) { zxingReader.reset(); zxingReader = null; }
+  if (scanStream) { scanStream.getTracks().forEach(track => track.stop()); scanStream = null; }
+  $('#cam').srcObject = null;
+}
+async function startCamera() {
+  const my = ++camToken, video = $('#cam');
   try {
     if ('BarcodeDetector' in window) { // Chrome/Android: built in
-      scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-      video.srcObject = scanStream; await video.play();
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      if (my !== camToken) { stream.getTracks().forEach(track => track.stop()); return; }
+      scanStream = stream; video.srcObject = stream; await video.play();
       const det = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
       const loop = async () => {
-        if (!scanStream) return;
+        if (!scanStream || my !== camToken) return;
         try { const r = await det.detect(video); if (r[0]) return handleCode(r[0].rawValue); } catch (e) {}
         setTimeout(loop, 200);
       };
       loop();
     } else { // iOS/Safari etc.: load zxing on demand
       await loadZxing();
+      if (my !== camToken) return;
       zxingReader = new ZXing.BrowserMultiFormatReader();
       zxingReader.decodeFromConstraints({ video: { facingMode: 'environment' } }, video, r => { if (r) handleCode(r.getText()); });
     }
   } catch (e) {
-    $('#scanMsg').textContent = t('cameraFail');
+    if (my === camToken) $('#scanMsg').textContent = t('cameraFail');
   }
 }
+function openScanner() {
+  dismissKeyboard();
+  $('#scanner').classList.remove('hide', 'manual'); $('#scanMsg').textContent = t('scanHint');
+  startCamera();
+}
 function closeScanner() {
-  if (zxingReader) { zxingReader.reset(); zxingReader = null; }
-  if (scanStream) { scanStream.getTracks().forEach(track => track.stop()); scanStream = null; }
-  $('#cam').srcObject = null; $('#scanner').classList.add('hide'); scanTarget = null;
+  stopCamera();
+  $('#scanner').classList.add('hide'); $('#scanner').classList.remove('manual'); scanTarget = null;
   $('#eanIn').value = ''; $('#scanSuggest').classList.add('hide');
 }
 $('#scanBtn').onclick = () => { scanTarget = null; openScanner(); };
 $('#scanClose').onclick = closeScanner;
 // Suggestions under the manual field of the scanner dialog (VG numbers from three digits on, tap = use it)
 $('#eanIn').oninput = () => {
-  const q = $('#eanIn').value.trim(), box = $('#scanSuggest');
+  const q = $('#eanIn').value.trim(), box = $('#scanSuggest'), sc = $('#scanner');
+  // Typing a number: the camera is not needed any more, so switch it off (and on again when the field is emptied)
+  if (q && !sc.classList.contains('manual')) { sc.classList.add('manual'); stopCamera(); }
+  else if (!q && sc.classList.contains('manual')) { sc.classList.remove('manual'); $('#scanMsg').textContent = t('scanHint'); startCamera(); }
   const rows = vg && /^\d{3,7}$/.test(q) ? vg.searchByNumber(q) : [];
   const miss = vg && /^\d{4,7}$/.test(q) && !rows.length && !vg.lookup(q);
   box.classList.toggle('hide', !rows.length && !miss);
@@ -528,7 +554,7 @@ $('#eanForm').onsubmit = e => {
   const v = $('#eanIn').value.trim(); $('#eanIn').value = '';
   if (/^\d{1,7}$/.test(v)) handleCode(`VG ${v}`, { manualNumber: true });
   else if (/^\d{8,14}$/.test(v)) handleCode(v);
-  else $('#scanMsg').textContent = t('scanUnknown');
+  else { $('#eanIn').dispatchEvent(new Event('input')); $('#scanMsg').textContent = t('scanUnknown'); } // invalid: the camera comes back
 };
 
 /* ---------- Start / joining ---------- */
