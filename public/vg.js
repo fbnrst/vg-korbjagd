@@ -1,7 +1,7 @@
 // VG-Dresden-Stammdaten (Produkte, Hersteller, Länder, Einheiten) direkt vom VG-Server, im Browser zwischengespeichert.
 // Die Endpunkte antworten mit CORS "*", daher braucht es keinen Proxy (siehe docs/vg-api.md).
 const BASE = 'https://app.vg-dresden.de/php/';
-const CACHE_KEY = 'korbjagd-vg-v1';
+const CACHE_KEY = 'korbjagd-vg-v2';
 
 const get = async (name, init) => {
   const r = await fetch(BASE + name, { ...init, signal: AbortSignal.timeout(20000) });
@@ -15,6 +15,7 @@ export const cleanTitle = t => String(t).replace(/- (?=[A-ZÄÖÜ])/g, '-').repl
 
 export function buildIndex(raw) {
   const { products, man, countries, units } = raw;
+  const deposits = raw.deposits || [];
   const byNum = new Map();
   const list = products.map(([vgNum, title, unitID, manID, countryID, regional]) => {
     const p = { vgNum, title: cleanTitle(title), unit: units[unitID] || '', manufacturer: man[manID] || '',
@@ -25,6 +26,7 @@ export function buildIndex(raw) {
   });
   return {
     size: list.length,
+    deposits,
     lookup: n => byNum.get(+n) || null,
     byTitle: t => list.find(p => p.key === String(t).trim().toLowerCase()) || null,
     search(q, limit = 8) {
@@ -51,10 +53,11 @@ export async function loadVg() {
   if (cached && (!sums || cached.sums === sums)) return buildIndex(cached);
   if (!sums) return null;
   try {
-    const [products, man, countries, units] = await Promise.all(['getProductList.php', 'getManufacturersList.php', 'getCountriesList.php', 'getUnitsList.php'].map(getJson));
+    const [products, man, countries, units, deposits] = await Promise.all(['getProductList.php', 'getManufacturersList.php', 'getCountriesList.php', 'getUnitsList.php', 'getDepositsList.php'].map(getJson));
     const map = (a, f) => Object.fromEntries(a.map(x => [x.id, f(x)]));
     const raw = { sums,
       products: products.map(p => [p.vgNum, p.title, p.unitID, p.manufacturerID, p.countryID, p.isRegional ? 1 : 0]),
+      deposits: deposits.map(d => ({ id: d.id, name: d.name, vgNum: d.vgNum })),
       man: map(man, x => x.manufacturer), countries: map(countries, x => x.country), units: map(units, x => x.unit) };
     toLs(raw);
     return buildIndex(raw);

@@ -9,7 +9,7 @@ const LS = { get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; 
 
 const me = LS.get('me', { name: '', emoji: EMOJIS[0] });
 let code = (new URLSearchParams(location.search).get('list') || LS.get('code', '') || '').toUpperCase();
-let state = { items: {}, scores: {} };
+let state = { items: {}, scores: {}, deposit: {} };
 let store = null, unsub = null, first = true, vg = null;
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -24,7 +24,7 @@ function toast(msg) {
 
 /* ---------- Sync ---------- */
 function onSnapshot(s) {
-  const next = { items: (s && s.items) || {}, scores: (s && s.scores) || {} };
+  const next = { items: (s && s.items) || {}, scores: (s && s.scores) || {}, deposit: (s && s.deposit) || {} };
   if (!first) { // Änderungen anderer als Hinweis zeigen
     for (const i of Object.values(next.items)) {
       const was = state.items[i.id];
@@ -44,34 +44,89 @@ function connect() {
 }
 
 /* ---------- Rendering ---------- */
-function render() {
-  const items = Object.values(state.items).sort((a, b) => (a.checked - b.checked) || ((a.addedAt || 0) - (b.addedAt || 0)));
-  $('#items').innerHTML = items.length ? items.map(i => {
-    const by = i.checked && i.checkedBy ? `<span class="badge">${esc(i.checkedBy)}</span>` : '';
-    const sub = i.vgNum ? `VG ${i.vgNum}` : '';
-    const vgIn = i.vgNum ? '' : `<form data-vg="${i.id}"><input class="vg" type="number" inputmode="numeric" placeholder="Nr."></form>`;
-    return `<div class="item ${i.checked ? 'done' : ''}">
-      <button class="chk" data-chk="${i.id}" aria-label="abhaken">${i.checked ? '✓' : ''}</button>
+function itemHtml(i) {
+  const by = i.checked && i.checkedBy ? `<span class="badge">${esc(i.checkedBy)}</span>` : '';
+  const sub = i.vgNum ? `VG ${i.vgNum}` : '';
+  const vgIn = i.vgNum || i.checked ? '' : `<form data-vg="${i.id}"><input class="vg" type="number" inputmode="numeric" placeholder="Nr."></form>`;
+  return `<div class="item ${i.checked ? 'done' : ''}">
+      <button class="chk" data-chk="${i.id}" aria-label="${i.checked ? 'zurück auf die Liste' : 'abhaken'}">${i.checked ? '✓' : ''}</button>
       <div class="t">${i.amount > 1 ? `${i.amount}${i.unit ? ' ' + esc(i.unit) : '×'} ` : ''}${esc(i.title)}<small>${esc(sub)}</small></div>${by}${vgIn}
       <button class="x" data-del="${i.id}" aria-label="löschen">×</button></div>`;
-  }).join('') : '<p class="muted" style="text-align:center">Noch nichts auf der Liste.</p>';
-  const done = items.filter(i => i.checked).length;
-  $('#count').textContent = `${done}/${items.length} im Korb`;
+}
+function render() {
+  const all = Object.values(state.items).sort((a, b) => ((a.addedAt || 0) - (b.addedAt || 0)));
+  const open = all.filter(i => !i.checked);
+  const done = all.filter(i => i.checked).sort((a, b) => (b.checkedAt || 0) - (a.checkedAt || 0)); // zuletzt abgehakt oben
+  $('#items').innerHTML = open.length ? open.map(itemHtml).join('')
+    : `<p class="muted" style="text-align:center">${all.length ? 'Alles im Korb 🎉' : 'Noch nichts auf der Liste.'}</p>`;
+  $('#doneCard').classList.toggle('hide', !done.length);
+  $('#doneHead').textContent = `Im Korb · ${done.length}`;
+  $('#doneItems').innerHTML = done.map(itemHtml).join('');
+  $('#count').textContent = `${done.length}/${all.length} im Korb`;
+  renderDeposit(); renderKasse();
 
   const rank = Object.entries(state.scores).sort((a, b) => b[1] - a[1]);
-  const top = rank.slice(0, 3), max = Math.max(1, top[0] ? top[0][1] : 1);
-  const order = [top[1], top[0], top[2]].filter(Boolean);
-  $('#podium').innerHTML = order.map(([k, n]) => {
-    const w = splitKey(k), h = 30 + 80 * n / max, medal = k === top[0][0] ? '🥇' : k === (top[1] || [])[0] ? '🥈' : '🥉';
-    return `<div class="pod"><div class="e">${w.emoji}</div><div>${esc(w.name)}</div><div class="bar" style="height:${h}px">${medal} ${n}</div></div>`;
+  // Gleiche Punkte = gleicher Platz (1, 1, 3, …), ohne Punkte keine Medaille
+  const placed = rank.map(([k, n]) => ({ k, n, place: 1 + rank.findIndex(r => r[1] === n) }));
+  const MEDAL = { 1: '🥇', 2: '🥈', 3: '🥉' };
+  const max = Math.max(1, placed[0] ? placed[0].n : 1);
+  const at = p => placed.filter(x => x.place === p && x.n > 0);
+  const podium = [...at(2), ...at(1), ...at(3)];
+  $('#podium').innerHTML = podium.map(({ k, n, place }) => {
+    const w = splitKey(k), h = 30 + 80 * n / max;
+    return `<div class="pod"><div class="e">${w.emoji}</div><div>${esc(w.name)}</div><div class="bar" style="height:${h}px">${MEDAL[place]} ${n}</div></div>`;
   }).join('') || '<span class="muted">Noch keine Punkte – ab in den Korb!</span>';
-  $('#ranks').innerHTML = rank.map(([k, n], i) => `<div class="rank"><span>${i + 1}.</span><span>${esc(k)}</span><b>${n}</b></div>`).join('');
+  $('#ranks').innerHTML = placed.map(({ k, n, place }) => `<div class="rank"><span>${n > 0 && MEDAL[place] ? MEDAL[place] : place + '.'}</span><span>${esc(k)}</span><b>${n}</b></div>`).join('');
+}
+
+/* ---------- Kasse ---------- */
+const kasseOff = new Set(); // lokal als erledigt markiert
+const byTitle = (a, b) => a.title.localeCompare(b.title, 'de');
+function kasseRow(key, title, amount, unit, no) {
+  const weight = ['g', 'kg', 'Liter'].includes(unit) || amount === 1;
+  const mid = unit && amount ? `<small>[${weight ? amount + ' ' : ''}${esc(unit)}]</small>` : '';
+  const times = !weight && amount > 1 ? `<small>${amount} × </small>` : '';
+  return `<div class="kr${kasseOff.has(key) ? ' off' : ''}" data-kasse="${esc(key)}"><div class="nm">${esc(title)}${mid}</div><div class="no">${times}${no || '–'}</div></div>`;
+}
+function renderKasse() {
+  const inBasket = Object.values(state.items).filter(i => i.checked).sort(byTitle);
+  const sec = (head, rows) => rows.length ? `<div class="card ks"><h3>${head}</h3>${rows.join('')}</div>` : '';
+  const row = i => kasseRow(i.id, i.title, i.amount, i.unit, i.vgNum);
+  const dep = vg ? vg.deposits.filter(t => depSum(t.id) > 0).map(t => kasseRow('d' + t.id, t.name, depSum(t.id), '', t.vgNum)) : [];
+  $('#kasse').innerHTML = sec('Artikel', inBasket.filter(i => i.vgNum >= 1000).map(row))
+    + sec('Backwaren', inBasket.filter(i => i.vgNum && i.vgNum < 1000).map(row))
+    + sec('Ohne VG-Nummer', inBasket.filter(i => !i.vgNum).map(row))
+    + sec('Leergut', dep)
+    || '<p class="muted" style="text-align:center">Lege Artikel in den Korb, dann erscheinen sie hier mit ihren VG-Nummern.</p>';
+}
+let wakeLock = null;
+async function setWake(on) {
+  try {
+    if (on && 'wakeLock' in navigator && !wakeLock) wakeLock = await navigator.wakeLock.request('screen');
+    else if (!on && wakeLock) { await wakeLock.release(); wakeLock = null; }
+  } catch (e) { wakeLock = null; }
+}
+
+/* ---------- Leergut ---------- */
+const depSum = id => Object.values(state.deposit[id] || {}).reduce((s, n) => s + n, 0);
+function renderDeposit() {
+  const types = vg ? vg.deposits : null;
+  $('#depItems').innerHTML = !types ? '<p class="muted" style="text-align:center">VG-Daten werden geladen …</p>'
+    : types.map(t => `<div class="dep"><div class="t">${esc(t.name)}<small>VG ${t.vgNum}</small></div>
+        <button data-dep-sub="${t.id}" aria-label="weniger">−</button><span class="n">${depSum(t.id)}</span><button class="add" data-dep-add="${t.id}" aria-label="mehr">+</button></div>`).join('');
+  const total = types ? types.reduce((s, t) => s + depSum(t.id), 0) : 0;
+  $('#depTotal').textContent = `${total} Stück`;
 }
 
 /* ---------- Events ---------- */
 document.addEventListener('click', e => {
   const chk = e.target.closest('[data-chk]');
   if (chk) { const it = state.items[chk.dataset.chk]; if (it) store.check(code, it.id, myKey(), !it.checked); return; }
+  const kr = e.target.closest('[data-kasse]');
+  if (kr) { const k = kr.dataset.kasse; kasseOff.has(k) ? kasseOff.delete(k) : kasseOff.add(k); renderKasse(); return; }
+  const dadd = e.target.closest('[data-dep-add]'), dsub = e.target.closest('[data-dep-sub]');
+  if (dadd) { store.depositAdd(code, dadd.dataset.depAdd, myKey()); return; }
+  if (dsub) { store.depositRemove(code, dsub.dataset.depSub, myKey()); return; }
   const del = e.target.closest('[data-del]');
   if (del) { const it = state.items[del.dataset.del]; if (it && confirm(`„${it.title}“ löschen?`)) store.remove(code, it.id); }
 });
@@ -96,8 +151,24 @@ $('#addForm').onsubmit = e => {
   else store.add(code, { id: uid(), title: isNum ? `VG-Nr. ${v}` : v, vgNum: isNum ? +v : null }, myKey());
   if (isNum && !p) toast(vg ? `VG-Nr. ${v} nicht in der VG-Datenbank` : 'VG-Daten noch nicht geladen');
 };
+// Nummern-Modus: Zahlentastatur, nur Ziffern (wie der „123“-Schalter der Original-App)
+let numMode = LS.get('numMode', false);
+function applyMode(focus) {
+  const inp = $('#addIn');
+  inp.inputMode = numMode ? 'numeric' : 'text';
+  inp.enterKeyHint = 'go';
+  inp.placeholder = numMode ? 'VG-Nummer …' : 'Artikel oder VG-Nummer …';
+  if (numMode) inp.value = inp.value.replace(/\D/g, '');
+  $('#modeBtn').classList.toggle('on', numMode); $('#modeBtn').setAttribute('aria-pressed', numMode);
+  inp.dispatchEvent(new Event('input'));
+  if (focus) inp.focus(); // Tastatur bleibt offen und wechselt das Layout
+}
+$('#modeBtn').onclick = () => { numMode = !numMode; LS.set('numMode', numMode); applyMode(true); };
+applyMode(false);
+
 // Beim Tippen: Namen -> Vorschläge ohne Nummer, Nummer -> Produktvorschau
 $('#addIn').oninput = () => {
+  if (numMode) $('#addIn').value = $('#addIn').value.replace(/\D/g, '');
   const q = $('#addIn').value.trim(), pv = $('#addPreview');
   const isNum = /^\d+$/.test(q);
   $('#vgSug').innerHTML = vg && q.length >= 2 && !isNum
@@ -144,6 +215,7 @@ $('#importGo').onclick = async () => {
   } catch (e) { msg.textContent = 'Liste konnte nicht geladen werden (Link abgelaufen oder falsch?).'; }
 };
 $('#clearBtn').onclick = () => { if (confirm('Alle abgehakten Artikel entfernen?')) store.clearChecked(code); };
+$('#depClear').onclick = () => { if (confirm('Leergut-Liste leeren? Die Punkte bleiben.')) store.clearDeposit(code); };
 $('#resetBtn').onclick = () => { if (confirm('Rangliste für eine neue Runde zurücksetzen?')) store.resetScores(code); };
 /* ---------- Teilen (QR-Code + Link) ---------- */
 const shareUrl = () => new URL(`?list=${code}`, location.href.split('?')[0]).href;
@@ -175,7 +247,10 @@ document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
   document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
   show(b.dataset.t);
 });
-function show(id) { for (const v of ['vList', 'vScore']) $('#' + v).classList.toggle('hide', v !== id); }
+function show(id) {
+  for (const v of ['vList', 'vDeposit', 'vCheckout', 'vScore']) $('#' + v).classList.toggle('hide', v !== id);
+  setWake(id === 'vCheckout');
+}
 
 /* ---------- Barcode-Scanner ---------- */
 let zxingReader = null, scanStream = null, scanBusy = false;
@@ -278,7 +353,7 @@ async function init() {
   store = createStore(firebaseConfig ? await firebaseAdapter(firebaseConfig) : localAdapter());
   if (store.mode === 'local') $('#demoBanner').classList.remove('hide');
   render();
-  loadVg().then(v => { vg = v; }).catch(() => {});
+  loadVg().then(v => { vg = v; render(); }).catch(() => {});
   if (code && me.name && await store.exists(code).catch(() => false)) startList();
   else { $('#vWelcome').classList.remove('hide'); $('#codeIn').value = code; }
 }

@@ -79,3 +79,27 @@ test('Hinzufügen gibt keine Punkte, erst Abhaken (oder Nummer eintragen) zählt
   await s.setNum(c, 'n2', A, 4711, true);
   assert.equal((await db.get(c, 'scores'))[A], 2);
 });
+
+test('Leergut: jedes Stück gibt einen Punkt, Weniger zieht dem Beitragenden ab', async () => {
+  const { s, db } = setup(); const c = await s.create();
+  await s.depositAdd(c, '1', A); await s.depositAdd(c, '1', A); await s.depositAdd(c, '2', B);
+  assert.deepEqual(await db.get(c, 'scores'), { [A]: 2, [B]: 1 });
+  await s.depositRemove(c, '1', A);                        // eigenes Stück
+  assert.equal((await db.get(c, 'scores'))[A], 1);
+  await s.depositRemove(c, '2', A);                        // A hat dort nichts: B's Stück geht weg
+  assert.deepEqual(await db.get(c, 'scores'), { [A]: 1, [B]: 0 });
+  assert.equal(await db.get(c, 'deposit/2'), null);
+  await s.depositRemove(c, '2', A);                        // leer: nichts passiert
+  assert.equal((await db.get(c, 'scores'))[A], 1);
+});
+
+test('Neue Runde zählt Leergut mit, Leergut leeren behält Punkte', async () => {
+  const { s, db } = setup(); const c = await s.create();
+  await s.add(c, item('z', 'Tee'), A); await s.check(c, 'z', A, true);
+  await s.depositAdd(c, '3', A); await s.depositAdd(c, '3', B);
+  await s.resetScores(c);
+  assert.deepEqual(await db.get(c, 'scores'), { [A]: 2, [B]: 1 });
+  await s.clearDeposit(c);
+  assert.equal(await db.get(c, 'deposit'), null);
+  assert.equal((await db.get(c, 'scores'))[A], 2);
+});

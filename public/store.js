@@ -121,14 +121,30 @@ export function createStore(db) {
       await db.update(code, `items/${id}`, old => { prev = old; return old ? null : undefined; });
       if (prev && prev.checked) await bump(code, prev.checkedBy, -1);
     },
+    // Leergut: deposit/<Typ>/<Nutzer> = Stück. Jedes Stück gibt dem, der es einträgt, einen Punkt.
+    async depositAdd(code, typeId, user) {
+      const r = await db.update(code, `deposit/${typeId}/${user}`, n => (n || 0) + 1);
+      if (r.committed) await bump(code, user, 1);
+    },
+    // Weniger: erst eigene Stücke, sonst die des größten Beitragenden (Punkt geht dort wieder ab)
+    async depositRemove(code, typeId, user) {
+      const group = (await db.get(code, `deposit/${typeId}`)) || {};
+      const victim = group[user] > 0 ? user : Object.keys(group).sort((a, b) => group[b] - group[a])[0];
+      if (!victim) return;
+      let took = false;
+      await db.update(code, `deposit/${typeId}/${victim}`, n => { took = n > 0; return n > 1 ? n - 1 : n > 0 ? null : undefined; });
+      if (took) await bump(code, victim, -1);
+    },
+    clearDeposit: code => db.remove(code, 'deposit'),
     async clearChecked(code) {
       const items = (await db.get(code, 'items')) || {};
       await Promise.all(Object.values(items).filter(i => i.checked).map(i => db.remove(code, `items/${i.id}`)));
     },
     async resetScores(code) {
-      const [items, old] = await Promise.all([db.get(code, 'items'), db.get(code, 'scores')]);
+      const [items, old, dep] = await Promise.all([db.get(code, 'items'), db.get(code, 'scores'), db.get(code, 'deposit')]);
       const scores = Object.fromEntries(Object.keys(old || {}).map(k => [k, 0]));
       for (const i of Object.values(items || {})) if (i.checked && i.checkedBy) scores[i.checkedBy] = (scores[i.checkedBy] || 0) + 1;
+      for (const g of Object.values(dep || {})) for (const [u, n] of Object.entries(g)) scores[u] = (scores[u] || 0) + n;
       await db.set(code, 'scores', scores);
     },
   };

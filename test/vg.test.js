@@ -44,3 +44,9 @@ test('geteilte Liste der Original-App wird entschlüsselt', () => {
   assert.equal(items[1].vgNum, null);
   assert.throws(() => decryptShared(CryptoJS, cipher, 'falsch'));
 });
+
+test('Pfand-Typen stehen im Index', () => {
+  const ix = buildIndex({ ...raw, deposits: [{ id: 1, name: 'Flasche Schraubver.', vgNum: 2009 }] });
+  assert.deepEqual(ix.deposits, [{ id: 1, name: 'Flasche Schraubver.', vgNum: 2009 }]);
+  assert.deepEqual(buildIndex(raw).deposits, []);
+});
