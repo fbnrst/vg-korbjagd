@@ -31,9 +31,9 @@ input[type=text],input[type=number]{width:100%;padding:10px 12px;border:1px soli
 .chk{width:30px;height:30px;border-radius:50%;border:2px solid var(--green);background:none;flex:none;color:#fff;font-size:18px;line-height:1}
 .item.done .chk{background:var(--green)}
 .item.done .t{text-decoration:line-through;color:var(--mute)}
-.t{flex:1;min-width:0}.t small{display:block;color:var(--mute)}
-.vg{width:84px;padding:6px 8px!important;font-size:14px}
-.badge{background:var(--green2);border-radius:999px;padding:2px 8px;font-size:12px;white-space:nowrap}
+.t{flex:1;min-width:84px;overflow-wrap:anywhere}.t small{display:block;color:var(--mute)}
+.item input.vg{width:64px;padding:6px 8px;font-size:14px}.item form{flex:none}
+.badge{flex:none;background:var(--green2);border-radius:999px;padding:2px 8px;font-size:12px;white-space:nowrap}
 .x{background:none;border:0;color:var(--mute);font-size:20px;padding:4px}
 .emojis{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
 .emojis button{font-size:26px;border:2px solid transparent;background:var(--bg);border-radius:10px;padding:2px 6px}
@@ -48,6 +48,8 @@ input[type=text],input[type=number]{width:100%;padding:10px 12px;border:1px soli
 #toast.show{transform:translateX(-50%) translateY(0)}
 .muted{color:var(--mute)}.hide{display:none!important}
 .big{font-size:22px;letter-spacing:4px;font-weight:700}
+#shareDlg{position:fixed;inset:0;z-index:30;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px}
+#qr svg{width:100%;max-width:260px;height:auto;background:#fff;border-radius:10px}
 #scanner{position:fixed;inset:0;z-index:30;background:#000;color:#fff;display:flex;flex-direction:column;align-items:center;gap:12px;padding:16px}
 #scanner video{width:100%;max-width:520px;flex:1;min-height:0;object-fit:cover;border-radius:14px}
 #scanFrame{position:absolute;top:30%;left:50%;width:70%;max-width:340px;height:90px;transform:translateX(-50%);border:3px solid #8cff6a;border-radius:12px;pointer-events:none}
@@ -62,6 +64,15 @@ input[type=text],input[type=number]{width:100%;padding:10px 12px;border:1px soli
   <button id="shareBtn" class="hide">Teilen</button>
 </header>
 <div id="toast"></div>
+<div id="shareDlg" class="hide">
+  <div class="card" style="text-align:center;max-width:340px;width:100%">
+    <h2 style="margin:0 0 4px">Mit dem Handy scannen</h2>
+    <p class="muted" style="margin:0 0 10px">Die anderen scannen den Code mit der Kamera und sind in der Liste.</p>
+    <div id="qr"></div>
+    <p class="big" id="shareCode" style="margin:10px 0"></p>
+    <div class="row" style="justify-content:center"><button class="btn sec" id="shareLink" type="button">Link senden</button><button class="btn" id="shareClose" type="button">Fertig</button></div>
+  </div>
+</div>
 <div id="scanner" class="hide">
   <video id="cam" playsinline muted></video>
   <div id="scanFrame"></div>

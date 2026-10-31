@@ -6,7 +6,7 @@ Kein eigener Server nötig: statische Seite (GitHub Pages) + Firebase Realtime D
 
 ## Benutzung
 1. Name + Emoji wählen, „Neue Liste starten“.
-2. „Teilen“ schickt Link/Code (`?list=ABC123`) an die anderen Handys.
+2. „Teilen“ zeigt einen QR-Code zum Scannen (plus Code und „Link senden“ als Alternative).
 3. Artikel eintippen (reine Zahl = VG-Nummer) oder per 📷 Barcode scannen. Abhaken oder VG-Nummer eintragen legt den Artikel in den Korb, alle sehen es sofort mit dem Namen des Abhakers.
 4. Tab „Rangliste“: Punkte pro Artikel im Korb, „Neue Runde“ setzt zurück.
 
@@ -31,3 +31,5 @@ Nicht enthalten: VG-Produktdatenbank, Pfand. Die VG-Endpunkte sind in [docs/vg-a
 ## Lizenz
 
 BSD 3-Clause, siehe [LICENSE](LICENSE). Die VG-Daten (siehe `docs/vg-api.md`) gehören der VG Dresden und sind nicht Teil dieser Lizenz.
+
+Enthaltene Fremdsoftware: `public/vendor/qrcode.js` (qrcode-generator 1.4.4, Kazuhiko Arase, MIT-Lizenz, Hinweis steht im Dateikopf).

@@ -48,7 +48,7 @@ function render() {
   $('#items').innerHTML = items.length ? items.map(i => {
     const by = i.checked && i.checkedBy ? `<span class="badge">${esc(i.checkedBy)}</span>` : '';
     const vg = i.vgNum ? `VG-Nr. ${i.vgNum}` : '';
-    const vgIn = i.vgNum ? '' : `<form data-vg="${i.id}"><input class="vg" type="number" inputmode="numeric" placeholder="VG-Nr."></form>`;
+    const vgIn = i.vgNum ? '' : `<form data-vg="${i.id}"><input class="vg" type="number" inputmode="numeric" placeholder="Nr."></form>`;
     return `<div class="item ${i.checked ? 'done' : ''}">
       <button class="chk" data-chk="${i.id}" aria-label="abhaken">${i.checked ? '✓' : ''}</button>
       <div class="t">${esc(i.title)}<small>${vg}</small></div>${by}${vgIn}
@@ -90,10 +90,31 @@ $('#addForm').onsubmit = e => {
 };
 $('#clearBtn').onclick = () => { if (confirm('Alle abgehakten Artikel entfernen?')) store.clearChecked(code); };
 $('#resetBtn').onclick = () => { if (confirm('Rangliste für eine neue Runde zurücksetzen?')) store.resetScores(code); };
+/* ---------- Teilen (QR-Code + Link) ---------- */
+const shareUrl = () => new URL(`?list=${code}`, location.href.split('?')[0]).href;
+function loadQr() {
+  if (window.qrcode) return Promise.resolve();
+  return new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = new URL('vendor/qrcode.js', import.meta.url).href;
+    s.onload = res; s.onerror = rej; document.head.appendChild(s);
+  });
+}
 $('#shareBtn').onclick = async () => {
-  const url = new URL(`?list=${code}`, location.href.split('?')[0]).href;
+  $('#shareCode').textContent = code;
+  $('#shareDlg').classList.remove('hide');
+  try {
+    await loadQr();
+    const qr = window.qrcode(0, 'M'); qr.addData(shareUrl()); qr.make();
+    $('#qr').innerHTML = qr.createSvgTag({ cellSize: 6, margin: 2, scalable: true });
+  } catch (e) { $('#qr').textContent = 'QR-Code konnte nicht erzeugt werden.'; }
+};
+$('#shareClose').onclick = () => $('#shareDlg').classList.add('hide');
+$('#shareDlg').onclick = e => { if (e.target.id === 'shareDlg') $('#shareDlg').classList.add('hide'); };
+$('#shareLink').onclick = async () => {
+  const url = shareUrl();
   try { if (navigator.share) return await navigator.share({ title: 'Einkaufsliste', text: `Komm in unsere Einkaufsliste (Code ${code})`, url }); } catch (e) { return; }
-  try { await navigator.clipboard.writeText(url); toast('Link kopiert: ' + code); } catch (e) { prompt('Link zum Teilen:', url); }
+  try { await navigator.clipboard.writeText(url); toast('Link kopiert'); } catch (e) { prompt('Link zum Teilen:', url); }
 };
 document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
   document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
