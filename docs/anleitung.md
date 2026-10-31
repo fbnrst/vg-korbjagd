@@ -20,9 +20,10 @@ Wer den Code kennt, kann die Liste ansehen, ändern und löschen. Gib ihn nur Le
 ## Artikel hinzufügen
 - **Text:** Namen eintippen und **+** tippen. Beim Tippen schlägt die App Produkte der VG vor.
 - **VG-Nummer:** Nur die Zahl eintippen. Ab drei Ziffern erscheint eine Liste passender Produkte; ein Tipp darauf legt das Produkt gleich auf die Liste. Mit dem Schalter **123** erscheint die Zahlentastatur.
-- **Barcode:** **📷** tippen und den Strichcode in den Rahmen halten (Kamera erlauben). Der Artikel landet gleich im Korb. Geht die Kamera nicht, kann man die Zahl unter dem Bild eintippen.
+- **Barcode:** das **Barcode-Symbol** neben dem Eingabefeld tippen und den Strichcode in den Rahmen halten (Kamera erlauben). Der Artikel landet gleich im Korb. Geht die Kamera nicht, kann man die Zahl unter dem Bild eintippen.
 - **Aus der VG-App:** In der VG-App die Liste teilen, den Link kopieren und hier einfügen, entweder ins Eingabefeld oder über **Zurücksetzen** (Kreispfeil oben) und **📥 Aus der VG-App importieren**. Die Artikel kommen offen auf die Liste; was schon darauf steht, wird übersprungen.
-- **Nummer nachtragen:** Artikel ohne Nummer haben ein kleines Feld „Nr.“. Nummer eingeben legt den Artikel auch in den Korb.
+- **Nummer nachtragen:** Offene Artikel ohne Nummer haben ein kleines Feld „Nr.“. Nummer eingeben legt den Artikel auch in den Korb.
+- **Nummer ändern:** Auf die kleine VG-Nummer unter dem Artikel tippen (bei Artikeln im Korb auf „＋ Nr.“), neue Nummer eingeben, bestätigen. Leeres Feld entfernt die Nummer; der Artikel bleibt, wo er ist.
 
 ## Abhaken und Punkte
 Den Kreis links neben dem Artikel antippen: Der Artikel wandert nach unten zu „Im Korb“. Auf einer geteilten Liste bekommst du dafür **einen Punkt** und alle sehen, wer es war. Nochmal antippen nimmt ihn zurück, dann geht der Punkt wieder ab. Nur Hinzufügen gibt keine Punkte. Mit **×** löschst du einen Artikel (mit Rückfrage).

@@ -194,3 +194,21 @@ test('clearAll removes all items but keeps points and empties; clearChecked keep
   await s.clearDeposit(c);
   assert.equal(await db.get(c, 'deposit'), null);
 });
+
+test('the VG number of an item can be added, changed and removed without touching the basket state', async () => {
+  const { s, db } = setup(); const c = await s.create();
+  await s.add(c, item('n1', 'Cabbage'), A);
+  await s.setNum(c, 'n1', A, 4711, false);                         // add: not checked, no point
+  let it = await db.get(c, 'items/n1');
+  assert.equal(it.vgNum, 4711); assert.equal(it.checked, false);
+  assert.equal((await db.get(c, 'scores'))?.[A] ?? 0, 0);
+  await s.check(c, 'n1', A, true);
+  await s.setNum(c, 'n1', A, 4712, false);                         // change on a checked item: stays checked, no extra point
+  it = await db.get(c, 'items/n1');
+  assert.equal(it.vgNum, 4712); assert.equal(it.checked, true);
+  assert.equal((await db.get(c, 'scores'))[A], 1);
+  await s.setNum(c, 'n1', A, null, false);                         // empty field: number removed
+  assert.equal((await db.get(c, 'items/n1')).vgNum ?? null, null);
+  await s.setNum(c, 'n1', A, 'abc', false);                        // garbage is ignored, no number
+  assert.equal((await db.get(c, 'items/n1')).vgNum ?? null, null);
+});

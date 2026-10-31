@@ -45,16 +45,15 @@ export function buildIndex(raw) {
       return hits.slice(0, limit);
     },
     // Name suggestions without duplicates: products with the same name collapse into one entry.
-    // vgNum is only set when the name is unambiguous (otherwise the user adds the number later).
+    // Picking a name adds the item without a VG number (it can be added or changed on the list later).
     searchNames(q, limit = 6) {
-      const hits = this.search(q, Infinity).filter(p => byNum.get(p.vgNum) === p), groups = new Map();
-      for (const p of hits) { const g = groups.get(p.key); if (g) g.count++; else groups.set(p.key, { title: p.title, vgNum: p.vgNum, count: 1 }); }
-      return [...groups.values()].slice(0, limit).map(g => ({ title: g.title, vgNum: g.count === 1 ? g.vgNum : null, count: g.count }));
-    },
-    // Exact name -> the same shape as searchNames (number only if unambiguous), or null
-    titleInfo(t) {
-      const key = String(t).trim().toLowerCase(), same = list.filter(p => p.key === key && byNum.get(p.vgNum) === p);
-      return same.length ? { title: same[0].title, vgNum: same.length === 1 ? same[0].vgNum : null } : null;
+      const seen = new Set(), out = [];
+      for (const p of this.search(q, Infinity)) {
+        if (seen.has(p.key)) continue;
+        seen.add(p.key); out.push({ title: p.title });
+        if (out.length >= limit) break;
+      }
+      return out;
     },
     byTitle: t => list.find(p => p.key === String(t).trim().toLowerCase()) || null,
     search(q, limit = 8) {

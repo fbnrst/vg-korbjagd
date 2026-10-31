@@ -16,6 +16,7 @@ const isLocal = () => code === LOCAL;
 let state = { items: {}, scores: {}, deposit: {} };
 let store = null, localDb = null, localStore = null, remotePromise = null, pending = null;
 let unsub = null, first = true, vg = null;
+let editingId = null; // item whose VG number is being edited
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
@@ -55,14 +56,21 @@ function connect() {
 /* ---------- Rendering ---------- */
 function itemHtml(i) {
   const by = !isLocal() && i.checked && i.checkedBy ? `<span class="badge">${esc(i.checkedBy)}</span>` : '';
-  const sub = i.vgNum ? `VG ${i.vgNum}` : '';
-  const vgIn = i.vgNum || i.checked ? '' : `<form data-vg="${esc(i.id)}"><input class="vg" type="number" inputmode="numeric" placeholder="${t('noShort')}"></form>`;
+  const id = esc(i.id);
+  // Number: open items without one get the quick field (entering it puts the item in the basket); every other item
+  // shows a small button to change or add the number
+  const editing = editingId === i.id;
+  const chip = i.vgNum ? esc(i.vgNum) : i.checked ? `＋ ${t('noShort')}` : '';
+  const sub = chip && !editing ? `<button type="button" class="numedit" data-editnum="${id}" aria-label="${t('ariaEditNum')}">${chip}</button>` : '';
+  const vgIn = editing ? `<form data-vgedit="${id}"><input class="vg" type="number" inputmode="numeric" value="${esc(i.vgNum || '')}" placeholder="${t('noShort')}"></form>`
+    : i.vgNum || i.checked ? '' : `<form data-vg="${id}"><input class="vg" type="number" inputmode="numeric" placeholder="${t('noShort')}"></form>`;
   return `<div class="item ${i.checked ? 'done' : ''}">
       <button class="chk" data-chk="${esc(i.id)}" aria-label="${t(i.checked ? 'ariaBack' : 'ariaCheck')}">${i.checked ? '✓' : ''}</button>
-      <div class="t">${i.amount > 1 ? `${esc(i.amount)}${i.unit ? ' ' + esc(i.unit) : '×'} ` : ''}${esc(i.title)}<small>${esc(sub)}</small></div>${by}${vgIn}
+      <div class="t">${i.amount > 1 ? `${esc(i.amount)}${i.unit ? ' ' + esc(i.unit) : '×'} ` : ''}${esc(i.title)}<small>${sub}</small></div>${by}${vgIn}
       <button class="x" data-del="${esc(i.id)}" aria-label="${t('ariaDelete')}">×</button></div>`;
 }
 function render() {
+  const typed = editingId ? document.querySelector('[data-vgedit] input')?.value : null; // survive re-renders while typing
   const all = Object.values(state.items).sort((a, b) => ((a.addedAt || 0) - (b.addedAt || 0)));
   const open = all.filter(i => !i.checked);
   const done = all.filter(i => i.checked).sort((a, b) => (b.checkedAt || 0) - (a.checkedAt || 0)); // most recently checked off first
@@ -74,6 +82,11 @@ function render() {
   $('#headInfo').textContent = `🛒 ${done.length}/${all.length}`;
   $('#headInfo').title = t('countInBasket', { done: done.length, all: all.length });
   renderDeposit(); renderCheckout();
+  if (editingId) {
+    const input = document.querySelector('[data-vgedit] input');
+    if (input) { if (typed !== null && typed !== undefined) input.value = typed; if (document.activeElement !== input) { input.focus(); input.select(); } }
+    else editingId = null; // the item is gone
+  }
 
   const rank = Object.entries(state.scores).sort((a, b) => b[1] - a[1]);
   // same points = same place (1, 1, 3, …), no medal without points
@@ -121,7 +134,7 @@ const depSum = id => Object.values(state.deposit[id] || {}).reduce((s, n) => s +
 function renderDeposit() {
   const types = vg ? vg.deposits : null;
   $('#depItems').innerHTML = !types ? `<p class="muted" style="text-align:center">${t('loadingVg')}</p>`
-    : types.map(d => `<div class="dep"><div class="t">${esc(d.name)}<small>VG ${esc(d.vgNum)}</small></div>
+    : types.map(d => `<div class="dep"><div class="t">${esc(d.name)}<small>${esc(d.vgNum)}</small></div>
         <button data-dep-sub="${esc(d.id)}" aria-label="${t('ariaLess')}">−</button><span class="n">${depSum(d.id)}</span><button class="add" data-dep-add="${esc(d.id)}" aria-label="${t('ariaMore')}">+</button></div>`).join('');
   const total = types ? types.reduce((s, d) => s + depSum(d.id), 0) : 0;
   $('#depTotal').textContent = t('pcs', { n: total });
@@ -139,14 +152,15 @@ document.addEventListener('click', e => {
     return;
   }
   const sn = e.target.closest('[data-sugname]');
-  if (sn) { // a suggested name was tapped: add it right away (with its VG number if the name is unambiguous)
-    const p = vg && vg.titleInfo(sn.dataset.sugname);
-    if (p) store.add(code, { id: uid(), title: p.title, vgNum: p.vgNum }, myKey());
+  if (sn) { // a suggested name was tapped: add it right away, without a VG number
+    store.add(code, { id: uid(), title: sn.dataset.sugname }, myKey());
     $('#addIn').value = ''; $('#addIn').dispatchEvent(new Event('input'));
     return;
   }
   const kr = e.target.closest('[data-checkout]');
   if (kr) { const k = kr.dataset.checkout; checkoutDone.has(k) ? checkoutDone.delete(k) : checkoutDone.add(k); renderCheckout(); return; }
+  const en = e.target.closest('[data-editnum]');
+  if (en) { editingId = en.dataset.editnum; render(); return; }
   const dadd = e.target.closest('[data-dep-add]'), dsub = e.target.closest('[data-dep-sub]');
   if (dadd) { store.depositAdd(code, dadd.dataset.depAdd, myKey()); return; }
   if (dsub) { store.depositRemove(code, dsub.dataset.depSub, myKey()); return; }
@@ -154,6 +168,18 @@ document.addEventListener('click', e => {
   if (del) { const it = state.items[del.dataset.del]; if (it && confirm(t('confirmDelete', { item: it.title }))) store.remove(code, it.id); }
 });
 document.addEventListener('submit', e => {
+  const fe = e.target.closest('[data-vgedit]');
+  if (fe) { // change, add or (empty field) remove the VG number of an item; the basket state stays as it is
+    e.preventDefault();
+    const raw = fe.querySelector('input').value.trim(), v = parseInt(raw, 10);
+    if (raw && !(v > 0)) return;
+    const id = fe.dataset.vgedit, p = raw && vg ? vg.lookup(v) : null;
+    editingId = null;
+    store.setNum(code, id, myKey(), raw ? v : null, false, p ? { title: p.title } : {});
+    if (raw) toast(p ? `✓ ${p.title}` : t(vg ? 'vgNotInDb' : 'vgSaved', { n: v }));
+    render();
+    return;
+  }
   const f = e.target.closest('[data-vg]');
   if (!f) return;
   e.preventDefault();
@@ -163,13 +189,19 @@ document.addEventListener('submit', e => {
   store.setNum(code, f.dataset.vg, myKey(), v, true, p ? { title: p.title } : {}); // entering the number puts it in the basket
   toast(p ? `✓ ${p.title}` : t(vg ? 'vgNotInDb' : 'vgSaved', { n: v }));
 });
+// Leaving the edit field (blur) or pressing Escape cancels the edit
+document.addEventListener('focusout', e => {
+  if (!e.target.closest('[data-vgedit]')) return;
+  setTimeout(() => { if (editingId && !document.activeElement?.closest('[data-vgedit]')) { editingId = null; render(); } }, 150);
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && editingId) { editingId = null; render(); } });
 $('#addForm').onsubmit = e => {
   e.preventDefault();
   const v = $('#addIn').value.trim(); if (!v) return;
   $('#addIn').value = ''; $('#addSuggest').classList.add('hide');
   if (parseShareLink(v)) return openImport(v); // a share link from the original app was pasted
   const isNum = /^\d+$/.test(v);
-  const p = vg && (isNum ? vg.lookup(v) : vg.titleInfo(v));
+  const p = vg && isNum ? vg.lookup(v) : null; // names are added as typed, without a number
   if (p) store.add(code, { id: uid(), title: p.title, vgNum: p.vgNum }, myKey());
   else store.add(code, { id: uid(), title: isNum ? t('vgPlaceholderTitle', { n: v }) : v, vgNum: isNum ? +v : null }, myKey());
   if (isNum && !p) toast(vg ? t('vgNotInDb', { n: v }) : t('vgNotLoaded'));

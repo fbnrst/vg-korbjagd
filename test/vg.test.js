@@ -51,18 +51,14 @@ test('deposit types are in the index', () => {
   assert.deepEqual(buildIndex(raw).deposits, []);
 });
 
-test('name suggestions collapse duplicate names; the number is only kept when the name is unambiguous', () => {
+test('name suggestions collapse duplicate names and carry no numbers', () => {
   const ix = buildIndex({
     products: [[1100, 'Äpfel', 2, 1, 1, 0], [1101, 'Äpfel', 2, 1, 1, 0], [1102, 'Apfelsaft', 3, 1, 1, 0], [1102, 'Apfelsaft', 3, 1, 1, 0], [1200, 'Birnen', 2, 1, 1, 0]],
     man: { 1: 'Hof' }, countries: { 1: 'Deutschland' }, units: { 2: 'kg', 3: 'Stück' },
   });
-  const names = ix.searchNames('äpfel');
-  assert.deepEqual(names, [{ title: 'Äpfel', vgNum: null, count: 2 }]);            // two products, shown once, no number
-  const juice = ix.searchNames('apfelsaft');
-  assert.deepEqual(juice, [{ title: 'Apfelsaft', vgNum: 1102, count: 1 }]);        // same number twice counts once
-  assert.deepEqual(ix.titleInfo('Äpfel'), { title: 'Äpfel', vgNum: null });
-  assert.deepEqual(ix.titleInfo(' birnen '), { title: 'Birnen', vgNum: 1200 });
-  assert.equal(ix.titleInfo('Kirschen'), null);
+  assert.deepEqual(ix.searchNames('äpfel'), [{ title: 'Äpfel' }]);                  // two products, shown once
+  assert.deepEqual(ix.searchNames('apfelsaft'), [{ title: 'Apfelsaft' }]);          // same number twice, shown once
+  assert.deepEqual(ix.searchNames('ä', 1), [{ title: 'Äpfel' }]);                   // limit respected
   assert.equal(ix.searchNames('zzz').length, 0);
   assert.equal(ix.searchNames('', 6).length, 0);
 });
@@ -79,6 +75,5 @@ test('placeholder entries (unused number slots) are never suggested but their ex
   assert.equal(ix.lookup(1400).title, 'Echtes Brot');                               // a real product wins over a placeholder
   assert.deepEqual(ix.searchByNumber('130').map(p => p.vgNum), [1302]);              // not suggested by number ...
   assert.deepEqual(ix.searchNames('unbesetzt'), []);                                // ... nor by name
-  assert.equal(ix.titleInfo('unbesetzt Backwaren'), null);
   assert.equal(ix.size, 2);
 });
