@@ -32,4 +32,4 @@ Die App ruft außerdem `shareList.php`, `getSharedList.php` und `sendFeedback.ph
 
 ## Pläne für vg-korbjagd
 
-Server-Proxy mit Zwischenspeicher (z. B. 24 h plus Prüfsummenvergleich) und Verknüpfung mit der VG-Nummer-Eingabe (Titel, Einheit, Hersteller, Land automatisch eintragen, Pfand). Noch nicht umgesetzt.
+Proxy mit Zwischenspeicher (z. B. Cloudflare Worker, da die App keinen eigenen Server mehr hat) (z. B. 24 h plus Prüfsummenvergleich) und Verknüpfung mit der VG-Nummer-Eingabe (Titel, Einheit, Hersteller, Land automatisch eintragen, Pfand). Noch nicht umgesetzt.
