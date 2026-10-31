@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import { vgNumFromCode, similarNames, nameSimilarity, buildIndex, isPlaceholder, cleanTitle, infoText, parseShareLink, decryptShared } from '../public/vg.js';
+import { SYNONYM_GROUPS, vgNumFromCode, similarNames, nameSimilarity, buildIndex, isPlaceholder, cleanTitle, infoText, parseShareLink, decryptShared } from '../public/vg.js';
 
 // Load the vendor UMD file in its own context (provides CryptoJS)
 const sandbox = { crypto: globalThis.crypto };
@@ -95,11 +95,27 @@ test('similarNames lets alike names pass and asks for different products', () =>
     ['', 'Brot'], ['VG no. 123', 'Brot'], ['Ei', 'Eier'],
     ['Porree', 'Lauch'], ['Lauch', 'Porree Bio'], ['Möhren', 'Karotte'], ['Zucchini', 'Courgette'], ['Tomate', 'Paradeiser'],
     ['Aprikosen', 'Marille'], ['Rucola', 'Rauke'], ['Blumenkohl', 'Karfiol'], ['Brokkoli', 'Broccoli'], ['Feldsalat', 'Rapunzel'],
-    ['Weintrauben', 'Traube weiß Sugraone kernlos']];
+    ['Weintrauben', 'Traube weiß Sugraone kernlos'],
+    ['Tomate', 'Cherrytomaten'], ['Salat', 'Bataviasalat'], ['Walnüsse', 'Walnusskerne'], ['Rosinen', 'Sultaninen'], ['Marmelade', 'Fruchtaufstrich'],
+    ['Zwiebeln', 'Gemüsezwiebel'], ['Rote Beete', 'Rande'], ['Kürbis', 'Hokkaidokürbis'], ['Bohnen', 'Buschbohnen'], ['Melone', 'Wassermelone'],
+    ['Müsli', 'Muesli'], ['Kartoffeln', 'Frühkartoffeln'], ['Gurke', 'Minigurke'], ['Champignons', 'Egerlinge'], ['Äpfel', 'Tafelapfel']];
   for (const [x, y] of same) assert.ok(similarNames(x, y), `${x} ~ ${y} should pass without a question (${nameSimilarity(x, y).toFixed(2)})`);
   const different = [['Apfel', 'Orange'], ['Apfel', 'Orangensaft'], ['Apfel', 'Apfelsaft'], ['Milch', 'Vollmilchschokolade'],
     ['Bio Apfel', 'Bio Orange'], ['Datteln', 'Reformationsbrot'], ['Milch', 'Zucchini'],
     ['Porree', 'Karotte'], ['Lauch', 'Zucchini']];
   for (const [x, y] of different) assert.ok(!similarNames(x, y), `${x} vs ${y} should be questioned (${nameSimilarity(x, y).toFixed(2)})`);
   assert.equal(nameSimilarity('Apfel', 'Apfel'), 1);
+});
+
+test('synonym groups do not overlap and keep different products apart', () => {
+  const norm = x => x.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ß/g, 'ss');
+  const seen = new Map();
+  SYNONYM_GROUPS.forEach((g, i) => g.forEach(w => {
+    const k = norm(w);
+    assert.ok(!seen.has(k) || seen.get(k) === i, `"${w}" is in two synonym groups`);   // the later group would silently win
+    seen.set(k, i);
+  }));
+  for (const [x, y] of [['Apfel', 'Apfelsaft'], ['Orange', 'Orangensaft'], ['Tomate', 'Tomatenmark'], ['Gurke', 'Tomate'], ['Salat', 'Feldsalat'],
+    ['Zwiebel', 'Frühlingszwiebel'], ['Walnüsse', 'Haselnüsse'], ['Traube', 'Johannisbeere'], ['Kürbis', 'Kartoffel'], ['Bohnen', 'Erbsen']])
+    assert.ok(!similarNames(x, y), `${x} vs ${y} must still be questioned (${nameSimilarity(x, y).toFixed(2)})`);
 });
