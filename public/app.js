@@ -1,6 +1,6 @@
 import firebaseConfig from './firebase-config.js';
 import { createStore, firebaseAdapter, localAdapter, userKey } from './store.js';
-import { loadVg, infoText, parseShareLink, fetchSharedList } from './vg.js';
+import { loadVg, parseShareLink, fetchSharedList } from './vg.js';
 
 const $ = s => document.querySelector(s);
 const EMOJIS = ['🦊','🐼','🐯','🦄','🐸','🐙','🦖','🚀','⭐','🍓','🐵','🦁'];
@@ -48,7 +48,7 @@ function render() {
   const items = Object.values(state.items).sort((a, b) => (a.checked - b.checked) || ((a.addedAt || 0) - (b.addedAt || 0)));
   $('#items').innerHTML = items.length ? items.map(i => {
     const by = i.checked && i.checkedBy ? `<span class="badge">${esc(i.checkedBy)}</span>` : '';
-    const sub = [i.vgNum ? `VG-Nr. ${i.vgNum}` : '', i.info].filter(Boolean).join(' · ');
+    const sub = i.vgNum ? `VG ${i.vgNum}` : '';
     const vgIn = i.vgNum ? '' : `<form data-vg="${i.id}"><input class="vg" type="number" inputmode="numeric" placeholder="Nr."></form>`;
     return `<div class="item ${i.checked ? 'done' : ''}">
       <button class="chk" data-chk="${i.id}" aria-label="abhaken">${i.checked ? '✓' : ''}</button>
@@ -82,25 +82,30 @@ document.addEventListener('submit', e => {
   const v = parseInt(f.querySelector('input').value, 10);
   if (!(v > 0)) return;
   const p = vg && vg.lookup(v);
-  store.setNum(code, f.dataset.vg, myKey(), v, true, p ? { title: p.title, info: infoText(p) } : {}); // Nummer eingeben = im Korb
+  store.setNum(code, f.dataset.vg, myKey(), v, true, p ? { title: p.title } : {}); // Nummer eingeben = im Korb
   toast(p ? `✓ ${p.title}` : vg ? `VG-Nr. ${v} nicht in der VG-Datenbank` : `VG-Nr. ${v} gespeichert (VG-Daten nicht geladen)`);
 });
 $('#addForm').onsubmit = e => {
   e.preventDefault();
   const v = $('#addIn').value.trim(); if (!v) return;
-  $('#addIn').value = '';
+  $('#addIn').value = ''; $('#addPreview').classList.add('hide'); $('#vgSug').innerHTML = '';
   if (parseShareLink(v)) return openImport(v); // Teilen-Link der Original-App eingefügt
   const isNum = /^\d+$/.test(v);
   const p = vg && (isNum ? vg.lookup(v) : vg.byTitle(v));
-  if (p) store.add(code, { id: uid(), title: p.title, vgNum: p.vgNum, unit: null, info: infoText(p) }, myKey());
+  if (p) store.add(code, { id: uid(), title: p.title, vgNum: p.vgNum }, myKey());
   else store.add(code, { id: uid(), title: isNum ? `VG-Nr. ${v}` : v, vgNum: isNum ? +v : null }, myKey());
   if (isNum && !p) toast(vg ? `VG-Nr. ${v} nicht in der VG-Datenbank` : 'VG-Daten noch nicht geladen');
 };
-// Vorschläge aus der VG-Datenbank beim Tippen
+// Beim Tippen: Namen -> Vorschläge ohne Nummer, Nummer -> Produktvorschau
 $('#addIn').oninput = () => {
-  const q = $('#addIn').value.trim();
-  $('#vgSug').innerHTML = vg && q.length >= 2 && !/^\d+$/.test(q)
-    ? vg.search(q).map(p => `<option value="${esc(p.title)}">VG ${p.vgNum}</option>`).join('') : '';
+  const q = $('#addIn').value.trim(), pv = $('#addPreview');
+  const isNum = /^\d+$/.test(q);
+  $('#vgSug').innerHTML = vg && q.length >= 2 && !isNum
+    ? vg.search(q).map(p => `<option value="${esc(p.title)}"></option>`).join('') : '';
+  const p = vg && isNum ? vg.lookup(q) : null;
+  pv.classList.toggle('hide', !isNum || !vg || (!p && q.length < 4));
+  pv.classList.toggle('miss', isNum && !p);
+  pv.textContent = p ? `→ ${p.title}` : 'Keine VG-Nummer mit diesem Wert gefunden';
 };
 
 /* ---------- Import aus der Original-VG-App ---------- */
@@ -128,11 +133,10 @@ $('#importGo').onclick = async () => {
     const have = new Set(Object.values(state.items).map(i => i.title.toLowerCase()));
     let added = 0;
     for (const it of items) {
-      const p = vg && it.vgNum ? vg.lookup(it.vgNum) : null;
       const title = it.title;
       if (have.has(title.toLowerCase())) continue;
       have.add(title.toLowerCase());
-      store.add(code, { id: uid(), title, vgNum: it.vgNum, amount: it.amount, unit: it.unit, info: p ? infoText(p) : null }, myKey());
+      store.add(code, { id: uid(), title, vgNum: it.vgNum, amount: it.amount, unit: it.unit }, myKey());
       added++;
     }
     msg.textContent = `${added} von ${items.length} Artikeln übernommen${added < items.length ? ' (Rest war schon auf der Liste)' : ''}.`;

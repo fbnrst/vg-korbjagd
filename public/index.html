@@ -31,7 +31,8 @@ input[type=text],input[type=number]{width:100%;padding:10px 12px;border:1px soli
 .chk{width:30px;height:30px;border-radius:50%;border:2px solid var(--green);background:none;flex:none;color:#fff;font-size:18px;line-height:1}
 .item.done .chk{background:var(--green)}
 .item.done .t{text-decoration:line-through;color:var(--mute)}
-.t{flex:1;min-width:84px;overflow-wrap:anywhere}.t small{display:block;color:var(--mute)}
+.t{flex:1;min-width:84px;overflow-wrap:anywhere}#addPreview{margin:-4px 4px 12px;padding:8px 12px;border-radius:10px;background:var(--green2);font-weight:600}#addPreview.miss{background:none;color:var(--mute);font-weight:400}
+.t small{display:block;color:var(--mute);font-size:12px}
 .item input.vg{width:64px;padding:6px 8px;font-size:14px}.item form{flex:none}
 .badge{flex:none;background:var(--green2);border-radius:999px;padding:2px 8px;font-size:12px;white-space:nowrap}
 .x{background:none;border:0;color:var(--mute);font-size:20px;padding:4px}
@@ -113,6 +114,7 @@ input[type=text],input[type=number]{width:100%;padding:10px 12px;border:1px soli
       <button class="btn sec" type="button" id="scanBtn" aria-label="Barcode scannen">📷</button>
       <button class="btn">+</button>
     </form>
+    <div id="addPreview" class="hide"></div>
     <div class="card" id="items"></div>
     <div class="row" style="flex-wrap:wrap">
       <button class="btn sec" id="clearBtn">Erledigte entfernen</button>
