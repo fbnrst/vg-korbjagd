@@ -352,7 +352,6 @@ async function openShareDialog() {
 const closeShareDialog = () => $('#shareDlg').classList.add('hide');
 $('#shareBtn').onclick = openShareDialog;
 $('#shareClose').onclick = closeShareDialog;
-$('#shareCloseLocal').onclick = closeShareDialog;
 $('#shareDlg').onclick = e => { if (e.target.id === 'shareDlg') closeShareDialog(); };
 $('#shareStart').onclick = () => { closeShareDialog(); me.name ? shareLocalList() : askIdentity(shareLocalList); };
 $('#joinBtn').onclick = () => { const c = $('#codeIn').value.trim().toUpperCase(); if (c) { closeShareDialog(); joinShared(c); } };
