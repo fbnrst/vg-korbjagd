@@ -4,4 +4,4 @@ useDefault = true
 
 [[allowlists]]
 description = "Firebase web configuration (apiKey is a public identifier, not a secret; access is governed by database.rules.json)"
-paths = ['''public/firebase-config\.js''']
+paths = ['''public/firebase-config(\.dev)?\.js''']

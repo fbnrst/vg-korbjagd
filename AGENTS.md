@@ -35,6 +35,15 @@ Guidance for AI agents and humans working on **vg-korbjagd**: a shared shopping 
 - The Firebase web config in `public/firebase-config.js` is public by design (allow-listed in `.gitleaks.toml`). Access control is the rules file plus the list code.
 - The VG endpoints are public and send CORS `*` when the browser sends an `Origin` header (plain `curl` hides this); see `docs/vg-api.md`. Do not call the write endpoints (`shareList.php`, `sendFeedback.php`).
 
+## Release and dev site
+
+One GitHub Pages site shows two versions (`.github/workflows/pages.yml`, `scripts/build-site.mjs`): the **root is the latest release** (the newest tag `v*`; until the first tag exists it is main), **`/dev/` is the current main**. Work and push to main as usual: only `/dev/` changes. A release is cut by the user's word: `git tag vX.Y.Z && git push origin vX.Y.Z`, the workflow publishes it. Never tag on your own.
+
+- The dev copy is its own app. `public/env.js` derives `IS_DEV` from the path and `NS`, a prefix for **every** localStorage key (`LS` in `app.js`, the local database in `store.js`, the VG cache in `vg.js`) and for the service worker's cache names, because both sites share one origin. A new storage key or cache must use `NS`, otherwise a dev build can damage the data of the release.
+- It looks different on purpose (blue header, "DEV" tag, blue icons `public/icons/dev-*.png` from `npm run icons`), and `build-site.mjs` gives it its own manifest name, so both can sit on one home screen.
+- Firebase: dev uses its **own Firebase project** through `public/firebase-config.dev.js` (the build copies it over `firebase-config.js` in `/dev/`). `export default null;` means demo mode (shared lists live in the browser only). Never point dev at the production database. The rules in `database.rules.json` are published by hand to both projects, dev first.
+- Gotcha: the production service worker also covers `/dev/` until the dev worker takes over on the first visit; harmless, the dev worker has its own caches.
+
 ## Name matching review (periodic, by an agent)
 
 **Principle: usable beats perfect.** The check is there for a clear slip (an apple item with the number of an orange), not to police every pair. Most of the time the right number is typed anyway, so the app should ask only when it is quite sure that the number is wrong. A few wrong accepts (Tomaten ~ Tomatenmark) are fine; every needless question is worse. So when reviewing, close gaps where the same product is questioned, and do not tighten the threshold to catch borderline pairs.

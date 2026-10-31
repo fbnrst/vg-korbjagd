@@ -1,7 +1,10 @@
 name: Deploy to GitHub Pages
+# One site, two versions: the root shows the latest release (the newest tag "v*"), /dev/ shows the current main.
+# Until the first tag exists the root shows main as well. Tagging a release publishes it.
 on:
   push:
     branches: [main]
+    tags: ['v*']
   workflow_dispatch:
 permissions:
   contents: read
@@ -18,9 +21,24 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main          # the dev site is always main, also when this run was started by a tag
+          fetch-depth: 0     # all tags
       - run: node --test
+      - name: Pick the release
+        id: release
+        run: |
+          tag=$(git tag --list 'v*' --sort=-v:refname | head -n 1)
+          if [ -z "$tag" ]; then
+            echo "::notice::No release tag yet: the root shows main until the first tag (for example v1.0.0) is set"
+            tag=main
+          fi
+          echo "ref=$tag" >> "$GITHUB_OUTPUT"
+          echo "Release: $tag"
+      - run: git worktree add ../release "${{ steps.release.outputs.ref }}"
+      - run: node scripts/build-site.mjs ../release/public public _site
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: public
+          path: _site
       - id: deployment
         uses: actions/deploy-pages@v4

@@ -1,13 +1,14 @@
 import firebaseConfig from './firebase-config.js';
 import { createStore, firebaseAdapter, localAdapter, userKey, parseListCode } from './store.js';
+import { IS_DEV, NS } from './env.js';
 import { loadVg, parseShareLink, fetchSharedList, vgNumFromCode, similarNames } from './vg.js';
 import { t, applyStatic } from './i18n.js';
 
 const $ = s => document.querySelector(s);
 // Player emojis: single code points only (no skin tones or joined sequences, those render differently across phones)
 const EMOJIS = ['🦊','🐼','🦖','🦈','🦄','🐙','🤖','👽','🧙','🐲','🚀','⚡'];
-const LS = { get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch (e) { return d; } },
-             set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
+const LS = { get(k, d) { try { return JSON.parse(localStorage.getItem(NS + k)) ?? d; } catch (e) { return d; } },
+             set(k, v) { try { localStorage.setItem(NS + k, JSON.stringify(v)); } catch (e) {} } };
 
 const me = LS.get('me', { name: '', emoji: EMOJIS[0] });
 // The list lives on this phone (code LOCAL) until it is shared; then it moves to the server under a 6-character code.
@@ -663,6 +664,7 @@ const getRemote = () => remotePromise = remotePromise || (firebaseConfig
 
 async function init() {
   applyStatic();
+  if (IS_DEV) { document.body.classList.add('dev'); $('#devTag').classList.remove('hide'); document.title += ' DEV'; } // after applyStatic, which sets the title
   buildEmojis();
   localDb = localAdapter(); localStore = createStore(localDb);
   if (!firebaseConfig) $('#demoBanner').classList.remove('hide');

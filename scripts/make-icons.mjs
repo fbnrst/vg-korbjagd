@@ -23,10 +23,12 @@ const motif = scale => `
     <ellipse cx="256" cy="388" rx="26" ry="20" fill="#2b2f26"/>
   </g>`;
 
-const svg = ({ rounded, scale }) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8cbc50"/><stop offset="1" stop-color="#4c7005"/></linearGradient></defs>
-  <rect width="512" height="512"${rounded ? ' rx="112"' : ''} fill="url(#g)"/>
-  ${motif(scale)}
+// dev: the icon of the dev site (blue instead of green, with a DEV bar) so both can sit on one home screen
+const svg = ({ rounded, scale, dev, ribbon = true }) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${dev ? '#8a98f2' : '#8cbc50'}"/><stop offset="1" stop-color="${dev ? '#3b479e' : '#4c7005'}"/></linearGradient>
+  <clipPath id="c"><rect width="512" height="512"${rounded ? ' rx="112"' : ''}/></clipPath></defs>
+  <g clip-path="url(#c)"><rect width="512" height="512" fill="url(#g)"/>
+  ${dev && ribbon ? `<g transform="translate(0 -36)">${motif(scale * 0.8)}</g><rect y="396" width="512" height="116" fill="#12163f" opacity=".92"/><text x="256" y="486" font-family="Helvetica,Arial,sans-serif" font-weight="800" font-size="92" text-anchor="middle" fill="#d8defe" letter-spacing="10">DEV</text>` : motif(scale)}</g>
 </svg>`;
 
 async function launch() {
@@ -41,6 +43,10 @@ const outputs = [
   { file: 'icons/icon-512.png', size: 512, rounded: true, scale: 1 },
   { file: 'icons/icon-maskable-512.png', size: 512, rounded: false, scale: 0.78 },
   { file: 'icons/apple-touch-icon.png', size: 180, rounded: false, scale: 0.92 },
+  { file: 'icons/dev-icon-192.png', size: 192, rounded: true, scale: 1, dev: true },
+  { file: 'icons/dev-icon-512.png', size: 512, rounded: true, scale: 1, dev: true },
+  { file: 'icons/dev-icon-maskable-512.png', size: 512, rounded: false, scale: 0.78, dev: true, ribbon: false },
+  { file: 'icons/dev-apple-touch-icon.png', size: 180, rounded: false, scale: 0.92, dev: true },
 ];
 
 fs.writeFileSync(path.join(PUBLIC, 'icon.svg'), svg({ rounded: true, scale: 1 }));

@@ -4,6 +4,7 @@
 // set(code, path, value), remove(code, path).
 // Firebase key characters and HTML special characters (keys end up in the rendering) are replaced.
 // Must match the rules in database.rules.json: "<emoji without spaces> <name>", at most 60 characters.
+import { NS } from './env.js';
 const BAD = /[.$#\[\]\/<>&"'`\u0000-\u001f]/g;
 export const userKey = (emoji, name) => {
   const e = String(emoji ?? '').replace(BAD, '_').replace(/\s+/g, '').slice(0, 20) || '🙂';
@@ -46,7 +47,7 @@ export async function firebaseAdapter(cfg) {
 // Local adapter: JSON in a storage (localStorage); tabs in the same browser see each other via the storage event.
 // Only for trying things out without a Firebase account and for tests (with their own storage object).
 export function localAdapter(storage = globalThis.localStorage, listen = true) {
-  const KEY = 'korbjagd-local-db', subs = new Set();
+  const KEY = NS + 'korbjagd-local-db', subs = new Set();
   const load = () => { try { return JSON.parse(storage.getItem(KEY)) || {}; } catch (e) { return {}; } };
   const notify = () => { const d = load(); subs.forEach(s => s.cb(d[s.code] ?? null)); };
   const save = d => { storage.setItem(KEY, JSON.stringify(d)); notify(); };
