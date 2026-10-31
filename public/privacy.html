@@ -13,9 +13,6 @@
 body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans-serif}
 header{background:var(--hdr);color:var(--hdr-fg);padding:12px 16px}
 header a{color:var(--hdr-fg);text-decoration:none;font-weight:600}
-/* the dev site is blue all over (the release is green): same blue as the app header */
-body.dev{--bg:#eceefb;--green:#3b479e;--line:#cdd2f0;--hdr:#7d8de6;--hdr-fg:#0d1138}
-@media(prefers-color-scheme:dark){body.dev{--bg:#12142b;--card:#1b1f3d;--fg:#e4e7fb;--mute:#a4a9d3;--green:#9aa7ff;--line:#2d3263;--hdr:#2a3170;--hdr-fg:#e4e7fb}}
 .devtag{margin-left:10px;background:#12163f;color:#d8defe;border-radius:999px;padding:1px 9px;font-size:12px;font-weight:800;letter-spacing:.5px}
 main{max-width:720px;margin:0 auto;padding:16px}
 h1{font-size:24px;margin:8px 0 4px}h2{font-size:18px;margin:26px 0 6px}
@@ -25,6 +22,7 @@ table{border-collapse:collapse;width:100%;font-size:14px;margin:8px 0}
 th,td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
 html[lang=de] [lang=en],html[lang=en] [lang=de]{display:none}
 </style>
+<link rel="stylesheet" href="dev-theme.css">
 </head>
 <body>
 <header><a href="./" id="back">← Shopping list</a></header>
