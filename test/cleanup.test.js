@@ -39,3 +39,8 @@ test('dbUrl puts .json before the query string (the wrong order redirects to an 
   assert.equal(dbUrl(base, 'lists', 'shallow=true'), 'https://x-default-rtdb.europe-west1.firebasedatabase.app/lists.json?shallow=true');
   assert.equal(dbUrl(base, 'lists/ABC234/meta/created'), 'https://x-default-rtdb.europe-west1.firebasedatabase.app/lists/ABC234/meta/created.json');
 });
+
+test('with the 30 day limit a list is kept at 29 days and removed at 31 days of inactivity', () => {
+  const entries = { A: { activity: now - 29 * DAY }, B: { activity: now - 31 * DAY } };
+  assert.deepEqual(selectExpired(entries, now, 30 * DAY), ['B']);
+});

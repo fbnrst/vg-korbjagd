@@ -1,4 +1,4 @@
-// Deletes shared lists after a period of inactivity (default: 365 days).
+// Deletes shared lists after a period of inactivity (default: 30 days).
 // Runs in GitHub Actions (.github/workflows/cleanup.yml) with a Firebase service account, which bypasses the
 // database rules. Environment: FIREBASE_SERVICE_ACCOUNT (JSON), DATABASE_URL, MAX_AGE_DAYS, DRY_RUN=true|false.
 import { createSign } from 'node:crypto';
@@ -25,13 +25,13 @@ export function selectExpired(entries, now, maxAgeMs) {
 }
 
 async function main() {
-  const { FIREBASE_SERVICE_ACCOUNT, DATABASE_URL, MAX_AGE_DAYS = '365', DRY_RUN = 'false' } = process.env;
+  const { FIREBASE_SERVICE_ACCOUNT, DATABASE_URL, MAX_AGE_DAYS = '30', DRY_RUN = 'false' } = process.env;
   if (!FIREBASE_SERVICE_ACCOUNT || !DATABASE_URL) throw new Error('FIREBASE_SERVICE_ACCOUNT and DATABASE_URL are required');
   let sa;
   try { sa = JSON.parse(FIREBASE_SERVICE_ACCOUNT); } catch { throw new Error('FIREBASE_SERVICE_ACCOUNT is not valid JSON: paste the complete contents of the downloaded key file'); }
   if (!sa.client_email || !sa.private_key) throw new Error('FIREBASE_SERVICE_ACCOUNT is missing client_email or private_key: use a service account key file');
   const days = Number(MAX_AGE_DAYS);
-  if (!(days >= 30)) throw new Error('MAX_AGE_DAYS must be at least 30');
+  if (!(days >= 14)) throw new Error('MAX_AGE_DAYS must be at least 14');
   const now = Date.now(), dry = DRY_RUN === 'true';
 
   const tokenRes = await fetch(sa.token_uri || 'https://oauth2.googleapis.com/token', {

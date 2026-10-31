@@ -184,7 +184,7 @@ export function createStore(db) {
     },
   };
 
-  // Activity stamp (`activity`, ms): the server-side cleanup deletes lists after a year without activity.
+  // Activity stamp (`activity`, ms): the server-side cleanup deletes lists after 30 days without activity.
   // Opening or changing a list counts; the stamp is written at most once per hour per list.
   const touched = {};
   const touch0 = code => Promise.resolve(db.set(code, 'activity', touched[code])).catch(() => {}); // rules not updated yet or offline: harmless

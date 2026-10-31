@@ -3,7 +3,7 @@
 ## Was passiert wann
 
 - **Selbst löschen:** In der App unter *Teilen → Liste für alle löschen*. Das entfernt die geteilte Liste endgültig für alle Mitglieder (`store.deleteList`). Wer die Liste noch offen hat, landet automatisch wieder auf seiner lokalen Liste.
-- **Automatisch nach einem Jahr:** Die App schreibt beim Öffnen und Ändern einer geteilten Liste einen Zeitstempel `lists/<CODE>/activity` (höchstens einmal pro Stunde). Der Workflow `.github/workflows/cleanup.yml` läuft jede Woche und löscht Listen, deren letzte Aktivität (oder Erstellung, falls es keinen Stempel gibt) älter als 365 Tage ist. Der Abgleich steckt in `scripts/cleanup-lists.mjs` und ist getestet (`test/cleanup.test.js`).
+- **Automatisch nach 30 Tagen:** Die App schreibt beim Öffnen und Ändern einer geteilten Liste einen Zeitstempel `lists/<CODE>/activity` (höchstens einmal pro Stunde). Der Workflow `.github/workflows/cleanup.yml` läuft jede Woche und löscht Listen, deren letzte Aktivität (oder Erstellung, falls es keinen Stempel gibt) älter als 30 Tage ist. Der Abgleich steckt in `scripts/cleanup-lists.mjs` und ist getestet (`test/cleanup.test.js`).
 - Lokale Listen liegen nur auf dem Handy und werden nie vom Server gelöscht.
 
 ## Einrichtung (einmalig, nur du kannst das)
@@ -20,6 +20,6 @@ Solange das Secret fehlt, **schlägt der Workflow absichtlich fehl** (rotes Badg
 
 ## Hinweise
 
-- Das Skript löscht nie Listen ohne Zeitstempel (unbekanntes Alter) und verlangt mindestens 30 Tage als Frist (`MAX_AGE_DAYS`).
-- Die Frist ist in `cleanup.yml` (`MAX_AGE_DAYS`) und in den Datenschutzhinweisen (`public/privacy.html`, „12 Monate“) festgehalten; beides gemeinsam ändern.
+- Das Skript löscht nie Listen ohne Zeitstempel (unbekanntes Alter) und verlangt mindestens 14 Tage als Frist (`MAX_AGE_DAYS`).
+- Die Frist ist in `cleanup.yml` (`MAX_AGE_DAYS`) und in den Datenschutzhinweisen (`public/privacy.html`, „30 Tagen“) festgehalten; beides gemeinsam ändern.
 - Wer einen Listencode kennt, kann die Liste löschen (so wie er sie auch leeren könnte). Die App fragt vorher nach.
