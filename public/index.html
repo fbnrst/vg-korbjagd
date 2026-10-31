@@ -87,8 +87,9 @@ body.typing .tabs{display:none}
 .pod .e{font-size:34px}
 .rank{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
 .rank b{margin-left:auto;font-size:20px}
-#toast{position:fixed;top:calc(60px + var(--vvtop,0px));left:50%;transform:translateX(-50%) translateY(-120px);background:#222;color:#fff;border-radius:12px;padding:10px 16px;transition:.3s;z-index:20;max-width:90vw;text-align:center}
-#toast.show{transform:translateX(-50%) translateY(0)}
+#toast{position:fixed;top:calc(60px + var(--vvtop,0px));left:50%;transform:translateX(-50%) translateY(-16px);background:#222;color:#fff;border-radius:12px;padding:10px 16px;z-index:20;max-width:90vw;text-align:center;pointer-events:none;
+  opacity:0;visibility:hidden;transition:opacity .25s,transform .25s,visibility 0s .25s} /* hidden = invisible, whatever the text height (no edge may peek out) */
+#toast.show{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0);transition-delay:0s}
 .muted{color:var(--mute)}.hide{display:none!important}
 .big{font-size:22px;letter-spacing:4px;font-weight:700}
 #shareDlg,#importDlg,#resetDlg{position:fixed;left:0;right:0;top:var(--vvtop,0px);height:var(--app-h,100dvh);z-index:30;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px}
