@@ -17,3 +17,7 @@ Auf dem Handy im selben WLAN: `http://<IP-des-Rechners>:3000`. Zum Installieren 
 Technik: Node-Server ohne Abhängigkeiten, Server-Sent-Events, Zustand in `data.json`; Offline-Aktionen werden nachgesendet.
 Barcode: 📷 neben dem Eingabefeld. Bekannter Artikel (gleicher Code oder Name) wird abgehakt, sonst neu angelegt (Name via Open Food Facts) und abgehakt. Kamera braucht HTTPS (oder localhost). Chrome/Android nutzt BarcodeDetector, Safari lädt zxing von jsDelivr nach.
 Nicht enthalten: VG-Produktdatenbank, Pfand. Die VG-Endpunkte sind in [docs/vg-api.md](docs/vg-api.md) beschrieben.
+
+## Lizenz
+
+BSD 3-Clause, siehe [LICENSE](LICENSE). Die VG-Daten (siehe `docs/vg-api.md`) gehören der VG Dresden und sind nicht Teil dieser Lizenz.
