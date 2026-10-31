@@ -57,7 +57,16 @@ function connect() {
   if (unsub) unsub();
   first = true;
   state = { items: {}, scores: {}, deposit: {} }; render();
-  unsub = store.subscribe(code, onSnapshot, on => $('#dot').classList.toggle('on', on));
+  setOnline(true);
+  unsub = store.subscribe(code, onSnapshot, setOnline);
+}
+// "Offline" chip in the header: only while a shared list has no connection. The SDK reports "not connected" for a moment
+// at every start, so the chip waits a few seconds before it shows up.
+let offlineTimer = 0;
+function setOnline(on) {
+  clearTimeout(offlineTimer);
+  if (on) $('#offline').classList.add('hide');
+  else offlineTimer = setTimeout(() => $('#offline').classList.remove('hide'), 3000);
 }
 
 /* ---------- Rendering ---------- */

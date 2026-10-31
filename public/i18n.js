@@ -5,7 +5,8 @@ export const STRINGS = {
   en: {
     pageTitle: 'Shopping list',
     menu: 'Menu',
-    connection: 'Connection',
+    offline: 'Offline',
+    offlineHint: 'No connection: your changes are sent as soon as you are back online.',
     share: 'Share',
     shareTitle: 'Scan with your phone',
     shareHint: 'Others scan the code with their camera and join the list.',
@@ -112,7 +113,8 @@ export const STRINGS = {
   de: {
     pageTitle: 'Einkaufsliste',
     menu: 'Menü',
-    connection: 'Verbindung',
+    offline: 'Offline',
+    offlineHint: 'Keine Verbindung: Deine Änderungen werden gesendet, sobald du wieder online bist.',
     share: 'Teilen',
     shareTitle: 'Mit dem Handy scannen',
     shareHint: 'Die anderen scannen den Code mit der Kamera und sind in der Liste.',
@@ -238,7 +240,7 @@ export function t(key, params = {}, language = lang) {
 
 // Static texts in index.html: [selector, key, what to set]
 export const STATIC = [
-  ['#menuBtn', 'menu', 'aria-label'], ['#menuBtn', 'menu', 'title'], ['#dot', 'connection', 'title'], ['#shareBtn', 'share', 'aria-label'], ['#shareBtn', 'share', 'title'],
+  ['#menuBtn', 'menu', 'aria-label'], ['#menuBtn', 'menu', 'title'], ['#offline', 'offline', 'text'], ['#offline', 'offlineHint', 'title'], ['#shareBtn', 'share', 'aria-label'], ['#shareBtn', 'share', 'title'],
   ['#shareSharedBox h2', 'shareTitle', 'text'], ['#shareHint', 'shareHint', 'text'],
   ['#shareLocalBox h2', 'shareLocalTitle', 'text'], ['#shareLocalHint', 'shareLocalHint', 'text'],
   ['#privacyNoteShare', 'privacyNoteShare', 'text'], ['#privacyNoteName', 'privacyNoteName', 'text'],
