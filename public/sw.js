@@ -1,4 +1,4 @@
-const VERSION = 'v43';
+const VERSION = 'v44';
 // The release (/) and the dev build (/dev/) share one origin and so one cache storage: each keeps to its own cache names
 const PREFIX = 'korbjagd-' + (self.registration.scope.includes('/dev/') ? 'dev-' : '') + 'v';
 const CACHE = PREFIX + VERSION.slice(1);
