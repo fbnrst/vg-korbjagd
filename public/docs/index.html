@@ -14,7 +14,9 @@ html{scroll-behavior:smooth}
 body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans-serif}
 header{background:var(--hdr);color:var(--hdr-fg);padding:12px 16px}
 header a{color:var(--hdr-fg);text-decoration:none;font-weight:600}
-body.dev{--hdr:#7d8de6;--hdr-fg:#0d1138} /* the dev site: same blue as the app */
+/* the dev site is blue all over (the release is green): same blue as the app header */
+body.dev{--bg:#eceefb;--green:#3b479e;--line:#cdd2f0;--hdr:#7d8de6;--hdr-fg:#0d1138}
+@media(prefers-color-scheme:dark){body.dev{--bg:#12142b;--card:#1b1f3d;--fg:#e4e7fb;--mute:#a4a9d3;--green:#9aa7ff;--line:#2d3263;--hdr:#2a3170;--hdr-fg:#e4e7fb}}
 .devtag{margin-left:10px;background:#12163f;color:#d8defe;border-radius:999px;padding:1px 9px;font-size:12px;font-weight:800;letter-spacing:.5px}
 main{max-width:1000px;margin:0 auto;padding:16px 16px 8px;overflow-wrap:anywhere}
 h1{font-size:28px;margin:8px 0 4px}
@@ -42,6 +44,9 @@ figure.phone figcaption{margin-top:8px;color:var(--mute);font-size:13px;line-hei
   main{padding:24px 24px 8px}
   .sec{display:grid;grid-template-columns:minmax(0,1fr) 480px;gap:28px;padding:24px}
   .sec .figs{margin-top:0;position:sticky;top:16px;align-self:start}
+  .sec.wide{display:block}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:32px}
+  .cols>div>:first-child{margin-top:0}
 }
 code{font-size:13px;overflow-wrap:anywhere}
 .ic{vertical-align:-3px}
@@ -76,16 +81,14 @@ html[lang=de] [lang=en],html[lang=en] [lang=de]{display:none}
   <li>Tap the share button <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="ic"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/></svg> (a box with an arrow pointing up) at the bottom of the screen.</li>
   <li>Scroll down in the list and tap <strong>Add to Home Screen</strong>.</li>
   <li>Tap <strong>Add</strong> at the top right.</li>
-</ol></details>
+</ol>
+<p class="note"><strong>Good to know:</strong> the installed app has its own storage and does not see a list you started in the browser. Install first and then start your list, or share the list and join it in the app.</p></details>
 <details class="how" data-os="android"><summary>Android (Chrome)</summary>
 <ol>
   <li>Tap the menu <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="ic"><circle cx="12" cy="5" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="19" r="1.6" fill="currentColor"/></svg> (three dots) at the top right.</li>
   <li>Tap <strong>Install app</strong> or <strong>Add to Home screen</strong>.</li>
   <li>Confirm with <strong>Install</strong>.</li>
-</ol></details>
-<details class="how" data-os="desktop"><summary>Computer (Chrome or Edge)</summary>
-<p>Click the install icon at the right end of the address bar, then <strong>Install</strong>.</p></details>
-<p class="note"><strong>iPhone:</strong> the installed app has its own storage and does not see a list you started in the browser. Install first and then start your list, or share the list and join it in the app.</p></div><div class="figs qrcol"><div class="qrbox"><div class="qr" data-qr></div><p class="muted qrcap">Scan with your phone to open the app</p><p><a class="open" href="../">Open the app</a></p><p class="muted"><code data-url></code></p></div></div></section>
+</ol></details></div><div class="figs qrcol"><div class="qrbox"><div class="qr" data-qr></div><p class="muted qrcap">Scan with your phone to open the app</p><p><a class="open" href="../">Open the app</a></p><p class="muted"><code data-url></code></p></div></div></section>
 <section class="sec" id="en-start"><div class="txt"><h2>Getting started</h2>
 <p>Open the app and add items. Your list lives <strong>on your phone</strong>, works without internet and needs no name.</p>
 <ul>
@@ -132,11 +135,13 @@ html[lang=de] [lang=en],html[lang=en] [lang=de]{display:none}
   <li><strong>Leave list</strong> (shared lists): you get an empty list on your phone, the shared list stays as it is for the others. Join again with the code or link.</li>
   <li><strong>Delete for everyone:</strong> share symbol → <strong>Delete this list for everyone</strong>. This cannot be undone. Shared lists that nobody touched for 30 days are deleted automatically; your list on your phone never is.</li>
 </ul></div><div class="figs"><figure class="phone"><div class="frame"><img src="img/en-reset.jpg" width="600" height="1300" loading="lazy" decoding="async" alt="The reset dialog with three options."></div><figcaption>Reset list</figcaption></figure><figure class="phone"><div class="frame"><img src="img/en-menu.jpg" width="600" height="1300" loading="lazy" decoding="async" alt="The menu with Reset list, Import list, Leave list, Help and Privacy."></div><figcaption>The menu</figcaption></figure></div></section>
-<section class="sec" id="en-more"><div class="txt"><h2>Good to know</h2>
+<section class="sec wide" id="en-more"><div class="txt"><h2>Good to know</h2>
+<div class="cols"><div>
 <ul>
   <li><strong>No internet:</strong> the list on your phone always works. A shared list shows the last state your phone knows and sends your changes when the connection is back, so stay in the app until then. Sharing, joining, the barcode lookup and the import need internet.</li>
   <li><strong>Privacy:</strong> your list stays on your phone until you share it. After that, the list and the name and emoji you chose are stored on a server. Anyone who knows a list code can see and change that list, so give it only to people who should join. Please do not use your full real name. <a href="../privacy.html">Privacy notice</a></li>
-</ul>
+</ul></div>
+<div><h3>Questions</h3>
 <dl>
   <dt>The camera does not start.</dt>
   <dd>Allow the camera when your phone asks, or later in the phone or browser settings. You can also type the number into the field below the camera picture.</dd>
@@ -146,7 +151,7 @@ html[lang=de] [lang=en],html[lang=en] [lang=de]{display:none}
   <dd>The code has 6 letters and digits, no spaces. Better still, use the link or the QR code.</dd>
   <dt>The points look wrong.</dt>
   <dd>Items checked off before sharing give no points, and un-checking or deleting takes the point away. <strong>New round</strong> sets everyone back to zero.</dd>
-</dl></div><div class="figs"></div></section>
+</dl></div></div></div><div class="figs"></div></section>
 <footer><a href="../privacy.html">Privacy notice</a></footer>
 </div>
 
@@ -164,16 +169,14 @@ html[lang=de] [lang=en],html[lang=en] [lang=de]{display:none}
   <li>Tippe unten auf den Teilen-Knopf <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="ic"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/></svg> (ein Kasten mit einem Pfeil nach oben).</li>
   <li>Scrolle in der Liste nach unten und tippe auf <strong>Zum Home-Bildschirm</strong>.</li>
   <li>Tippe oben rechts auf <strong>Hinzufügen</strong>.</li>
-</ol></details>
+</ol>
+<p class="note"><strong>Gut zu wissen:</strong> Die installierte App hat einen eigenen Speicher und sieht keine Liste, die du vorher im Browser angelegt hast. Installiere zuerst und lege dann deine Liste an, oder teile die Liste und tritt ihr in der App bei.</p></details>
 <details class="how" data-os="android"><summary>Android (Chrome)</summary>
 <ol>
   <li>Tippe oben rechts auf das Menü <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="ic"><circle cx="12" cy="5" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="19" r="1.6" fill="currentColor"/></svg> (drei Punkte).</li>
   <li>Tippe auf <strong>App installieren</strong> oder <strong>Zum Startbildschirm hinzufügen</strong>.</li>
   <li>Bestätige mit <strong>Installieren</strong>.</li>
-</ol></details>
-<details class="how" data-os="desktop"><summary>Computer (Chrome oder Edge)</summary>
-<p>Klicke am rechten Ende der Adressleiste auf das Installieren-Symbol, dann auf <strong>Installieren</strong>.</p></details>
-<p class="note"><strong>iPhone:</strong> Die installierte App hat einen eigenen Speicher und sieht keine Liste, die du vorher im Browser angelegt hast. Installiere zuerst und lege dann deine Liste an, oder teile die Liste und tritt ihr in der App bei.</p></div><div class="figs qrcol"><div class="qrbox"><div class="qr" data-qr></div><p class="muted qrcap">Mit dem Handy scannen, um die App zu öffnen</p><p><a class="open" href="../">App öffnen</a></p><p class="muted"><code data-url></code></p></div></div></section>
+</ol></details></div><div class="figs qrcol"><div class="qrbox"><div class="qr" data-qr></div><p class="muted qrcap">Mit dem Handy scannen, um die App zu öffnen</p><p><a class="open" href="../">App öffnen</a></p><p class="muted"><code data-url></code></p></div></div></section>
 <section class="sec" id="de-start"><div class="txt"><h2>Loslegen</h2>
 <p>Öffne die App und füge Artikel hinzu. Deine Liste liegt <strong>auf deinem Handy</strong>, funktioniert ohne Internet und braucht keinen Namen.</p>
 <ul>
@@ -220,11 +223,13 @@ html[lang=de] [lang=en],html[lang=en] [lang=de]{display:none}
   <li><strong>Liste verlassen</strong> (geteilte Listen): Du bekommst eine leere Liste auf deinem Handy, die geteilte bleibt für die anderen unverändert. Mit Code oder Link trittst du wieder bei.</li>
   <li><strong>Für alle löschen:</strong> Teilen-Symbol → <strong>Liste für alle löschen</strong>. Das lässt sich nicht rückgängig machen. Geteilte Listen, an die 30 Tage niemand gegangen ist, werden automatisch gelöscht; deine Liste auf dem Handy nie.</li>
 </ul></div><div class="figs"><figure class="phone"><div class="frame"><img src="img/de-reset.jpg" width="600" height="1300" loading="lazy" decoding="async" alt="Der Dialog zum Zurücksetzen mit drei Optionen."></div><figcaption>Liste zurücksetzen</figcaption></figure><figure class="phone"><div class="frame"><img src="img/de-menu.jpg" width="600" height="1300" loading="lazy" decoding="async" alt="Das Menü mit Liste zurücksetzen, Liste importieren, Liste verlassen, Hilfe und Datenschutz."></div><figcaption>Das Menü</figcaption></figure></div></section>
-<section class="sec" id="de-more"><div class="txt"><h2>Gut zu wissen</h2>
+<section class="sec wide" id="de-more"><div class="txt"><h2>Gut zu wissen</h2>
+<div class="cols"><div>
 <ul>
   <li><strong>Kein Internet:</strong> Die Liste auf deinem Handy funktioniert immer. Eine geteilte Liste zeigt den letzten Stand, den dein Handy kennt, und sendet deine Änderungen, sobald die Verbindung wieder da ist; bleib bis dahin in der App. Teilen, Beitreten, die Barcode-Suche und der Import brauchen Internet.</li>
   <li><strong>Datenschutz:</strong> Deine Liste bleibt auf deinem Handy, bis du sie teilst. Danach liegen die Liste sowie Name und Emoji auf einem Server. Wer einen Listencode kennt, kann die Liste sehen und ändern; gib ihn nur an Leute, die mitmachen sollen. Bitte nimm nicht deinen vollen echten Namen. <a href="../privacy.html">Datenschutzhinweise</a></li>
-</ul>
+</ul></div>
+<div><h3>Fragen</h3>
 <dl>
   <dt>Die Kamera startet nicht.</dt>
   <dd>Erlaube die Kamera, wenn das Handy fragt, oder später in den Einstellungen von Handy oder Browser. Du kannst die Nummer auch in das Feld unter dem Kamerabild tippen.</dd>
@@ -234,7 +239,7 @@ html[lang=de] [lang=en],html[lang=en] [lang=de]{display:none}
   <dd>Der Code hat 6 Buchstaben und Ziffern, keine Leerzeichen. Am besten nimmst du den Link oder den QR-Code.</dd>
   <dt>Die Punkte sehen falsch aus.</dt>
   <dd>Artikel, die vor dem Teilen abgehakt waren, geben keine Punkte, und Zurücknehmen oder Löschen nimmt den Punkt weg. <strong>Neue Runde</strong> setzt alle auf null.</dd>
-</dl></div><div class="figs"></div></section>
+</dl></div></div></div><div class="figs"></div></section>
 <footer><a href="../privacy.html">Datenschutzhinweise</a></footer>
 </div>
 
@@ -245,8 +250,8 @@ import { IS_DEV } from '../env.js';
 document.documentElement.lang = lang;
 document.title = lang === 'de' ? 'Hilfe' : 'Help';
 document.getElementById('back').textContent = lang === 'de' ? '← Einkaufsliste' : '← Shopping list';
-// the instructions of the device you are on are open, the others fold away
-const ua = navigator.userAgent, os = /iPhone|iPad|iPod/.test(ua) ? 'ios' : /Android/.test(ua) ? 'android' : 'desktop';
+// the instructions of the phone you are on are open (the iPhone ones as a default, also on a computer), the other folds away
+const os = /Android/.test(navigator.userAgent) ? 'android' : 'ios';
 document.querySelectorAll(`details.how[data-os="${os}"]`).forEach(d => { d.open = true; });
 const appUrl = new URL('../', location.href).href;
 document.querySelectorAll('[data-url]').forEach(el => { el.textContent = appUrl.replace(/^https?:\/\//, '').replace(/\/$/, ''); });
