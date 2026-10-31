@@ -111,11 +111,14 @@ export function vgNumFromCode(text) {
 // (Porree/Lauch) count as 1. Plural and spelling
 // variants score high (Tomate/Tomaten 0.91, Äpfel/Apfel 1), compounds and different products low
 // (Apfel/Apfelsaft 0.67, Apfel/Orange 0). Nothing to compare (empty, only numbers) counts as 1: do not bother the user.
-const GENERIC = new Set(['bio', 'frisch', 'frische', 'regional', 'natur', 'naturell', 'stueck', 'packung', 'mini', 'maxi', 'gross', 'klein']);
+const GENERIC = new Set(['bio', 'frisch', 'frische', 'regional', 'natur', 'naturell', 'stueck', 'packung', 'mini', 'maxi', 'gross', 'klein',
+  // colours say nothing about the product: "Traube rot" and "Paprika rot" share a word but not a product
+  'rot', 'rote', 'roter', 'rotes', 'grun', 'grune', 'gruner', 'gelb', 'gelbe', 'gelber', 'weiss', 'weisse', 'weisser', 'schwarz', 'schwarze', 'schwarzer', 'blau', 'blaue', 'blauer', 'braun', 'braune', 'bunt', 'bunte']);
 const normName = s => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ß/g, 'ss');
 const nameWords = s => normName(s).split(/[^a-z0-9]+/).filter(w => w.length >= 3 && !GENERIC.has(w) && !/^\d+$/.test(w));
 function dice(a, b) {
   if (a === b) return 1;
+  if (a.length < 4 || b.length < 4) return 0; // three letters share too many pairs by chance (brot ~ rot)
   const pairs = s => { const m = new Map(); for (let i = 0; i < s.length - 1; i++) { const k = s.slice(i, i + 2); m.set(k, (m.get(k) || 0) + 1); } return m; };
   const A = pairs(a), B = pairs(b); let common = 0;
   for (const [k, n] of A) common += Math.min(n, B.get(k) || 0);

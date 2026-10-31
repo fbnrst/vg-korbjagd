@@ -117,6 +117,6 @@ test('synonym groups do not overlap and keep different products apart', () => {
     seen.set(k, i);
   }));
   for (const [x, y] of [['Apfel', 'Apfelsaft'], ['Orange', 'Orangensaft'], ['Tomate', 'Tomatenmark'], ['Gurke', 'Tomate'], ['Salat', 'Feldsalat'],
-    ['Zwiebel', 'Frühlingszwiebel'], ['Walnüsse', 'Haselnüsse'], ['Traube', 'Johannisbeere'], ['Roggenbrot', 'Dinkelbrot'], ['Brot', 'Brötchen'], ['Brot', 'Brotaufstrich'], ['Kürbis', 'Kartoffel'], ['Bohnen', 'Erbsen']])
+    ['Zwiebel', 'Frühlingszwiebel'], ['Walnüsse', 'Haselnüsse'], ['Traube', 'Johannisbeere'], ['Roggenbrot', 'Dinkelbrot'], ['Brot', 'Linsen rot'], ['Apfel rot', 'Paprika rot'], ['Traube rot', 'Tomate rot'], ['Brot', 'Brötchen'], ['Brot', 'Brotaufstrich'], ['Kürbis', 'Kartoffel'], ['Bohnen', 'Erbsen']])
     assert.ok(!similarNames(x, y), `${x} vs ${y} must still be questioned (${nameSimilarity(x, y).toFixed(2)})`);
 });
