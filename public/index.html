@@ -172,7 +172,7 @@ body.typing .tabs{display:none}
     <button class="dlg-x" id="importClose" type="button" aria-label="Close"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     <h2 style="margin:0 0 4px">List from the VG app</h2>
     <p id="importHint" class="muted" style="margin:0 0 10px">Share the list in the VG app and paste the link here. Items are added as open (not checked off).</p>
-    <input type="text" id="importIn" placeholder="https://app.vg-dresden.de/list?shareId=…#…" autocomplete="off">
+    <div class="row"><input type="text" id="importIn" placeholder="https://app.vg-dresden.de/list?shareId=…#…" autocomplete="off"><button class="btn sec" id="importPaste" type="button">Paste</button></div>
     <p id="importMsg" class="muted" style="margin:8px 0"></p>
     <div><button class="btn" id="importGo" type="button" style="width:100%">Import</button></div>
   </div>

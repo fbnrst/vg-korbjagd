@@ -317,13 +317,26 @@ function openImport(text = '') {
   dismissKeyboard();
   $('#importDlg').classList.remove('hide'); $('#importIn').value = text; $('#importMsg').textContent = '';
   if (text) $('#importGo').click();
-  else clipboardLink().then(l => { if (l && !$('#importIn').value && !$('#importDlg').classList.contains('hide')) $('#importIn').value = l; });
+  else clipboardIfAllowed().then(l => { if (l && !$('#importIn').value && !$('#importDlg').classList.contains('hide')) $('#importIn').value = l; });
 }
-// A share link on the clipboard is filled into the field; the import starts only when "Import" is tapped. Needs a user gesture,
-// and iOS asks with its own "Paste" bubble first; unreadable clipboard or no link: the field stays empty.
-async function clipboardLink() {
-  try { const text = await navigator.clipboard.readText(); return parseShareLink(text) ? text.trim() : ''; } catch (e) { return ''; }
+// Where the browser already allows reading the clipboard without asking (Chrome/Android after "Allow"), a share link on it is
+// filled in when the dialog opens. Safari does not know this permission and would show its "Paste" bubble: no read there.
+async function clipboardIfAllowed() {
+  try {
+    if ((await navigator.permissions.query({ name: 'clipboard-read' })).state !== 'granted') return '';
+    const text = (await navigator.clipboard.readText()).trim();
+    return parseShareLink(text) ? text : '';
+  } catch (e) { return ''; }
 }
+// "Paste" next to the field: reading the clipboard only on this tap, because iOS answers every read with its own "Paste" bubble
+// (opening the dialog with a read put that bubble over the menu). The import starts only when "Import" is tapped.
+$('#importPaste').classList.toggle('hide', !navigator.clipboard?.readText);
+$('#importPaste').onclick = async () => {
+  let text = '';
+  try { text = (await navigator.clipboard.readText()).trim(); } catch (e) { return; } // declined or unreadable: nothing happens
+  if (parseShareLink(text)) { $('#importIn').value = text; $('#importMsg').textContent = ''; }
+  else $('#importMsg').textContent = t('clipNoLink');
+};
 $('#importClose').onclick = () => $('#importDlg').classList.add('hide');
 $('#importGo').onclick = async () => {
   const link = parseShareLink($('#importIn').value), msg = $('#importMsg');
