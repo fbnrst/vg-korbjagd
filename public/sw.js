@@ -1,4 +1,4 @@
-const VERSION = 'v38';
+const VERSION = 'v39';
 const CACHE = 'korbjagd-' + VERSION;
 const FILES = ['./', './index.html', './app.js', './store.js', './vg.js', './i18n.js', './legal-config.js', './privacy.html', './docs/index.html', './firebase-config.js', './manifest.json', './icon.svg', './logo.svg',
   './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png', './icons/apple-touch-icon.png',
