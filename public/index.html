@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
-<title>Einkaufsliste</title>
+<title>Shopping list</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -48,6 +48,7 @@ body.typing main{padding-bottom:90px}
 .t{flex:1;min-width:84px;overflow-wrap:anywhere}#addPreview{margin-bottom:8px;padding:8px 12px;border-radius:10px;background:var(--green2);font-weight:600}#addPreview.miss{background:none;color:var(--mute);font-weight:400}
 .dep{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}.dep:last-child{border:0}.dep .t{flex:1}.dep .n{min-width:28px;text-align:center;font-weight:700;font-size:18px}.dep button{width:38px;height:38px;border-radius:50%;border:2px solid var(--green);background:none;color:var(--fg);font-size:22px;line-height:1}.dep button.add{background:var(--green);color:#fff}
 .ks{margin-bottom:12px}.ks h3{margin:0 0 4px;font-size:14px;color:var(--mute);text-transform:uppercase;letter-spacing:.5px}.kr{display:flex;align-items:center;gap:10px;padding:12px 4px;border-bottom:1px solid var(--line);cursor:pointer}.kr:last-child{border:0}.kr .nm{flex:1;min-width:0;overflow-wrap:anywhere}.kr .nm small{color:var(--mute);margin-left:6px}.kr .no{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}.kr .no small{font-size:15px;font-weight:400;color:var(--mute)}.kr.off{opacity:.35}.kr.off .nm{text-decoration:line-through}
+#codeIn::placeholder{text-transform:none}
 .t small{display:block;color:var(--mute);font-size:12px}
 .item input.vg{width:64px;padding:6px 8px;font-size:14px}.item form{flex:none}
 .badge{flex:none;background:var(--green2);border-radius:999px;padding:2px 8px;font-size:12px;white-space:nowrap}
@@ -76,49 +77,49 @@ body.typing main{padding-bottom:90px}
 </head>
 <body>
 <header>
-  <span id="dot" title="Verbindung"></span>
-  <h1 id="title">🛒 Einkaufsliste</h1>
-  <button id="shareBtn" class="hide">Teilen</button>
+  <span id="dot" title="Connection"></span>
+  <h1 id="title">🛒 Shopping list</h1>
+  <button id="shareBtn" class="hide">Share</button>
 </header>
 <div id="toast"></div>
 <div id="shareDlg" class="hide">
   <div class="card" style="text-align:center;max-width:340px;width:100%">
-    <h2 style="margin:0 0 4px">Mit dem Handy scannen</h2>
-    <p class="muted" style="margin:0 0 10px">Die anderen scannen den Code mit der Kamera und sind in der Liste.</p>
+    <h2 style="margin:0 0 4px">Scan with your phone</h2>
+    <p class="muted" style="margin:0 0 10px">Others scan the code with their camera and join the list.</p>
     <div id="qr"></div>
     <p class="big" id="shareCode" style="margin:10px 0"></p>
-    <div class="row" style="justify-content:center"><button class="btn sec" id="shareLink" type="button">Link senden</button><button class="btn" id="shareClose" type="button">Fertig</button></div>
+    <div class="row" style="justify-content:center"><button class="btn sec" id="shareLink" type="button">Send link</button><button class="btn" id="shareClose" type="button">Done</button></div>
   </div>
 </div>
 <div id="importDlg" class="hide">
   <div class="card" style="max-width:380px;width:100%">
-    <h2 style="margin:0 0 4px">Liste aus der VG-App</h2>
-    <p class="muted" style="margin:0 0 10px">In der VG-App die Liste teilen und den Link hier einfügen. Die Artikel kommen offen (nicht abgehakt) in diese Liste.</p>
+    <h2 style="margin:0 0 4px">List from the VG app</h2>
+    <p class="muted" style="margin:0 0 10px">Share the list in the VG app and paste the link here. Items are added as open (not checked off).</p>
     <input type="text" id="importIn" placeholder="https://app.vg-dresden.de/list?shareId=…#…" autocomplete="off">
     <p id="importMsg" class="muted" style="margin:8px 0"></p>
-    <div class="row" style="justify-content:flex-end"><button class="btn sec" id="importClose" type="button">Schließen</button><button class="btn" id="importGo" type="button">Importieren</button></div>
+    <div class="row" style="justify-content:flex-end"><button class="btn sec" id="importClose" type="button">Close</button><button class="btn" id="importGo" type="button">Import</button></div>
   </div>
 </div>
 <div id="scanner" class="hide">
   <video id="cam" playsinline muted></video>
   <div id="scanFrame"></div>
-  <p id="scanMsg">Barcode in den Rahmen halten</p>
-  <form id="eanForm" class="row"><input type="number" id="eanIn" inputmode="numeric" placeholder="Code von Hand"><button class="btn">OK</button></form>
-  <button class="btn sec" id="scanClose" type="button">Schließen</button>
+  <p id="scanMsg">Hold the barcode inside the frame</p>
+  <form id="eanForm" class="row"><input type="number" id="eanIn" inputmode="numeric" placeholder="Enter code manually"><button class="btn">OK</button></form>
+  <button class="btn sec" id="scanClose" type="button">Close</button>
 </div>
 <main>
-  <p id="demoBanner" class="card hide" style="background:var(--green2)">Demo-Modus: noch keine Datenbank eingerichtet, die Liste ist nur in diesem Browser sichtbar (siehe README).</p>
+  <p id="demoBanner" class="card hide" style="background:var(--green2)">Demo mode: no database set up yet, the list is only visible in this browser (see README).</p>
   <!-- Willkommen -->
   <section id="vWelcome" class="hide">
     <div class="card">
-      <h2 style="margin-top:0">Wer bist du?</h2>
-      <input type="text" id="nameIn" placeholder="Dein Name" maxlength="20" autocomplete="off">
+      <h2 style="margin-top:0">Who are you?</h2>
+      <input type="text" id="nameIn" placeholder="Your name" maxlength="20" autocomplete="off">
       <div class="emojis" id="emojis"></div>
     </div>
     <div class="card">
-      <button class="btn" id="newList" style="width:100%">Neue Liste starten</button>
-      <p class="muted" style="text-align:center;margin:12px 0 8px">oder einer Liste beitreten</p>
-      <div class="row"><input type="text" id="codeIn" placeholder="Code, z. B. K7M2QX" maxlength="6" style="text-transform:uppercase"><button class="btn sec" id="joinBtn">Los</button></div>
+      <button class="btn" id="newList" style="width:100%">Start a new list</button>
+      <p class="muted" style="text-align:center;margin:12px 0 8px">or join a list</p>
+      <div class="row"><input type="text" id="codeIn" placeholder="Code, e.g. K7M2QX" maxlength="6" style="text-transform:uppercase"><button class="btn sec" id="joinBtn">Go</button></div>
       <p id="welcomeErr" class="muted" style="color:var(--red)"></p>
     </div>
   </section>
@@ -128,17 +129,17 @@ body.typing main{padding-bottom:90px}
     <div id="addBar">
       <div id="addPreview" class="hide"></div>
       <form id="addForm" class="row">
-        <input type="text" id="addIn" placeholder="Artikel oder VG-Nummer …" autocomplete="off" list="vgSug"><datalist id="vgSug"></datalist>
-        <button class="btn sec" type="button" id="modeBtn" aria-pressed="false" aria-label="Nummern-Modus" title="Nummern-Modus">123</button>
-        <button class="btn sec" type="button" id="scanBtn" aria-label="Barcode scannen">📷</button>
-        <button class="btn" aria-label="Hinzufügen">+</button>
+        <input type="text" id="addIn" placeholder="Item or VG number …" autocomplete="off" list="vgSug"><datalist id="vgSug"></datalist>
+        <button class="btn sec" type="button" id="modeBtn" aria-pressed="false" aria-label="Number mode" title="Number mode">123</button>
+        <button class="btn sec" type="button" id="scanBtn" aria-label="Scan barcode">📷</button>
+        <button class="btn" aria-label="Add">+</button>
       </form>
     </div>
     <div class="card" id="items"></div>
     <div class="card hide" id="doneCard"><div id="doneHead" class="muted" style="font-weight:600;margin-bottom:4px"></div><div id="doneItems"></div></div>
     <div class="row" style="flex-wrap:wrap">
-      <button class="btn sec" id="clearBtn">Erledigte entfernen</button>
-      <button class="btn sec" id="importBtn" title="Liste aus der VG-App holen">📥 VG-App</button>
+      <button class="btn sec" id="clearBtn">Remove done</button>
+      <button class="btn sec" id="importBtn" title="Fetch a list from the VG app">📥 VG app</button>
       <span class="muted" id="count" style="margin-left:auto"></span>
     </div>
   </section>
@@ -146,31 +147,31 @@ body.typing main{padding-bottom:90px}
   <!-- Leergut -->
   <section id="vDeposit" class="hide">
     <div class="card" id="depItems"></div>
-    <div class="row" style="flex-wrap:wrap"><button class="btn sec" id="depClear">Leergut leeren</button><span class="muted" id="depTotal" style="margin-left:auto"></span></div>
-    <p class="muted" style="font-size:13px">Jedes Stück zählt einen Punkt für die Rangliste.</p>
+    <div class="row" style="flex-wrap:wrap"><button class="btn sec" id="depClear">Clear empties</button><span class="muted" id="depTotal" style="margin-left:auto"></span></div>
+    <p class="muted" style="font-size:13px">Each piece scores one point on the leaderboard.</p>
   </section>
 
   <!-- Kasse -->
   <section id="vCheckout" class="hide">
-    <p class="muted" style="margin:0 0 8px;font-size:13px">Antippen = an der Kasse erledigt (nur auf diesem Handy). Der Bildschirm bleibt an.</p>
+    <p class="muted" style="margin:0 0 8px;font-size:13px">Tap = done at the checkout (this phone only). The screen stays on.</p>
     <div id="kasse"></div>
   </section>
 
   <!-- Rangliste -->
   <section id="vScore" class="hide">
     <div class="card">
-      <h2 style="margin:0">🏆 Wer packt am meisten in den Korb?</h2>
+      <h2 style="margin:0">🏆 Who puts the most in the basket?</h2>
       <div class="podium" id="podium"></div>
       <div id="ranks"></div>
-      <button class="btn sec" id="resetBtn" style="margin-top:12px">Neue Runde</button>
+      <button class="btn sec" id="resetBtn" style="margin-top:12px">New round</button>
     </div>
   </section>
 </main>
 <nav class="tabs hide" id="tabs">
-  <button data-t="vList" class="on">📝 Liste</button>
-  <button data-t="vDeposit">♻️ Leergut</button>
-  <button data-t="vCheckout">🧾 Kasse</button>
-  <button data-t="vScore">🏆 Rangliste</button>
+  <button data-t="vList" class="on">📝 List</button>
+  <button data-t="vDeposit">♻️ Empties</button>
+  <button data-t="vCheckout">🧾 Checkout</button>
+  <button data-t="vScore">🏆 Ranking</button>
 </nav>
 
 <script type="module" src="app.js"></script>

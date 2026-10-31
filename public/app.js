@@ -29,9 +29,9 @@ function onSnapshot(s) {
     for (const i of Object.values(next.items)) {
       const was = state.items[i.id];
       if (i.checked && !(was && was.checked) && i.checkedBy && i.checkedBy !== myKey()) {
-        const w = splitKey(i.checkedBy); toast(`${w.emoji} ${w.name} hat ${i.title} in den Korb gelegt 🛒`);
+        const w = splitKey(i.checkedBy); toast(`${w.emoji} ${w.name} put ${i.title} in the basket 🛒`);
       } else if (!was && i.addedBy && i.addedBy !== myKey()) {
-        const w = splitKey(i.addedBy); toast(`${w.emoji} ${w.name} hat ${i.title} hinzugefügt`);
+        const w = splitKey(i.addedBy); toast(`${w.emoji} ${w.name} added ${i.title}`);
       }
     }
   }
@@ -47,22 +47,22 @@ function connect() {
 function itemHtml(i) {
   const by = i.checked && i.checkedBy ? `<span class="badge">${esc(i.checkedBy)}</span>` : '';
   const sub = i.vgNum ? `VG ${i.vgNum}` : '';
-  const vgIn = i.vgNum || i.checked ? '' : `<form data-vg="${esc(i.id)}"><input class="vg" type="number" inputmode="numeric" placeholder="Nr."></form>`;
+  const vgIn = i.vgNum || i.checked ? '' : `<form data-vg="${esc(i.id)}"><input class="vg" type="number" inputmode="numeric" placeholder="No."></form>`;
   return `<div class="item ${i.checked ? 'done' : ''}">
-      <button class="chk" data-chk="${esc(i.id)}" aria-label="${i.checked ? 'zurück auf die Liste' : 'abhaken'}">${i.checked ? '✓' : ''}</button>
+      <button class="chk" data-chk="${esc(i.id)}" aria-label="${i.checked ? 'back to the list' : 'check off'}">${i.checked ? '✓' : ''}</button>
       <div class="t">${i.amount > 1 ? `${esc(i.amount)}${i.unit ? ' ' + esc(i.unit) : '×'} ` : ''}${esc(i.title)}<small>${esc(sub)}</small></div>${by}${vgIn}
-      <button class="x" data-del="${esc(i.id)}" aria-label="löschen">×</button></div>`;
+      <button class="x" data-del="${esc(i.id)}" aria-label="delete">×</button></div>`;
 }
 function render() {
   const all = Object.values(state.items).sort((a, b) => ((a.addedAt || 0) - (b.addedAt || 0)));
   const open = all.filter(i => !i.checked);
   const done = all.filter(i => i.checked).sort((a, b) => (b.checkedAt || 0) - (a.checkedAt || 0)); // zuletzt abgehakt oben
   $('#items').innerHTML = open.length ? open.map(itemHtml).join('')
-    : `<p class="muted" style="text-align:center">${all.length ? 'Alles im Korb 🎉' : 'Noch nichts auf der Liste.'}</p>`;
+    : `<p class="muted" style="text-align:center">${all.length ? 'Everything is in the basket 🎉' : 'Nothing on the list yet.'}</p>`;
   $('#doneCard').classList.toggle('hide', !done.length);
-  $('#doneHead').textContent = `Im Korb · ${done.length}`;
+  $('#doneHead').textContent = `In the basket · ${done.length}`;
   $('#doneItems').innerHTML = done.map(itemHtml).join('');
-  $('#count').textContent = `${done.length}/${all.length} im Korb`;
+  $('#count').textContent = `${done.length}/${all.length} in the basket`;
   renderDeposit(); renderKasse();
 
   const rank = Object.entries(state.scores).sort((a, b) => b[1] - a[1]);
@@ -75,7 +75,7 @@ function render() {
   $('#podium').innerHTML = podium.map(({ k, n, place }) => {
     const w = splitKey(k), h = 30 + 80 * n / max;
     return `<div class="pod"><div class="e">${esc(w.emoji)}</div><div>${esc(w.name)}</div><div class="bar" style="height:${h}px">${MEDAL[place]} ${esc(n)}</div></div>`;
-  }).join('') || '<span class="muted">Noch keine Punkte – ab in den Korb!</span>';
+  }).join('') || '<span class="muted">No points yet – get items into the basket!</span>';
   $('#ranks').innerHTML = placed.map(({ k, n, place }) => `<div class="rank"><span>${n > 0 && MEDAL[place] ? MEDAL[place] : place + '.'}</span><span>${esc(k)}</span><b>${esc(n)}</b></div>`).join('');
 }
 
@@ -93,11 +93,11 @@ function renderKasse() {
   const sec = (head, rows) => rows.length ? `<div class="card ks"><h3>${head}</h3>${rows.join('')}</div>` : '';
   const row = i => kasseRow(i.id, i.title, i.amount, i.unit, i.vgNum);
   const dep = vg ? vg.deposits.filter(t => depSum(t.id) > 0).map(t => kasseRow('d' + t.id, t.name, depSum(t.id), '', t.vgNum)) : [];
-  $('#kasse').innerHTML = sec('Artikel', inBasket.filter(i => i.vgNum >= 1000).map(row))
-    + sec('Backwaren', inBasket.filter(i => i.vgNum && i.vgNum < 1000).map(row))
-    + sec('Ohne VG-Nummer', inBasket.filter(i => !i.vgNum).map(row))
-    + sec('Leergut', dep)
-    || '<p class="muted" style="text-align:center">Lege Artikel in den Korb, dann erscheinen sie hier mit ihren VG-Nummern.</p>';
+  $('#kasse').innerHTML = sec('Items', inBasket.filter(i => i.vgNum >= 1000).map(row))
+    + sec('Bakery', inBasket.filter(i => i.vgNum && i.vgNum < 1000).map(row))
+    + sec('No VG number', inBasket.filter(i => !i.vgNum).map(row))
+    + sec('Empties', dep)
+    || '<p class="muted" style="text-align:center">Put items in the basket and they show up here with their VG numbers.</p>';
 }
 let wakeLock = null;
 async function setWake(on) {
@@ -111,11 +111,11 @@ async function setWake(on) {
 const depSum = id => Object.values(state.deposit[id] || {}).reduce((s, n) => s + (Number(n) || 0), 0);
 function renderDeposit() {
   const types = vg ? vg.deposits : null;
-  $('#depItems').innerHTML = !types ? '<p class="muted" style="text-align:center">VG-Daten werden geladen …</p>'
+  $('#depItems').innerHTML = !types ? '<p class="muted" style="text-align:center">Loading VG data …</p>'
     : types.map(t => `<div class="dep"><div class="t">${esc(t.name)}<small>VG ${esc(t.vgNum)}</small></div>
-        <button data-dep-sub="${esc(t.id)}" aria-label="weniger">−</button><span class="n">${depSum(t.id)}</span><button class="add" data-dep-add="${esc(t.id)}" aria-label="mehr">+</button></div>`).join('');
+        <button data-dep-sub="${esc(t.id)}" aria-label="less">−</button><span class="n">${depSum(t.id)}</span><button class="add" data-dep-add="${esc(t.id)}" aria-label="more">+</button></div>`).join('');
   const total = types ? types.reduce((s, t) => s + depSum(t.id), 0) : 0;
-  $('#depTotal').textContent = `${total} Stück`;
+  $('#depTotal').textContent = `${total} pcs`;
 }
 
 /* ---------- Events ---------- */
@@ -128,7 +128,7 @@ document.addEventListener('click', e => {
   if (dadd) { store.depositAdd(code, dadd.dataset.depAdd, myKey()); return; }
   if (dsub) { store.depositRemove(code, dsub.dataset.depSub, myKey()); return; }
   const del = e.target.closest('[data-del]');
-  if (del) { const it = state.items[del.dataset.del]; if (it && confirm(`„${it.title}“ löschen?`)) store.remove(code, it.id); }
+  if (del) { const it = state.items[del.dataset.del]; if (it && confirm(`Delete “${it.title}”?`)) store.remove(code, it.id); }
 });
 document.addEventListener('submit', e => {
   const f = e.target.closest('[data-vg]');
@@ -138,7 +138,7 @@ document.addEventListener('submit', e => {
   if (!(v > 0)) return;
   const p = vg && vg.lookup(v);
   store.setNum(code, f.dataset.vg, myKey(), v, true, p ? { title: p.title } : {}); // Nummer eingeben = im Korb
-  toast(p ? `✓ ${p.title}` : vg ? `VG-Nr. ${v} nicht in der VG-Datenbank` : `VG-Nr. ${v} gespeichert (VG-Daten nicht geladen)`);
+  toast(p ? `✓ ${p.title}` : vg ? `VG no. ${v} is not in the VG database` : `VG no. ${v} saved (VG data not loaded)`);
 });
 $('#addForm').onsubmit = e => {
   e.preventDefault();
@@ -148,8 +148,8 @@ $('#addForm').onsubmit = e => {
   const isNum = /^\d+$/.test(v);
   const p = vg && (isNum ? vg.lookup(v) : vg.byTitle(v));
   if (p) store.add(code, { id: uid(), title: p.title, vgNum: p.vgNum }, myKey());
-  else store.add(code, { id: uid(), title: isNum ? `VG-Nr. ${v}` : v, vgNum: isNum ? +v : null }, myKey());
-  if (isNum && !p) toast(vg ? `VG-Nr. ${v} nicht in der VG-Datenbank` : 'VG-Daten noch nicht geladen');
+  else store.add(code, { id: uid(), title: isNum ? `VG no. ${v}` : v, vgNum: isNum ? +v : null }, myKey());
+  if (isNum && !p) toast(vg ? `VG no. ${v} is not in the VG database` : 'VG data not loaded yet');
 };
 // Nummern-Modus: Zahlentastatur, nur Ziffern (wie der „123“-Schalter der Original-App)
 let numMode = LS.get('numMode', false);
@@ -157,7 +157,7 @@ function applyMode(focus) {
   const inp = $('#addIn');
   inp.inputMode = numMode ? 'numeric' : 'text';
   inp.enterKeyHint = 'go';
-  inp.placeholder = numMode ? 'VG-Nummer …' : 'Artikel oder VG-Nummer …';
+  inp.placeholder = numMode ? 'VG number …' : 'Item or VG number …';
   if (numMode) inp.value = inp.value.replace(/\D/g, '');
   $('#modeBtn').classList.toggle('on', numMode); $('#modeBtn').setAttribute('aria-pressed', numMode);
   inp.dispatchEvent(new Event('input'));
@@ -188,7 +188,7 @@ $('#addIn').oninput = () => {
   const p = vg && isNum ? vg.lookup(q) : null;
   pv.classList.toggle('hide', !isNum || !vg || (!p && q.length < 4));
   pv.classList.toggle('miss', isNum && !p);
-  pv.textContent = p ? `→ ${p.title}` : 'Keine VG-Nummer mit diesem Wert gefunden';
+  pv.textContent = p ? `→ ${p.title}` : 'No VG number with this value found';
 };
 
 /* ---------- Import aus der Original-VG-App ---------- */
@@ -209,8 +209,8 @@ $('#importBtn').onclick = () => openImport();
 $('#importClose').onclick = () => $('#importDlg').classList.add('hide');
 $('#importGo').onclick = async () => {
   const link = parseShareLink($('#importIn').value), msg = $('#importMsg');
-  if (!link) { msg.textContent = 'Das sieht nicht nach einem Teilen-Link der VG-App aus (…/list?shareId=123#…).'; return; }
-  msg.textContent = 'Lade Liste …';
+  if (!link) { msg.textContent = 'This does not look like a share link from the VG app (…/list?shareId=123#…).'; return; }
+  msg.textContent = 'Loading list …';
   try {
     const items = await fetchSharedList(await loadCrypto(), link);
     const have = new Set(Object.values(state.items).map(i => i.title.toLowerCase()));
@@ -222,13 +222,13 @@ $('#importGo').onclick = async () => {
       store.add(code, { id: uid(), title, vgNum: it.vgNum, amount: it.amount, unit: it.unit }, myKey());
       added++;
     }
-    msg.textContent = `${added} von ${items.length} Artikeln übernommen${added < items.length ? ' (Rest war schon auf der Liste)' : ''}.`;
-    toast(`${added} Artikel aus der VG-App importiert`);
-  } catch (e) { msg.textContent = 'Liste konnte nicht geladen werden (Link abgelaufen oder falsch?).'; }
+    msg.textContent = `${added} of ${items.length} items imported${added < items.length ? ' (the rest were already on the list)' : ''}.`;
+    toast(`${added} items imported from the VG app`);
+  } catch (e) { msg.textContent = 'Could not load the list (link expired or wrong?).'; }
 };
-$('#clearBtn').onclick = () => { if (confirm('Alle abgehakten Artikel entfernen?')) store.clearChecked(code); };
-$('#depClear').onclick = () => { if (confirm('Leergut-Liste leeren? Die Punkte bleiben.')) store.clearDeposit(code); };
-$('#resetBtn').onclick = () => { if (confirm('Rangliste für eine neue Runde zurücksetzen?')) store.resetScores(code); };
+$('#clearBtn').onclick = () => { if (confirm('Remove all checked-off items?')) store.clearChecked(code); };
+$('#depClear').onclick = () => { if (confirm('Clear the empties list? The points stay.')) store.clearDeposit(code); };
+$('#resetBtn').onclick = () => { if (confirm('Reset the leaderboard for a new round?')) store.resetScores(code); };
 /* ---------- Teilen (QR-Code + Link) ---------- */
 const shareUrl = () => new URL(`?list=${code}`, location.href.split('?')[0]).href;
 function loadQr() {
@@ -246,14 +246,14 @@ $('#shareBtn').onclick = async () => {
     await loadQr();
     const qr = window.qrcode(0, 'M'); qr.addData(shareUrl()); qr.make();
     $('#qr').innerHTML = qr.createSvgTag({ cellSize: 6, margin: 2, scalable: true });
-  } catch (e) { $('#qr').textContent = 'QR-Code konnte nicht erzeugt werden.'; }
+  } catch (e) { $('#qr').textContent = 'Could not create the QR code.'; }
 };
 $('#shareClose').onclick = () => $('#shareDlg').classList.add('hide');
 $('#shareDlg').onclick = e => { if (e.target.id === 'shareDlg') $('#shareDlg').classList.add('hide'); };
 $('#shareLink').onclick = async () => {
   const url = shareUrl();
-  try { if (navigator.share) return await navigator.share({ title: 'Einkaufsliste', text: `Komm in unsere Einkaufsliste (Code ${code})`, url }); } catch (e) { return; }
-  try { await navigator.clipboard.writeText(url); toast('Link kopiert'); } catch (e) { prompt('Link zum Teilen:', url); }
+  try { if (navigator.share) return await navigator.share({ title: 'Shopping list', text: `Join our shopping list (code ${code})`, url }); } catch (e) { return; }
+  try { await navigator.clipboard.writeText(url); toast('Link copied'); } catch (e) { prompt('Link to share:', url); }
 };
 document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
   document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
@@ -289,19 +289,19 @@ async function handleEan(ean) {
   try {
     let it = Object.values(state.items).find(i => i.ean === ean);
     if (!it) {
-      $('#scanMsg').textContent = 'Suche Produkt …';
+      $('#scanMsg').textContent = 'Looking up product …';
       const name = await productName(ean);
       it = name && Object.values(state.items).find(i => i.title.toLowerCase() === name.toLowerCase());
-      if (!it) { it = { id: uid(), title: name || `Artikel ${ean}` }; store.add(code, { id: it.id, title: it.title, ean }, myKey()); }
+      if (!it) { it = { id: uid(), title: name || `Item ${ean}` }; store.add(code, { id: it.id, title: it.title, ean }, myKey()); }
     }
-    if (!it.checked) { store.check(code, it.id, myKey(), true); toast(`✓ ${it.title} im Korb`); }
-    else toast(`${it.title} ist schon im Korb`);
+    if (!it.checked) { store.check(code, it.id, myKey(), true); toast(`✓ ${it.title} in the basket`); }
+    else toast(`${it.title} is already in the basket`);
     if (navigator.vibrate) navigator.vibrate(60);
     closeScanner();
   } finally { scanBusy = false; }
 }
 async function openScanner() {
-  $('#scanner').classList.remove('hide'); $('#scanMsg').textContent = 'Barcode in den Rahmen halten';
+  $('#scanner').classList.remove('hide'); $('#scanMsg').textContent = 'Hold the barcode inside the frame';
   const video = $('#cam');
   try {
     if ('BarcodeDetector' in window) { // Chrome/Android: eingebaut
@@ -320,7 +320,7 @@ async function openScanner() {
       zxingReader.decodeFromConstraints({ video: { facingMode: 'environment' } }, video, r => { if (r) handleEan(r.getText()); });
     }
   } catch (e) {
-    $('#scanMsg').textContent = 'Kamera nicht verfügbar (HTTPS und Erlaubnis nötig). Code kann unten von Hand eingegeben werden.';
+    $('#scanMsg').textContent = 'Camera not available (needs HTTPS and permission). You can enter the code below.';
   }
 }
 function closeScanner() {
@@ -339,13 +339,13 @@ function buildEmojis() {
 }
 function needName() {
   const n = $('#nameIn').value.trim().slice(0, 20);
-  if (!n) { $('#welcomeErr').textContent = 'Bitte zuerst einen Namen eingeben.'; return false; }
+  if (!n) { $('#welcomeErr').textContent = 'Please enter your name first.'; return false; }
   me.name = n; LS.set('me', me); return true;
 }
 async function enter(c) {
   try {
-    if (!(await store.exists(c))) { $('#welcomeErr').textContent = 'Diese Liste gibt es nicht.'; return; }
-  } catch (e) { $('#welcomeErr').textContent = 'Keine Verbindung zur Datenbank.'; return; }
+    if (!(await store.exists(c))) { $('#welcomeErr').textContent = 'This list does not exist.'; return; }
+  } catch (e) { $('#welcomeErr').textContent = 'No connection to the database.'; return; }
   code = c; LS.set('code', c);
   history.replaceState(null, '', `?list=${c}`);
   startList();
@@ -356,7 +356,7 @@ function startList() {
   store.join(code, myKey());
   connect();
 }
-$('#newList').onclick = async () => { if (needName()) { try { enter(await store.create()); } catch (e) { $('#welcomeErr').textContent = 'Keine Verbindung zur Datenbank.'; } } };
+$('#newList').onclick = async () => { if (needName()) { try { enter(await store.create()); } catch (e) { $('#welcomeErr').textContent = 'No connection to the database.'; } } };
 $('#joinBtn').onclick = () => { if (needName()) enter($('#codeIn').value.trim().toUpperCase()); };
 
 async function init() {

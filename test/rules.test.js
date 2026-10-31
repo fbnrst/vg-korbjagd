@@ -99,7 +99,7 @@ test('Regeln akzeptieren alles, was store.js im normalen Ablauf schreibt', async
   const c = await s.create(), B = userKey('🐼', 'Ben');
   await s.join(c, U); await s.join(c, B);
   await s.add(c, { id: 'a', title: 'Milch', amount: 2, unit: 'Liter', info: 'Bio', vgNum: 4711, ean: '4012345678901' }, U);
-  await s.add(c, { id: 'b', title: 'VG-Nr. 1234', vgNum: '1234' }, B);
+  await s.add(c, { id: 'b', title: 'VG no. 1234', vgNum: '1234' }, B);
   await s.check(c, 'a', U, true); await s.setNum(c, 'b', B, 1234, true, { title: 'Brot', info: 'x' });
   await s.depositAdd(c, '12', U); await s.depositAdd(c, '12', B); await s.depositRemove(c, '12', U);
   await s.resetScores(c);

@@ -112,7 +112,7 @@ export function createStore(db) {
       if (r.committed) await bump(code, want ? user : prev.checkedBy, want ? 1 : -1);
     },
     // VG-Nummer nachtragen; mit checkToo landet der Artikel dabei im Korb
-    // extra: {title, info} aus der VG-Datenbank; der Titel ersetzt nur den Platzhalter "VG-Nr. 123"
+    // extra: {title, info} aus der VG-Datenbank; der Titel ersetzt nur den Platzhalter "VG no. 123" (früher "VG-Nr. 123")
     async setNum(code, id, user, vgNum, checkToo, extra = {}) {
       if (!isId(id) || !isUserKey(user)) return;
       vgNum = toNum(vgNum);
@@ -122,7 +122,7 @@ export function createStore(db) {
         if (!old) return undefined;
         const next = { ...old, vgNum };
         if (extra.info) next.info = String(extra.info).slice(0, 200);
-        if (extra.title && /^VG-Nr\. \d+$/.test(old.title)) next.title = String(extra.title).slice(0, 120);
+        if (extra.title && /^VG(-Nr\.| no\.) \d+$/.test(old.title)) next.title = String(extra.title).slice(0, 120);
         if (checkToo && !old.checked) { next.checked = true; next.checkedBy = user; next.checkedAt = Date.now(); newlyChecked = true; }
         return next;
       });
