@@ -14,7 +14,7 @@ Guidance for AI agents and humans working on **vg-korbjagd**: a shared shopping 
 - `public/` is the whole app (static, ES modules, no build). Served by GitHub Pages.
   - `app.js` UI and flows, `store.js` data layer, `vg.js` VG data/import, `i18n.js` texts, `sw.js` service worker, `legal-config.js` contact for the privacy page.
   - `privacy.html`, `docs/index.html` (help page for end users), `vendor/` (third-party, MIT, excluded from checks).
-- `scripts/` maintenance scripts (cleanup of old lists). `database.rules.json` Firebase Realtime Database rules (**published by hand in the Firebase console**, see `docs/security.md`).
+- `scripts/` maintenance scripts: `cleanup-lists.mjs` (cleanup of old lists), `make-icons.swift` (renders `public/icons/*.png`, macOS only; bump `VERSION` in `public/sw.js` afterwards). `database.rules.json` Firebase Realtime Database rules (**published by hand in the Firebase console**, see `docs/security.md`).
 - `test/` Node tests (`node --test`, no dependencies). `docs/` developer docs.
 
 ## Behaviour that must stay true
