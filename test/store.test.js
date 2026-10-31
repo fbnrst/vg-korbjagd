@@ -67,3 +67,15 @@ test('EAN gültig/ungültig, Nutzerschlüssel ohne Firebase-Sonderzeichen', asyn
   assert.equal((await db.get(c, 'items/e2')).ean, null);
   assert.equal(userKey('🦊', 'a.b/c#d'), '🦊 a_b_c_d');
 });
+
+test('Hinzufügen gibt keine Punkte, erst Abhaken (oder Nummer eintragen) zählt', async () => {
+  const { s, db } = setup(); const c = await s.create();
+  await s.join(c, A);
+  await s.add(c, item('n1', 'Milch'), A);
+  await s.add(c, item('n2', 'Brot', { vgNum: 4711 }), A);
+  assert.equal((await db.get(c, 'scores'))[A], 0);
+  await s.check(c, 'n1', A, true);
+  assert.equal((await db.get(c, 'scores'))[A], 1);
+  await s.setNum(c, 'n2', A, 4711, true);
+  assert.equal((await db.get(c, 'scores'))[A], 2);
+});
