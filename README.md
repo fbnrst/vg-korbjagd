@@ -28,6 +28,10 @@ Ohne Firebase-Konfiguration läuft die App im Demo-Modus: Daten nur im Browser, 
 
 Technik, Datenmodell und Offline-Verhalten: [docs/architecture.md](docs/architecture.md). Die VG-Daten werden direkt vom VG-Server geladen, Endpunkte in [docs/vg-api.md](docs/vg-api.md).
 
+## Entwicklung
+
+Code-Checks laufen lokal als Git-Hook über [prek](https://github.com/j178/prek) (Konfiguration: `.pre-commit-config.yaml`): Dateihygiene, JSON/YAML, JavaScript-Syntax, Tests und gitleaks (Geheimnisse; die öffentliche Firebase-Konfiguration ist in `.gitleaks.toml` freigegeben). Einmalig `prek install`, manuell `prek run --all-files`. Dieselben Prüfungen laufen in GitHub Actions (`.github/workflows/checks.yml`), dort scannt gitleaks zusätzlich die ganze Historie.
+
 ## Lizenz
 
 BSD 3-Clause, siehe [LICENSE](LICENSE). Die VG-Daten (siehe `docs/vg-api.md`) gehören der VG Dresden und sind nicht Teil dieser Lizenz.

@@ -1,0 +1,7 @@
+# gitleaks-Konfiguration: Standardregeln plus Ausnahme für die öffentliche Firebase-Web-Konfiguration.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Firebase-Web-Konfiguration (apiKey ist ein öffentlicher Bezeichner, kein Geheimnis; Zugriff regelt database.rules.json)"
+paths = ['''public/firebase-config\.js''']
