@@ -93,15 +93,16 @@ test('deposit: each piece gives a point, removing deducts from the contributor',
   assert.equal((await db.get(c, 'scores'))[A], 1);
 });
 
-test('new round counts deposit too, clearing deposit keeps points', async () => {
+test('new round sets all counters to zero (basket and empties count for nobody), clearing deposit leaves the counters alone', async () => {
   const { s, db } = setup(); const c = await s.create();
   await s.add(c, item('z', 'Tee'), A); await s.check(c, 'z', A, true);
   await s.depositAdd(c, '3', A); await s.depositAdd(c, '3', B);
-  await s.resetScores(c);
   assert.deepEqual(await db.get(c, 'scores'), { [A]: 2, [B]: 1 });
+  await s.resetScores(c);                                            // new round: zero for everyone, nothing counted from the basket
+  assert.deepEqual(await db.get(c, 'scores'), { [A]: 0, [B]: 0 });
   await s.clearDeposit(c);
   assert.equal(await db.get(c, 'deposit'), null);
-  assert.equal((await db.get(c, 'scores'))[A], 2);
+  assert.deepEqual(await db.get(c, 'scores'), { [A]: 0, [B]: 0 });   // clearing the empties does not touch the counters
 });
 
 test('validation: garbage input is discarded or neutralised', async () => {
@@ -224,4 +225,17 @@ test('setEan remembers a scanned barcode on an item and can check it off', async
   assert.equal(it.checked, true); assert.equal((await db.get(c, 'scores'))[A], 1);
   await s.setEan(c, 'e1', A, 'abc', false);                          // invalid codes are ignored
   assert.equal((await db.get(c, 'items/e1')).ean, '4056489123456');
+});
+
+test('after a new round old items score nothing and never push a counter below zero', async () => {
+  const { s, db } = setup(); const c = await s.create();
+  await s.add(c, item('o1', 'Milk'), A); await s.add(c, item('o2', 'Bread'), B);
+  await s.check(c, 'o1', A, true); await s.check(c, 'o2', B, true);
+  await s.resetScores(c);
+  assert.deepEqual(await db.get(c, 'scores'), { [A]: 0, [B]: 0 });  // the two items in the basket are not counted
+  await s.check(c, 'o1', B, false);                                  // taking an old item out: A stays at 0, not -1
+  await s.remove(c, 'o2');                                           // deleting an old checked item: same
+  assert.deepEqual(await db.get(c, 'scores'), { [A]: 0, [B]: 0 });
+  await s.check(c, 'o1', B, true);                                   // new points only for new actions
+  assert.deepEqual(await db.get(c, 'scores'), { [A]: 0, [B]: 1 });
 });

@@ -35,7 +35,7 @@ Im Reiter **♻️ Leergut** bei der passenden Pfand-Sorte **+** tippen, für je
 Im Reiter **🧾 Kasse** stehen die Artikel im Korb, die eine VG-Nummer haben, damit du sie an der Kasse schnell eintippen kannst; Backwaren (Nummern unter 1000) stehen in einer eigenen Gruppe, dazu das Leergut. Artikel ohne Nummer erscheinen hier nicht. Ein Tipp auf eine Zeile streicht sie durch (nur auf deinem Handy, nach dem Neuladen ist es weg). Der Bildschirm bleibt dort an.
 
 ## Rangliste
-Den Reiter **🏆 Rangliste** gibt es nur auf geteilten Listen. Er zeigt das Podest und alle Punkte. Bei gleich vielen Punkten teilt man sich den Platz. Mit **Neue Runde** (mit Rückfrage) werden die Punkte neu gezählt: Alle starten bei null, und nur das, was noch im Korb liegt, zählt wieder.
+Den Reiter **🏆 Rangliste** gibt es nur auf geteilten Listen. Er zeigt das Podest und alle Punkte. Bei gleich vielen Punkten teilt man sich den Platz. Mit **Neue Runde** (mit Rückfrage) werden die Zähler einfach auf null gesetzt. Was schon im Korb liegt, zählt für niemanden.
 
 ## Nach dem Einkauf: Zurücksetzen
 Oben auf **Zurücksetzen** tippen (Kreispfeil). Dort wählst du:

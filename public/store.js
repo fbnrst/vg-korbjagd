@@ -190,12 +190,11 @@ export function createStore(db) {
       const items = (await db.get(code, 'items')) || {};
       await Promise.all(Object.values(items).filter(i => i.checked).map(i => db.remove(code, `items/${i.id}`)));
     },
+    // New round: every counter goes back to zero (the members stay). What already lies in the basket counts for nobody;
+    // taking an old item out later cannot push a counter below zero.
     async resetScores(code) {
-      const [items, old, dep] = await Promise.all([db.get(code, 'items'), db.get(code, 'scores'), db.get(code, 'deposit')]);
-      const scores = Object.fromEntries(Object.keys(old || {}).map(k => [k, 0]));
-      for (const i of Object.values(items || {})) if (i.checked && i.checkedBy) scores[i.checkedBy] = (scores[i.checkedBy] || 0) + 1;
-      for (const g of Object.values(dep || {})) for (const [u, n] of Object.entries(g)) scores[u] = (scores[u] || 0) + n;
-      await db.set(code, 'scores', scores);
+      const old = (await db.get(code, 'scores')) || {};
+      await db.set(code, 'scores', Object.fromEntries(Object.keys(old).map(k => [k, 0])));
     },
   };
 

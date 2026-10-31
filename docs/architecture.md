@@ -125,9 +125,9 @@ Punkte werden in `scores` mitgeführt und bei jeder Aktion über `bump` angepass
 | `clearAll` | löscht alle Artikel **ohne** Punktänderung |
 | `clearDeposit` | löscht `deposit`, Punkte bleiben |
 | `importList` | übernimmt Artikel (mit Abhak-Status) und Leergut der lokalen Liste in eine neue geteilte Liste, **ohne** Punkte; das Leergut wird je Pfand-Typ summiert und dem Teilenden zugeschrieben |
-| `resetScores` | berechnet `scores` neu („Neue Runde“ im Rangliste-Reiter, mit Rückfrage) |
+| `resetScores` | setzt alle Zähler auf 0 („Neue Runde“ im Rangliste-Reiter, mit Rückfrage) |
 
-Das Zurücksetzen in der Oberfläche (Kopfzeile, Kreispfeil) ändert nie Punkte: Es ruft `clearChecked` oder `clearAll` und optional `clearDeposit` auf. Punkte ändert nur die Schaltfläche „Neue Runde“ im Reiter Rangliste: `resetScores` setzt alle Nutzer auf 0 und zählt dann +1 je **noch vorhandenem** abgehaktem Artikel und +Stückzahl je **noch vorhandenem** Leergut.
+Das Zurücksetzen in der Oberfläche (Kopfzeile, Kreispfeil) ändert nie Punkte: Es ruft `clearChecked` oder `clearAll` und optional `clearDeposit` auf. Punkte ändert nur die Schaltfläche „Neue Runde“ im Reiter Rangliste: `resetScores` setzt alle Zähler auf 0 und rechnet nichts aus dem Korb oder dem Leergut zu. Nimmt später jemand einen alten Artikel wieder heraus, bleibt der Zähler bei 0 (er geht nie unter null).
 
 ### Aktivität, Löschen, Aufbewahrung
 
