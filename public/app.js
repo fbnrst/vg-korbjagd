@@ -316,9 +316,13 @@ function openImport(text = '') {
   dismissKeyboard();
   $('#importDlg').classList.remove('hide'); $('#importIn').value = text; $('#importMsg').textContent = '';
   if (text) $('#importGo').click();
-  else clipboardLink().then(l => { if (l && !$('#importIn').value && !$('#importDlg').classList.contains('hide')) openImport(l); });
+  else clipboardLink().then(l => {
+    if (!l || l === lastClipLink || $('#importIn').value || $('#importDlg').classList.contains('hide')) return;
+    lastClipLink = l; $('#importIn').value = l; $('#importGo').click();
+  });
 }
-// A share link on the clipboard is imported right away (needs a user gesture; unreadable clipboard or no link: nothing happens)
+// A share link on the clipboard is imported right away, once per link (needs a user gesture; unreadable clipboard or no link: nothing happens)
+let lastClipLink = '';
 async function clipboardLink() {
   try { const text = await navigator.clipboard.readText(); return parseShareLink(text) ? text.trim() : ''; } catch (e) { return ''; }
 }
@@ -340,7 +344,7 @@ $('#importGo').onclick = async () => {
     }
     msg.textContent = `${t('importDone', { added, total: items.length })}${added < items.length ? t('importRest') : ''}.`;
     toast(t('toastImported', { n: added }));
-  } catch (e) { msg.textContent = t('importFail'); }
+  } catch (e) { msg.textContent = t('importFail'); lastClipLink = ''; } // a failed import may be retried by reopening the dialog
 };
 $('#resetBtn').onclick = () => { if (confirm(t('confirmReset'))) store.resetScores(code); };
 /* ---------- Sharing (QR code + link) ---------- */
