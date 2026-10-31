@@ -12,7 +12,7 @@ No server of your own needed: a static site (GitHub Pages) plus a Firebase Realt
 ## Features
 - The list lives on the phone first (no account, no name, works offline). Only when you share it does it go through the server, with live sync, joining by QR code, link or 6-character code, and the game starts. Name and emoji are asked for only then
 - UI in the system language (German or English)
-- Header with the basket counter, a share button and a "…" menu: reset list, import list (from the VG app), leave list (shared lists only), help and privacy
+- Header with the basket counter, a share button and a "…" menu: reset list, import list (from the VG app), join list (local list), leave list (shared lists only), help and privacy
 - Add items by text (name suggestions), VG number (from three digits a tappable list of products from the VG master data) or barcode scanner (Open Food Facts)
 - Import of lists from the original VG app (share link, in the menu)
 - Checking off puts an item in the basket; on shared lists everyone sees who did it

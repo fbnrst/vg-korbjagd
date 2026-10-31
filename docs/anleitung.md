@@ -13,7 +13,7 @@ Seite öffnen und loslegen: Die Liste liegt zunächst nur auf deinem Handy. Du b
 Die anderen treten so bei:
 - **Per QR-Code:** Das zweite Handy scannt den Code mit der Kamera, gibt den Namen ein und ist drin.
 - **Per Link:** **Link senden** verschickt einen Link, der direkt zur Liste führt.
-- **Per Code:** Auf einer noch lokalen Liste im Teilen-Fenster unter „oder einer Liste beitreten“ den 6-stelligen Code eintippen und **Los** drücken.
+- **Per Code oder Kamera:** Auf einer noch lokalen Liste oben rechts das **⋯-Menü** öffnen, **Liste beitreten** wählen und entweder den QR-Code scannen oder den 6-stelligen Code eintippen. Auch im Teilen-Fenster führt „oder einer Liste beitreten“ dorthin.
 
 Wer den Code kennt, kann die Liste ansehen, ändern und löschen. Gib ihn nur Leuten, die mitmachen sollen.
 
