@@ -64,6 +64,7 @@ body.typing .tabs{display:none}
 .tabs{flex:none;display:flex;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
 .tabs button{flex:1;height:var(--tabs);padding:0 2px;border:0;background:none;color:var(--mute);font-size:13px;white-space:nowrap} /* never wrap: a wider system font would otherwise push "Rangliste" onto two lines */
 .tabs button.on{color:var(--green);font-weight:700}
+.tabs svg{width:16px;height:16px;margin-right:5px;vertical-align:-2px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round} /* line icons in the text colour: quiet, and green on the active tab */
 .item{display:flex;align-items:center;gap:8px;padding:5px 2px;border-bottom:1px solid var(--line);line-height:1.25}
 .item:last-child{border:0}
 .chk{position:relative;width:26px;height:26px;border-radius:50%;border:2px solid var(--green);background:none;flex:none;color:var(--on-fill);font-size:16px;line-height:1}
@@ -237,10 +238,10 @@ body.typing .tabs{display:none}
     </form>
   </div>
 <nav class="tabs hide" id="tabs">
-  <button data-t="vList" class="on">📝 List</button>
-  <button data-t="vDeposit">♻️ Empties</button>
-  <button data-t="vCheckout">🧾 Checkout</button>
-  <button data-t="vScore">🏆 Ranking</button>
+  <button data-t="vList" class="on"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"/><path d="m3.5 6 1.3 1.3L7 5M3.5 12l1.3 1.3L7 11M3.5 18l1.3 1.3L7 17"/></svg><span>List</span></button>
+  <button data-t="vDeposit"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 2h4"/><path d="M10.5 2v4.2c0 .9-1.5 1.5-1.5 3.3V21a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1V9.5c0-1.8-1.5-2.4-1.5-3.3V2"/><path d="M9 14h6"/></svg><span>Empties</span></button>
+  <button data-t="vCheckout"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg><span>Checkout</span></button>
+  <button data-t="vScore"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H4v1a3 3 0 0 0 3 3M16 6h4v1a3 3 0 0 1-3 3M12 13v4M8 21h8M10 17h4"/></svg><span>Ranking</span></button>
 </nav>
 </div>
 
