@@ -1,6 +1,6 @@
 # vg-korbjagd – a shared shopping list with a leaderboard
 
-[![Checks](https://github.com/fbnrst/vg-korbjagd/actions/workflows/checks.yml/badge.svg)](https://github.com/fbnrst/vg-korbjagd/actions/workflows/checks.yml)
+[![Checks](https://github.com/fbnrst/vg-korbjagd/actions/workflows/autofix.yml/badge.svg)](https://github.com/fbnrst/vg-korbjagd/actions/workflows/autofix.yml)
 [![Deploy](https://github.com/fbnrst/vg-korbjagd/actions/workflows/pages.yml/badge.svg)](https://github.com/fbnrst/vg-korbjagd/actions/workflows/pages.yml)
 
 **App: <https://fbnrst.github.io/vg-korbjagd/>** · [Help](https://fbnrst.github.io/vg-korbjagd/docs/) · [Privacy](https://fbnrst.github.io/vg-korbjagd/privacy.html) · [Dev version](https://fbnrst.github.io/vg-korbjagd/dev/) (current `main`, see [Releases and the dev site](#releases-and-the-dev-site))
@@ -46,7 +46,7 @@ The site has two versions: the root shows the latest release (the newest git tag
 
 Conventions for humans and agents are in [AGENTS.md](AGENTS.md): source code and comments are English, the UI follows the system language.
 
-Code checks run locally as a git hook through [prek](https://github.com/j178/prek) (configuration: `.pre-commit-config.yaml`): file hygiene, JSON/YAML, JavaScript syntax, tests and gitleaks (secrets; the public Firebase configuration is allowed in `.gitleaks.toml`). Run `prek install` once, `prek run --all-files` manually. The screenshots of the help page are built locally from the real app (`npm install`, then `npm run docs:screenshots`; needs Chrome, sample data instead of real VG data) and only on explicit request. Every image is looked at before it is committed. The same checks run in GitHub Actions (`.github/workflows/checks.yml`) as a single prek job: gitleaks is part of prek, there is no separate secrets job.
+Code checks run locally as a git hook through [prek](https://github.com/j178/prek) (configuration: `.pre-commit-config.yaml`): file hygiene, JSON/YAML, JavaScript syntax, tests and gitleaks (secrets; the public Firebase configuration is allowed in `.gitleaks.toml`). Run `prek install` once, `prek run --all-files` manually. The screenshots of the help page are built locally from the real app (`npm install`, then `npm run docs:screenshots`; needs Chrome, sample data instead of real VG data) and only on explicit request. Every image is looked at before it is committed. The same checks run in GitHub Actions (`.github/workflows/autofix.yml`) as a single prek job through [autofix.ci](https://autofix.ci): gitleaks is part of prek, there is no separate secrets job, and what the fixing hooks can repair (whitespace, end of files) is committed back automatically.
 
 ## License
 

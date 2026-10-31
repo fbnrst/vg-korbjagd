@@ -1,0 +1,29 @@
+name: autofix.ci  # the name is needed to securely identify the workflow
+# All checks run through prek (.pre-commit-config.yaml), gitleaks included. What the fixing hooks can repair (whitespace,
+# end of files) is committed back by autofix.ci, so such slips never turn the build red. The GitHub app "autofix.ci" must be
+# installed on the repository for the push to work. Everything a fixer cannot repair (tests, secrets, JSON/YAML) still fails.
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: autofix-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  autofix:
+    name: Code checks (prek) and autofix
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - uses: j178/prek-action@v3.1.0
+        id: prek
+        continue-on-error: true   # a fixer that changed files "fails" its hook; autofix.ci commits the change
+      - uses: autofix-ci/action@c5b2d67aa2274e7b5a18224e8171550871fc7e4a
+      - name: Fail if something remains that the fixers could not repair
+        if: steps.prek.outcome == 'failure'
+        run: prek run --all-files
