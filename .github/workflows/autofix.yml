@@ -1,5 +1,5 @@
 name: autofix.ci  # the name is needed to securely identify the workflow
-# All checks run through prek (prek.toml), gitleaks included. What the fixing hooks can repair (whitespace,
+# All checks run through prek (prek.toml), gitleaks included (the standard hook: staged changes only). What the fixing hooks can repair (whitespace,
 # end of files) is committed back by autofix.ci, so such slips never turn the build red. The GitHub app "autofix.ci" must be
 # installed on the repository for the push to work. Everything a fixer cannot repair (tests, secrets, JSON/YAML) still fails.
 on:
