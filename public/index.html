@@ -44,8 +44,8 @@ a{color:var(--green)}
 .row{display:flex;gap:8px;align-items:center}
 /* Input bar and tab bar are the bottom rows of the app shell; while typing the tab bar is hidden */
 :root{--tabs:46px}
-#addBar{flex:none;z-index:6;background:var(--bg);border-top:1px solid var(--line);padding:8px 12px}
-#addBar>*{max-width:640px;margin-left:auto;margin-right:auto}
+#addBar{position:relative;flex:none;z-index:6;background:var(--bg);border-top:1px solid var(--line);padding:8px 12px}
+#addBar>form{max-width:640px;margin-left:auto;margin-right:auto}
 #addBar form{margin:0}
 body.local .tabs [data-t=vScore],body.local #dot{display:none}
 body.typing .tabs{display:none}
@@ -58,7 +58,8 @@ body.typing .tabs{display:none}
 .chk::after{content:'';position:absolute;inset:-9px} /* visual size stays small, the tap area does not */
 .item.done .chk{background:var(--fill)}
 .item.done .t{text-decoration:line-through;color:var(--mute)}
-.t{flex:1;min-width:84px;overflow-wrap:anywhere}#addSuggest{display:flex;flex-direction:column;gap:6px;margin-bottom:8px;max-height:32vh;overflow:auto}
+.t{flex:1;min-width:84px;overflow-wrap:anywhere}/* Suggestions float above the input bar instead of growing it: the input must not move while they appear */
+#addSuggest{position:absolute;left:12px;right:12px;bottom:100%;margin:0 auto 6px;max-width:640px;display:flex;flex-direction:column;gap:6px;padding:6px;background:var(--bg);border:1px solid var(--line);border-radius:12px;box-shadow:0 -6px 18px rgba(0,0,0,.25);max-height:min(360px,calc(var(--app-h,100dvh) - 150px));overflow:auto;z-index:8}
 #addSuggest .sug,#scanSuggest .sug{display:flex;gap:12px;align-items:baseline;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;color:var(--fg);font:inherit}
 #addSuggest .sug b,#scanSuggest .sug b{min-width:48px;color:var(--green);font-variant-numeric:tabular-nums}
 #addSuggest .miss,#scanSuggest .miss{padding:6px 4px;color:var(--mute);font-size:14px}
