@@ -19,7 +19,7 @@ Guidance for AI agents and humans working on **vg-korbjagd**: a shared shopping 
 
 ## Behaviour that must stay true
 
-- **Local first**: the list lives in `localStorage` under the list code `LOCAL` (no name, no server, works offline). The leaderboard/game only exists for shared lists. Sharing uploads the local list (`store.importList`, no points are awarded for existing items) and removes the local copy; "Start a new local list" leaves the shared list.
+- **Local first**: the list lives in `localStorage` under the list code `LOCAL` (no name, no server, works offline). The leaderboard/game only exists for shared lists. Sharing uploads the local list (`store.importList`, no points are awarded for existing items) and removes the local copy; the header "New list" button clears the local list, or leaves a shared list for a fresh local one.
 - Shared lists can be deleted by any member ("Delete this list for everyone", `store.deleteList`; the rules allow writes at list level only for deleting) and expire after 365 days without activity: `store.js` stamps `activity` (at most hourly; opening or changing counts) and `.github/workflows/cleanup.yml` runs `scripts/cleanup-lists.mjs` weekly (needs the secret `FIREBASE_SERVICE_ACCOUNT`, see `docs/retention.md`). A client that sees its shared list disappear falls back to the local list.
 - Checkout shows only items with a VG number. Typing three or more digits shows a tappable list of matching products (tap = add).
 - Points: +1 for checking off an item (or entering its VG number in the "No." field) and +1 per empties piece; un-checking or deleting takes the point back from the person who got it; equal points share the same place.

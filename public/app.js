@@ -277,9 +277,15 @@ $('#shareDlg').onclick = e => { if (e.target.id === 'shareDlg') closeShareDialog
 $('#shareStart').onclick = () => { closeShareDialog(); me.name ? shareLocalList() : askIdentity(shareLocalList); };
 $('#joinBtn').onclick = () => { const c = $('#codeIn').value.trim().toUpperCase(); if (c) { closeShareDialog(); joinShared(c); } };
 const forgetShared = () => { LS.set('code', ''); history.replaceState(null, '', location.pathname); };
-$('#leaveBtn').onclick = () => {
+// "New list": on the local list it clears it, on a shared list it leaves it for a fresh local list
+$('#newBtn').onclick = async () => {
+  if (isLocal()) {
+    if (!Object.keys(state.items).length && !Object.keys(state.deposit).length) return; // nothing to throw away
+    if (confirm(t('confirmNewLocal'))) await localDb.remove(LOCAL, ''); // the subscription shows the empty list
+    return;
+  }
   if (!confirm(t('confirmLeave'))) return;
-  forgetShared(); closeShareDialog(); startLocal();
+  forgetShared(); startLocal();
 };
 $('#deleteBtn').onclick = async () => {
   if (!confirm(t('confirmDeleteList'))) return;
@@ -391,7 +397,7 @@ $('#newList').onclick = () => {
   const next = pending; pending = null; if (next) next();
 };
 function enterApp() {
-  $('#tabs').classList.remove('hide'); $('#shareBtn').classList.remove('hide');
+  $('#tabs').classList.remove('hide'); $('#shareBtn').classList.remove('hide'); $('#newBtn').classList.remove('hide');
   document.body.classList.toggle('local', isLocal());
   show('vList');
   connect();
