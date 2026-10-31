@@ -1,0 +1,462 @@
+# Typical items people write on a shopping list (German), one per line; "#" starts a comment.
+#
+# Plain line:        an everyday item. `npm run matching:check` holds all of them against the real VG product list and shows
+#                    where the suggestions or the name check cope badly. Many are not sold at VG: that is fine.
+# "Item => VG name": checked pair. The name check must accept it (test/matching.test.js). Add one whenever you fixed a gap.
+# "Item != VG name": checked pair. These are different products, the name check must keep asking.
+# The VG names on the right are real names from the VG product list (cleaned of line breaks).
+
+# Checked: the same product in other words
+Weintrauben => Traube weiß Sugraone kernlos
+Trauben => Traube rot kernlos
+Porree => Lauch Spanien
+Lauch => Porree Lauch
+Möhren => Bundmöhren Deutschland
+Möhren => Saftmöhren
+Tomaten => Cherrytomaten
+Tomaten => Buschtomaten
+Tomaten => Salattomaten Mix
+Salat => Bataviasalat
+Salat => Eissalat Deutschland
+Salat => Babyleaf Mixsalat
+Gurke => Landgurken Italien
+Zwiebeln => Gemüsezwiebel
+Rote Bete => Rande
+Kürbis => Hokkaidokürbis
+Bohnen => Buschbohnen
+Melone => Wassermelone
+Müsli => Früchte Müsli
+Kartoffeln => Frühkartoffel
+Äpfel => Apfel Elstar
+Äpfel => Äpfel im Beutel ca.1kg [kg-Preis]
+Walnüsse => Walnusskerne
+Haselnüsse => Haselnusskerne
+Erdnüsse => Erdnusskerne blanchiert
+Rosinen => Sultaninen
+Rosinen => Weinbeeren
+Marmelade => Fruchtaufstrich Wildpflaume
+Kirschen => Sauerkirschen lose
+Pfirsiche => Weinbergpfirsich weiß
+Nektarinen => Weinbergnektarine weiß
+Spinat => Babyspinat im Schälchen
+Rettich => Japanrettich
+Datteln => Zweigdatteln Israel
+Honig => Rapshonig
+Minze => Pfefferminze 20g Frankreich
+Linsen => Berglinsen braun
+Hafermilch => Haferdrink
+Sahne => Schlagsahne
+Toast => Dinkeltoastbrot
+Brot => Roggenmischbrot freigeschoben
+Brot => Dinkelbrot mit Hafer
+Brötchen => Milchbrötchen
+Baguette => Roggenbaguette
+Croissant => Schokocroissant
+Eier => Eier Freiland
+
+# Checked: different products, the name check must keep asking
+Apfel != Apfelsaft Kaiser
+Orange != Orangensaft
+Birnen != Birnensaft 3l-Box
+Salat != Feldsalat 100g Italien
+Zwiebeln != Lauchzwiebeln
+Lauch != Bärlauch
+Lauch != Schnittlauch
+Walnüsse != Haselnüsse
+Brot != Brötchen
+Brot != Linsen rot
+Roggenbrot != Dinkelbrot
+Tomaten != Tomatenmark
+Kürbis != Kürbiskerne
+Erbsen != Kichererbsen
+Butter != Buttermilch
+Milch != Kuvertüre Vollmilch
+Apfel rot != Paprika rot
+
+# Obst
+Äpfel
+Apfel
+Birnen
+Bananen
+Orangen
+Mandarinen
+Clementinen
+Zitronen
+Limetten
+Grapefruit
+Trauben
+Weintrauben
+Erdbeeren
+Himbeeren
+Heidelbeeren
+Blaubeeren
+Brombeeren
+Johannisbeeren
+Kirschen
+Pflaumen
+Zwetschgen
+Pfirsiche
+Nektarinen
+Aprikosen
+Melone
+Wassermelone
+Honigmelone
+Ananas
+Mango
+Kiwi
+Avocado
+Granatapfel
+Feigen
+Datteln
+Rosinen
+Kaki
+Papaya
+Maracuja
+Physalis
+Quitten
+Rhabarber
+Kokosnuss
+Trockenfrüchte
+Cranberries
+
+# Gemüse
+Kartoffeln
+Süßkartoffeln
+Zwiebeln
+Knoblauch
+Lauch
+Porree
+Frühlingszwiebeln
+Schalotten
+Möhren
+Karotten
+Rote Bete
+Rote Beete
+Sellerie
+Staudensellerie
+Petersilienwurzel
+Pastinaken
+Kohlrabi
+Radieschen
+Rettich
+Gurke
+Salatgurke
+Tomaten
+Cherrytomaten
+Paprika
+Peperoni
+Chili
+Zucchini
+Aubergine
+Kürbis
+Hokkaido
+Mais
+Erbsen
+Bohnen
+Brokkoli
+Blumenkohl
+Rosenkohl
+Weißkohl
+Rotkohl
+Wirsing
+Grünkohl
+Spitzkohl
+Chinakohl
+Spinat
+Mangold
+Fenchel
+Spargel
+Pilze
+Champignons
+Salat
+Kopfsalat
+Eisbergsalat
+Feldsalat
+Rucola
+Eichblattsalat
+Endiviensalat
+Chicorée
+Radicchio
+Sauerkraut
+Ingwer
+Meerrettich
+Oliven
+Gemüse
+Salatmischung
+Sprossen
+
+# Kräuter und Gewürze
+Petersilie
+Schnittlauch
+Basilikum
+Dill
+Koriander
+Minze
+Rosmarin
+Thymian
+Salbei
+Oregano
+Bärlauch
+Kräuter
+Salz
+Pfeffer
+Zimt
+Paprikapulver
+Curry
+Kurkuma
+Muskat
+Vanille
+Vanillezucker
+Backpulver
+Natron
+Hefe
+Senf
+Essig
+Balsamico
+Sojasauce
+Ketchup
+Mayonnaise
+Brühe
+Gemüsebrühe
+Tomatenmark
+Hefeflocken
+
+# Milch, Eier, Käse
+Milch
+Hafermilch
+Sojamilch
+Mandelmilch
+Haferdrink
+Sahne
+Schlagsahne
+Schmand
+Saure Sahne
+Joghurt
+Naturjoghurt
+Quark
+Skyr
+Butter
+Margarine
+Käse
+Gouda
+Emmentaler
+Camembert
+Mozzarella
+Feta
+Parmesan
+Frischkäse
+Ziegenkäse
+Schafskäse
+Hüttenkäse
+Reibekäse
+Eier
+Eier Freiland
+Kefir
+Buttermilch
+Pudding
+Sahnejoghurt
+
+# Brot und Backwaren
+Brot
+Vollkornbrot
+Roggenbrot
+Mischbrot
+Toast
+Toastbrot
+Brötchen
+Semmeln
+Baguette
+Croissant
+Brezeln
+Knäckebrot
+Kuchen
+Mehl
+Weizenmehl
+Dinkelmehl
+Zucker
+Puderzucker
+Haferflocken
+Müsli
+Cornflakes
+Paniermehl
+Blätterteig
+Hefeteig
+Kekse
+Zwieback
+
+# Nudeln, Reis, Getreide
+Nudeln
+Spaghetti
+Penne
+Spiralen
+Reis
+Basmatireis
+Vollkornreis
+Couscous
+Bulgur
+Hirse
+Linsen
+Kichererbsen
+Quinoa
+Grieß
+Polenta
+Dinkel
+Gerste
+Kartoffelpüree
+Tortellini
+Gnocchi
+Lasagneplatten
+Reisnudeln
+
+# Konserven und Vorrat
+Tomaten Dose
+Dosentomaten
+Passierte Tomaten
+Mais Dose
+Kidneybohnen
+Weiße Bohnen
+Kokosmilch
+Oliven Glas
+Gurken Glas
+Marmelade
+Honig
+Nutella
+Nussmus
+Erdnussbutter
+Tahini
+Nüsse
+Walnüsse
+Haselnüsse
+Mandeln
+Cashewkerne
+Erdnüsse
+Sonnenblumenkerne
+Kürbiskerne
+Leinsamen
+Chiasamen
+Sesam
+Pinienkerne
+Pistazien
+Studentenfutter
+
+# Öl und Fett
+Olivenöl
+Sonnenblumenöl
+Rapsöl
+Kokosöl
+Sesamöl
+Öl
+
+# Süßes und Snacks
+Schokolade
+Zartbitterschokolade
+Vollmilchschokolade
+Gummibärchen
+Chips
+Salzstangen
+Kekse Schoko
+Riegel
+Müsliriegel
+Popcorn
+Eis
+Bonbons
+Lakritz
+Marzipan
+Nougat
+Trockenobst
+Cracker
+Reiswaffeln
+
+# Getränke
+Wasser
+Mineralwasser
+Sprudel
+Apfelsaft
+Orangensaft
+Saft
+Schorle
+Limonade
+Cola
+Bier
+Wein
+Rotwein
+Weißwein
+Sekt
+Tee
+Kräutertee
+Grüner Tee
+Schwarzer Tee
+Kaffee
+Espresso
+Kaffeebohnen
+Kakao
+Hafer Barista
+Getränke
+Pfand
+
+# Frühstück und Aufstriche
+Frühstück
+Aufstrich
+Brotaufstrich
+Hummus
+Pesto
+Streichwurst
+Wurst
+Aufschnitt
+Schinken
+Räucherlachs
+
+# Fleischersatz und Vegetarisches
+Tofu
+Tempeh
+Seitan
+Sojaschnetzel
+Veggie Burger
+Vegane Wurst
+Falafel
+Linsenbratlinge
+
+# Tiefkühl
+Tiefkühlgemüse
+Tiefkühlpizza
+Pizza
+Pommes
+Kroketten
+Eiswürfel
+Blattspinat
+Beerenmix
+
+# Drogerie und Haushalt
+Zahnpasta
+Zahnbürste
+Seife
+Duschgel
+Shampoo
+Deo
+Handcreme
+Toilettenpapier
+Küchenrolle
+Taschentücher
+Spülmittel
+Waschmittel
+Weichspüler
+Putzmittel
+Müllbeutel
+Backpapier
+Alufolie
+Frischhaltefolie
+Servietten
+Kerzen
+Streichhölzer
+Batterien
+Glühbirne
+Windeln
+Feuchttücher
+Tampons
+Binden
+Spülmaschinentabs
+Schwamm
+Tragetasche
+Blumen
+Katzenfutter
+Hundefutter

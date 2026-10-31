@@ -128,23 +128,23 @@ function dice(a, b) {
 // Words that mean the same thing (regional names, spelling variants). Extend this list when a pair is questioned
 // although the shopper would call it the same product. Words are compared without umlauts and case.
 export const SYNONYM_GROUPS = [
-  ['porree', 'lauch', 'breitlauch'], ['möhre', 'möhren', 'karotte', 'karotten', 'mohrrübe', 'mohrrüben'],
-  ['zucchini', 'courgette', 'zucchino'], ['tomate', 'tomaten', 'paradeiser', 'strauchtomate', 'strauchtomaten', 'cherrytomate', 'cherrytomaten', 'cocktailtomate', 'cocktailtomaten', 'fleischtomate', 'fleischtomaten', 'romatomate', 'rispentomate', 'rispentomaten', 'datteltomate', 'datteltomaten'], ['aprikose', 'aprikosen', 'marille', 'marillen'],
+  ['porree', 'lauch', 'breitlauch'], ['möhre', 'möhren', 'karotte', 'karotten', 'mohrrübe', 'mohrrüben', 'bundmöhren', 'bundmöhre', 'saftmöhren'],
+  ['zucchini', 'courgette', 'zucchino'], ['tomate', 'tomaten', 'paradeiser', 'strauchtomate', 'strauchtomaten', 'cherrytomate', 'cherrytomaten', 'cocktailtomate', 'cocktailtomaten', 'fleischtomate', 'fleischtomaten', 'romatomate', 'rispentomate', 'rispentomaten', 'datteltomate', 'datteltomaten', 'buschtomate', 'buschtomaten', 'salattomate', 'salattomaten', 'eiertomate', 'eiertomaten', 'romatomaten', 'aromatomate', 'flaschentomate'], ['aprikose', 'aprikosen', 'marille', 'marillen'],
   ['rucola', 'rukola', 'ruccola', 'rauke'], ['blumenkohl', 'karfiol'], ['brokkoli', 'broccoli'],
   ['feldsalat', 'rapunzel', 'rapunzelsalat', 'nüsslisalat', 'vogerlsalat', 'ackersalat'],
   ['kartoffel', 'kartoffeln', 'erdapfel', 'erdäpfel', 'frühkartoffel', 'frühkartoffeln', 'speisekartoffel', 'speisekartoffeln'], ['süßkartoffel', 'süßkartoffeln', 'batate'],
   ['aubergine', 'auberginen', 'eierfrucht'], ['meerrettich', 'kren'], ['rotkohl', 'rotkraut', 'blaukraut'],
   ['weißkohl', 'weißkraut', 'kappes'], ['wirsing', 'wirz', 'welschkohl'], ['grünkohl', 'braunkohl', 'krauskohl', 'federkohl'],
   ['rosenkohl', 'sprossenkohl'], ['frühlingszwiebel', 'frühlingszwiebeln', 'lauchzwiebel', 'lauchzwiebeln', 'schlotten'],
-  ['pflaume', 'pflaumen', 'zwetschge', 'zwetschgen', 'zwetschke', 'zwetschken'], ['kohlrübe', 'steckrübe', 'wruke'],
-  ['johannisbeere', 'johannisbeeren', 'ribisel', 'ribiseln'], ['gurke', 'gurken', 'salatgurke', 'schlangengurke', 'landgurke', 'minigurke', 'snackgurke', 'snackgurken'],
+  ['pflaume', 'pflaumen', 'zwetschge', 'zwetschgen', 'zwetschke', 'zwetschken', 'goldpflaume', 'edelpflaume', 'wildpflaume'], ['kohlrübe', 'steckrübe', 'wruke'],
+  ['johannisbeere', 'johannisbeeren', 'ribisel', 'ribiseln'], ['gurke', 'gurken', 'salatgurke', 'salatgurken', 'schlangengurke', 'schlangengurken', 'landgurke', 'landgurken', 'minigurke', 'minigurken', 'snackgurke', 'snackgurken', 'urgurke'],
   ['paprika', 'paprikaschote', 'paprikaschoten', 'spitzpaprika', 'snackpaprika'], ['mais', 'zuckermais', 'maiskolben'], ['sellerie', 'knollensellerie'],
-  ['sahne', 'rahm', 'obers'], ['quark', 'topfen'], ['joghurt', 'jogurt', 'yoghurt', 'yogurt'],
+  ['sahne', 'rahm', 'obers', 'schlagsahne'], ['quark', 'topfen'], ['joghurt', 'jogurt', 'yoghurt', 'yogurt'],
   ['brötchen', 'semmel', 'schrippe', 'weckle', 'wecken'], ['hackfleisch', 'gehacktes', 'faschiertes'],
   ['marmelade', 'konfitüre', 'fruchtaufstrich', 'gelee'], ['traube', 'trauben', 'weintraube', 'weintrauben', 'tafeltraube', 'tafeltrauben'],
   // vegetables and salads: the shopper's short word against the sort named in the VG list
   ['bete', 'beete', 'rande', 'randen'], ['kürbis', 'kürbisse', 'hokkaido', 'hokkaidokürbis', 'butternut', 'butternusskürbis', 'muskatkürbis'],
-  ['salat', 'kopfsalat', 'eichblattsalat', 'bataviasalat', 'eisbergsalat', 'romanasalat', 'lollosalat', 'pflücksalat', 'endiviensalat', 'zuckerhutsalat'],
+  ['salat', 'kopfsalat', 'eichblattsalat', 'bataviasalat', 'eisbergsalat', 'romanasalat', 'lollosalat', 'pflücksalat', 'endiviensalat', 'zuckerhutsalat', 'eissalat', 'mixsalat', 'salatmix', 'blattsalat', 'multiblattsalat'],
   ['zwiebel', 'zwiebeln', 'gemüsezwiebel', 'gemüsezwiebeln', 'speisezwiebel', 'speisezwiebeln'],
   ['staudensellerie', 'stangensellerie', 'bleichsellerie'], ['peperoni', 'peperoncino', 'pfefferoni', 'chili', 'chilli', 'chilischote'],
   ['champignon', 'champignons', 'egerling', 'egerlinge', 'pilz', 'pilze'], ['zuckerschote', 'zuckerschoten', 'zuckererbse', 'zuckererbsen', 'kefe', 'kefen'],
@@ -153,7 +153,7 @@ export const SYNONYM_GROUPS = [
   ['apfel', 'äpfel', 'tafelapfel', 'kinderapfel', 'frühapfel'], ['orange', 'orangen', 'saftorange', 'saftorangen', 'blutorange', 'blutorangen', 'navelorange'],
   ['mandarine', 'mandarinen', 'clementine', 'clementinen', 'satsuma'], ['grapefruit', 'pampelmuse'],
   ['melone', 'melonen', 'wassermelone', 'honigmelone', 'zuckermelone', 'galiamelone', 'cantaloupe'],
-  ['heidelbeere', 'heidelbeeren', 'blaubeere', 'blaubeeren'], ['kirsche', 'kirschen', 'süßkirsche', 'süßkirschen'],
+  ['heidelbeere', 'heidelbeeren', 'blaubeere', 'blaubeeren'], ['kirsche', 'kirschen', 'süßkirsche', 'süßkirschen', 'sauerkirsche', 'sauerkirschen'],
   ['maracuja', 'passionsfrucht', 'granadilla'], ['physalis', 'kapstachelbeere', 'andenbeere'],
   ['rosine', 'rosinen', 'sultanine', 'sultaninen', 'weinbeere', 'weinbeeren'],
   // nuts and muesli: the nut against its kernels
@@ -161,12 +161,19 @@ export const SYNONYM_GROUPS = [
   ['erdnuss', 'erdnüsse', 'erdnusskerne', 'peanuts'], ['cashew', 'cashews', 'cashewkerne', 'cashewnüsse', 'cashewnuss'],
   ['pistazie', 'pistazien', 'pistazienkerne'], ['paranuss', 'paranüsse', 'paranusskerne'], ['pekannuss', 'pekannüsse', 'pekannusskerne', 'pecannuss'],
   ['müsli', 'muesli', 'müslis'],
+  ['pfirsich', 'pfirsiche', 'weinbergpfirsich', 'weinbergpfirsiche'], ['nektarine', 'nektarinen', 'weinbergnektarine'], ['erdbeere', 'erdbeeren', 'walderdbeere', 'walderdbeeren'],
+  ['dattel', 'datteln', 'zweigdatteln', 'medjooldatteln'], ['feige', 'feigen', 'bergfeigen'], ['spinat', 'babyspinat'], ['mangold', 'schnittmangold'],
+  ['rettich', 'rettiche', 'japanrettich', 'schwarzrettich', 'winterrettich'], ['linse', 'linsen', 'berglinsen', 'tellerlinsen', 'belugalinsen'],
+  ['minze', 'pfefferminze', 'apfelminze', 'krauseminze'], ['toast', 'toastbrot', 'dinkeltoast', 'dinkeltoastbrot', 'weizentoast'],
+  ['honig', 'rapshonig', 'kleehonig', 'blütenhonig', 'waldhonig', 'akazienhonig', 'sonnenblumenhonig'],
+  // milk alternatives are sold as "drink" (EU rule) but written as "milk" on every list
+  ['hafermilch', 'haferdrink', 'haferdrinks'], ['sojamilch', 'sojadrink'], ['mandelmilch', 'mandeldrink'], ['reismilch', 'reisdrink'], ['schmand', 'sauerrahm'],
 ];
 const SYNONYM_OF = new Map();
 SYNONYM_GROUPS.forEach((g, i) => g.forEach(w => SYNONYM_OF.set(normName(w), i)));
-// Collective words: the plain word fits every compound that ends in it ("Brot" ~ "Vollkornbrot", but Roggenbrot vs Dinkelbrot
-// are two products and stay questioned)
-const COLLECTIVES = ['brot'];
+// Collective words: the plain word fits every compound that ends in it ("Brot" ~ "Vollkornbrot", "Brötchen" ~ "Milchbrötchen",
+// but Roggenbrot vs Dinkelbrot are two products and stay questioned)
+const COLLECTIVES = ['brot', 'brotchen', 'baguette', 'croissant'];
 const collective = (x, y) => COLLECTIVES.some(c => (x === c && y.endsWith(c)) || (y === c && x.endsWith(c)));
 const synonyms = (x, y) => SYNONYM_OF.has(x) && SYNONYM_OF.get(x) === SYNONYM_OF.get(y);
 
@@ -179,7 +186,8 @@ export function nameSimilarity(a, b) {
 }
 // Below this the app asks "is that really the same product?"
 export const SIMILAR_ENOUGH = 0.75;
-export const similarNames = (a, b) => nameSimilarity(a, b) >= SIMILAR_ENOUGH;
+// strictly above: a plural against a compound lands exactly on 0.75 (Tomaten ~ Tomatenmark) and is a different product
+export const similarNames = (a, b) => nameSimilarity(a, b) > SIMILAR_ENOUGH;
 
 /* ---------- Import lists from the original VG app ---------- */
 // Share link of the original app: https://app.vg-dresden.de/list?shareId=123#KEY

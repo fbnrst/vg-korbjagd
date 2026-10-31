@@ -8,7 +8,8 @@
     "start": "python3 -m http.server 3000 --directory public",
     "test": "node --test",
     "docs:screenshots": "node scripts/docs-screenshots.mjs",
-    "icons": "node scripts/make-icons.mjs"
+    "icons": "node scripts/make-icons.mjs",
+    "matching:check": "node scripts/check-matching.mjs"
   },
   "engines": {
     "node": ">=18"
