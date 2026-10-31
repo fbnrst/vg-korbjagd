@@ -1,6 +1,7 @@
 import firebaseConfig from './firebase-config.js';
 import { createStore, firebaseAdapter, localAdapter, userKey } from './store.js';
 import { loadVg, parseShareLink, fetchSharedList } from './vg.js';
+import { t, applyStatic } from './i18n.js';
 
 const $ = s => document.querySelector(s);
 const EMOJIS = ['🦊','🐼','🐯','🦄','🐸','🐙','🦖','🚀','⭐','🍓','🐵','🦁'];
@@ -8,30 +9,34 @@ const LS = { get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; 
              set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
 
 const me = LS.get('me', { name: '', emoji: EMOJIS[0] });
-let code = (new URLSearchParams(location.search).get('list') || LS.get('code', '') || '').toUpperCase();
+// The list lives on this phone (code LOCAL) until it is shared; then it moves to the server under a 6-character code.
+const LOCAL = 'LOCAL';
+let code = LOCAL;
+const isLocal = () => code === LOCAL;
 let state = { items: {}, scores: {}, deposit: {} };
-let store = null, unsub = null, first = true, vg = null;
+let store = null, localDb = null, localStore = null, remoteStore = null, pending = null;
+let unsub = null, first = true, vg = null;
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
-const myKey = () => userKey(me.emoji, me.name);
+const myKey = () => userKey(me.emoji, me.name || 'Me');
 const splitKey = k => { const i = k.indexOf(' '); return { emoji: k.slice(0, i), name: k.slice(i + 1) }; };
 
 function toast(msg) {
-  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
-  clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 2600);
+  const el = $('#toast'); el.textContent = msg; el.classList.add('show');
+  clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), 2600);
 }
 
 /* ---------- Sync ---------- */
 function onSnapshot(s) {
   const next = { items: (s && s.items) || {}, scores: (s && s.scores) || {}, deposit: (s && s.deposit) || {} };
-  if (!first) { // Änderungen anderer als Hinweis zeigen
+  if (!first && !isLocal()) { // show other people's changes as a toast
     for (const i of Object.values(next.items)) {
       const was = state.items[i.id];
       if (i.checked && !(was && was.checked) && i.checkedBy && i.checkedBy !== myKey()) {
-        const w = splitKey(i.checkedBy); toast(`${w.emoji} ${w.name} put ${i.title} in the basket 🛒`);
+        const w = splitKey(i.checkedBy); toast(t('toastCheckedBy', { who: `${w.emoji} ${w.name}`, item: i.title }));
       } else if (!was && i.addedBy && i.addedBy !== myKey()) {
-        const w = splitKey(i.addedBy); toast(`${w.emoji} ${w.name} added ${i.title}`);
+        const w = splitKey(i.addedBy); toast(t('toastAddedBy', { who: `${w.emoji} ${w.name}`, item: i.title }));
       }
     }
   }
@@ -40,33 +45,34 @@ function onSnapshot(s) {
 function connect() {
   if (unsub) unsub();
   first = true;
+  state = { items: {}, scores: {}, deposit: {} }; render();
   unsub = store.subscribe(code, onSnapshot, on => $('#dot').classList.toggle('on', on));
 }
 
 /* ---------- Rendering ---------- */
 function itemHtml(i) {
-  const by = i.checked && i.checkedBy ? `<span class="badge">${esc(i.checkedBy)}</span>` : '';
+  const by = !isLocal() && i.checked && i.checkedBy ? `<span class="badge">${esc(i.checkedBy)}</span>` : '';
   const sub = i.vgNum ? `VG ${i.vgNum}` : '';
-  const vgIn = i.vgNum || i.checked ? '' : `<form data-vg="${esc(i.id)}"><input class="vg" type="number" inputmode="numeric" placeholder="No."></form>`;
+  const vgIn = i.vgNum || i.checked ? '' : `<form data-vg="${esc(i.id)}"><input class="vg" type="number" inputmode="numeric" placeholder="${t('noShort')}"></form>`;
   return `<div class="item ${i.checked ? 'done' : ''}">
-      <button class="chk" data-chk="${esc(i.id)}" aria-label="${i.checked ? 'back to the list' : 'check off'}">${i.checked ? '✓' : ''}</button>
+      <button class="chk" data-chk="${esc(i.id)}" aria-label="${t(i.checked ? 'ariaBack' : 'ariaCheck')}">${i.checked ? '✓' : ''}</button>
       <div class="t">${i.amount > 1 ? `${esc(i.amount)}${i.unit ? ' ' + esc(i.unit) : '×'} ` : ''}${esc(i.title)}<small>${esc(sub)}</small></div>${by}${vgIn}
-      <button class="x" data-del="${esc(i.id)}" aria-label="delete">×</button></div>`;
+      <button class="x" data-del="${esc(i.id)}" aria-label="${t('ariaDelete')}">×</button></div>`;
 }
 function render() {
   const all = Object.values(state.items).sort((a, b) => ((a.addedAt || 0) - (b.addedAt || 0)));
   const open = all.filter(i => !i.checked);
-  const done = all.filter(i => i.checked).sort((a, b) => (b.checkedAt || 0) - (a.checkedAt || 0)); // zuletzt abgehakt oben
+  const done = all.filter(i => i.checked).sort((a, b) => (b.checkedAt || 0) - (a.checkedAt || 0)); // most recently checked off first
   $('#items').innerHTML = open.length ? open.map(itemHtml).join('')
-    : `<p class="muted" style="text-align:center">${all.length ? 'Everything is in the basket 🎉' : 'Nothing on the list yet.'}</p>`;
+    : `<p class="muted" style="text-align:center">${t(all.length ? 'allInBasket' : 'nothingYet')}</p>`;
   $('#doneCard').classList.toggle('hide', !done.length);
-  $('#doneHead').textContent = `In the basket · ${done.length}`;
+  $('#doneHead').textContent = t('inBasketHead', { n: done.length });
   $('#doneItems').innerHTML = done.map(itemHtml).join('');
-  $('#count').textContent = `${done.length}/${all.length} in the basket`;
-  renderDeposit(); renderKasse();
+  $('#count').textContent = t('countInBasket', { done: done.length, all: all.length });
+  renderDeposit(); renderCheckout();
 
   const rank = Object.entries(state.scores).sort((a, b) => b[1] - a[1]);
-  // Gleiche Punkte = gleicher Platz (1, 1, 3, …), ohne Punkte keine Medaille
+  // same points = same place (1, 1, 3, …), no medal without points
   const placed = rank.map(([k, n]) => ({ k, n, place: 1 + rank.findIndex(r => r[1] === n) }));
   const MEDAL = { 1: '🥇', 2: '🥈', 3: '🥉' };
   const max = Math.max(1, placed[0] ? placed[0].n : 1);
@@ -75,29 +81,29 @@ function render() {
   $('#podium').innerHTML = podium.map(({ k, n, place }) => {
     const w = splitKey(k), h = 30 + 80 * n / max;
     return `<div class="pod"><div class="e">${esc(w.emoji)}</div><div>${esc(w.name)}</div><div class="bar" style="height:${h}px">${MEDAL[place]} ${esc(n)}</div></div>`;
-  }).join('') || '<span class="muted">No points yet – get items into the basket!</span>';
+  }).join('') || `<span class="muted">${t('noPoints')}</span>`;
   $('#ranks').innerHTML = placed.map(({ k, n, place }) => `<div class="rank"><span>${n > 0 && MEDAL[place] ? MEDAL[place] : place + '.'}</span><span>${esc(k)}</span><b>${esc(n)}</b></div>`).join('');
 }
 
-/* ---------- Kasse ---------- */
-const kasseOff = new Set(); // lokal als erledigt markiert
+/* ---------- Checkout ---------- */
+const checkoutDone = new Set(); // marked done locally (per phone)
 const byTitle = (a, b) => a.title.localeCompare(b.title, 'de');
-function kasseRow(key, title, amount, unit, no) {
+function checkoutRow(key, title, amount, unit, no) {
   const weight = ['g', 'kg', 'Liter'].includes(unit) || amount === 1;
   const mid = unit && amount ? `<small>[${weight ? esc(amount) + ' ' : ''}${esc(unit)}]</small>` : '';
   const times = !weight && amount > 1 ? `<small>${esc(amount)} × </small>` : '';
-  return `<div class="kr${kasseOff.has(key) ? ' off' : ''}" data-kasse="${esc(key)}"><div class="nm">${esc(title)}${mid}</div><div class="no">${times}${esc(no || '–')}</div></div>`;
+  return `<div class="kr${checkoutDone.has(key) ? ' off' : ''}" data-checkout="${esc(key)}"><div class="nm">${esc(title)}${mid}</div><div class="no">${times}${esc(no || '–')}</div></div>`;
 }
-function renderKasse() {
+function renderCheckout() {
   const inBasket = Object.values(state.items).filter(i => i.checked).sort(byTitle);
   const sec = (head, rows) => rows.length ? `<div class="card ks"><h3>${head}</h3>${rows.join('')}</div>` : '';
-  const row = i => kasseRow(i.id, i.title, i.amount, i.unit, i.vgNum);
-  const dep = vg ? vg.deposits.filter(t => depSum(t.id) > 0).map(t => kasseRow('d' + t.id, t.name, depSum(t.id), '', t.vgNum)) : [];
-  $('#kasse').innerHTML = sec('Items', inBasket.filter(i => i.vgNum >= 1000).map(row))
-    + sec('Bakery', inBasket.filter(i => i.vgNum && i.vgNum < 1000).map(row))
-    + sec('No VG number', inBasket.filter(i => !i.vgNum).map(row))
-    + sec('Empties', dep)
-    || '<p class="muted" style="text-align:center">Put items in the basket and they show up here with their VG numbers.</p>';
+  const row = i => checkoutRow(i.id, i.title, i.amount, i.unit, i.vgNum);
+  const dep = vg ? vg.deposits.filter(d => depSum(d.id) > 0).map(d => checkoutRow('d' + d.id, d.name, depSum(d.id), '', d.vgNum)) : [];
+  $('#checkout').innerHTML = sec(t('secItems'), inBasket.filter(i => i.vgNum >= 1000).map(row))
+    + sec(t('secBakery'), inBasket.filter(i => i.vgNum && i.vgNum < 1000).map(row))
+    + sec(t('secNoVg'), inBasket.filter(i => !i.vgNum).map(row))
+    + sec(t('secEmpties'), dep)
+    || `<p class="muted" style="text-align:center">${t('checkoutEmpty')}</p>`;
 }
 let wakeLock = null;
 async function setWake(on) {
@@ -107,28 +113,28 @@ async function setWake(on) {
   } catch (e) { wakeLock = null; }
 }
 
-/* ---------- Leergut ---------- */
+/* ---------- Empties ---------- */
 const depSum = id => Object.values(state.deposit[id] || {}).reduce((s, n) => s + (Number(n) || 0), 0);
 function renderDeposit() {
   const types = vg ? vg.deposits : null;
-  $('#depItems').innerHTML = !types ? '<p class="muted" style="text-align:center">Loading VG data …</p>'
-    : types.map(t => `<div class="dep"><div class="t">${esc(t.name)}<small>VG ${esc(t.vgNum)}</small></div>
-        <button data-dep-sub="${esc(t.id)}" aria-label="less">−</button><span class="n">${depSum(t.id)}</span><button class="add" data-dep-add="${esc(t.id)}" aria-label="more">+</button></div>`).join('');
-  const total = types ? types.reduce((s, t) => s + depSum(t.id), 0) : 0;
-  $('#depTotal').textContent = `${total} pcs`;
+  $('#depItems').innerHTML = !types ? `<p class="muted" style="text-align:center">${t('loadingVg')}</p>`
+    : types.map(d => `<div class="dep"><div class="t">${esc(d.name)}<small>VG ${esc(d.vgNum)}</small></div>
+        <button data-dep-sub="${esc(d.id)}" aria-label="${t('ariaLess')}">−</button><span class="n">${depSum(d.id)}</span><button class="add" data-dep-add="${esc(d.id)}" aria-label="${t('ariaMore')}">+</button></div>`).join('');
+  const total = types ? types.reduce((s, d) => s + depSum(d.id), 0) : 0;
+  $('#depTotal').textContent = t('pcs', { n: total });
 }
 
 /* ---------- Events ---------- */
 document.addEventListener('click', e => {
   const chk = e.target.closest('[data-chk]');
   if (chk) { const it = state.items[chk.dataset.chk]; if (it) store.check(code, it.id, myKey(), !it.checked); return; }
-  const kr = e.target.closest('[data-kasse]');
-  if (kr) { const k = kr.dataset.kasse; kasseOff.has(k) ? kasseOff.delete(k) : kasseOff.add(k); renderKasse(); return; }
+  const kr = e.target.closest('[data-checkout]');
+  if (kr) { const k = kr.dataset.checkout; checkoutDone.has(k) ? checkoutDone.delete(k) : checkoutDone.add(k); renderCheckout(); return; }
   const dadd = e.target.closest('[data-dep-add]'), dsub = e.target.closest('[data-dep-sub]');
   if (dadd) { store.depositAdd(code, dadd.dataset.depAdd, myKey()); return; }
   if (dsub) { store.depositRemove(code, dsub.dataset.depSub, myKey()); return; }
   const del = e.target.closest('[data-del]');
-  if (del) { const it = state.items[del.dataset.del]; if (it && confirm(`Delete “${it.title}”?`)) store.remove(code, it.id); }
+  if (del) { const it = state.items[del.dataset.del]; if (it && confirm(t('confirmDelete', { item: it.title }))) store.remove(code, it.id); }
 });
 document.addEventListener('submit', e => {
   const f = e.target.closest('[data-vg]');
@@ -137,48 +143,48 @@ document.addEventListener('submit', e => {
   const v = parseInt(f.querySelector('input').value, 10);
   if (!(v > 0)) return;
   const p = vg && vg.lookup(v);
-  store.setNum(code, f.dataset.vg, myKey(), v, true, p ? { title: p.title } : {}); // Nummer eingeben = im Korb
-  toast(p ? `✓ ${p.title}` : vg ? `VG no. ${v} is not in the VG database` : `VG no. ${v} saved (VG data not loaded)`);
+  store.setNum(code, f.dataset.vg, myKey(), v, true, p ? { title: p.title } : {}); // entering the number puts it in the basket
+  toast(p ? `✓ ${p.title}` : t(vg ? 'vgNotInDb' : 'vgSaved', { n: v }));
 });
 $('#addForm').onsubmit = e => {
   e.preventDefault();
   const v = $('#addIn').value.trim(); if (!v) return;
   $('#addIn').value = ''; $('#addPreview').classList.add('hide'); $('#vgSug').innerHTML = '';
-  if (parseShareLink(v)) return openImport(v); // Teilen-Link der Original-App eingefügt
+  if (parseShareLink(v)) return openImport(v); // a share link from the original app was pasted
   const isNum = /^\d+$/.test(v);
   const p = vg && (isNum ? vg.lookup(v) : vg.byTitle(v));
   if (p) store.add(code, { id: uid(), title: p.title, vgNum: p.vgNum }, myKey());
-  else store.add(code, { id: uid(), title: isNum ? `VG no. ${v}` : v, vgNum: isNum ? +v : null }, myKey());
-  if (isNum && !p) toast(vg ? `VG no. ${v} is not in the VG database` : 'VG data not loaded yet');
+  else store.add(code, { id: uid(), title: isNum ? t('vgPlaceholderTitle', { n: v }) : v, vgNum: isNum ? +v : null }, myKey());
+  if (isNum && !p) toast(vg ? t('vgNotInDb', { n: v }) : t('vgNotLoaded'));
 };
-// Nummern-Modus: Zahlentastatur, nur Ziffern (wie der „123“-Schalter der Original-App)
+// Number mode: numeric keyboard, digits only (like the "123" switch of the original app)
 let numMode = LS.get('numMode', false);
 function applyMode(focus) {
   const inp = $('#addIn');
   inp.inputMode = numMode ? 'numeric' : 'text';
   inp.enterKeyHint = 'go';
-  inp.placeholder = numMode ? 'VG number …' : 'Item or VG number …';
+  inp.placeholder = t(numMode ? 'addPlaceholderNum' : 'addPlaceholder');
   if (numMode) inp.value = inp.value.replace(/\D/g, '');
   $('#modeBtn').classList.toggle('on', numMode); $('#modeBtn').setAttribute('aria-pressed', numMode);
   inp.dispatchEvent(new Event('input'));
-  if (focus) inp.focus(); // Tastatur bleibt offen und wechselt das Layout
+  if (focus) inp.focus(); // keep the keyboard open; it just switches layout
 }
 $('#modeBtn').onclick = () => { numMode = !numMode; LS.set('numMode', numMode); applyMode(true); };
 applyMode(false);
 
-// Eingabeleiste über der Tastatur: Tab-Leiste ausblenden, Leiste an die Unterkante des sichtbaren Bereichs legen
-// (iOS verschiebt nur den sichtbaren Bereich, Chrome/Android ändert dank resizes-content die Seitenhöhe)
+// Input bar above the keyboard: hide the tab bar and pin the bar to the bottom edge of the visible area
+// (iOS only moves the visual viewport; Chrome/Android resize the page thanks to resizes-content)
 {
   const vv = window.visualViewport, bar = $('#addBar');
   const place = () => { const kb = vv ? Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)) : 0; document.body.style.setProperty('--kb', kb + 'px'); };
   $('#addIn').addEventListener('focus', () => { document.body.classList.add('typing'); place(); });
   $('#addIn').addEventListener('blur', () => setTimeout(() => { if (document.activeElement !== $('#addIn')) { document.body.classList.remove('typing'); document.body.style.removeProperty('--kb'); } }, 100));
   if (vv) { vv.addEventListener('resize', place); vv.addEventListener('scroll', place); }
-  // Knöpfe in der Leiste dürfen den Fokus nicht stehlen, sonst klappt die Tastatur zu
+  // buttons in the bar must not steal focus, otherwise the keyboard closes
   bar.addEventListener('pointerdown', e => { if (e.target.closest('button') && e.target.id !== 'scanBtn') e.preventDefault(); });
 }
 
-// Beim Tippen: Namen -> Vorschläge ohne Nummer, Nummer -> Produktvorschau
+// While typing: names -> suggestions without numbers, number -> product preview
 $('#addIn').oninput = () => {
   if (numMode) $('#addIn').value = $('#addIn').value.replace(/\D/g, '');
   const q = $('#addIn').value.trim(), pv = $('#addPreview');
@@ -188,10 +194,10 @@ $('#addIn').oninput = () => {
   const p = vg && isNum ? vg.lookup(q) : null;
   pv.classList.toggle('hide', !isNum || !vg || (!p && q.length < 4));
   pv.classList.toggle('miss', isNum && !p);
-  pv.textContent = p ? `→ ${p.title}` : 'No VG number with this value found';
+  pv.textContent = p ? `→ ${p.title}` : t('noVgMatch');
 };
 
-/* ---------- Import aus der Original-VG-App ---------- */
+/* ---------- Import from the original VG app ---------- */
 let CryptoJSP = null;
 function loadCrypto() {
   if (window.CryptoJS) return Promise.resolve(window.CryptoJS);
@@ -209,8 +215,8 @@ $('#importBtn').onclick = () => openImport();
 $('#importClose').onclick = () => $('#importDlg').classList.add('hide');
 $('#importGo').onclick = async () => {
   const link = parseShareLink($('#importIn').value), msg = $('#importMsg');
-  if (!link) { msg.textContent = 'This does not look like a share link from the VG app (…/list?shareId=123#…).'; return; }
-  msg.textContent = 'Loading list …';
+  if (!link) { msg.textContent = t('importBad'); return; }
+  msg.textContent = t('importLoading');
   try {
     const items = await fetchSharedList(await loadCrypto(), link);
     const have = new Set(Object.values(state.items).map(i => i.title.toLowerCase()));
@@ -222,14 +228,14 @@ $('#importGo').onclick = async () => {
       store.add(code, { id: uid(), title, vgNum: it.vgNum, amount: it.amount, unit: it.unit }, myKey());
       added++;
     }
-    msg.textContent = `${added} of ${items.length} items imported${added < items.length ? ' (the rest were already on the list)' : ''}.`;
-    toast(`${added} items imported from the VG app`);
-  } catch (e) { msg.textContent = 'Could not load the list (link expired or wrong?).'; }
+    msg.textContent = `${t('importDone', { added, total: items.length })}${added < items.length ? t('importRest') : ''}.`;
+    toast(t('toastImported', { n: added }));
+  } catch (e) { msg.textContent = t('importFail'); }
 };
-$('#clearBtn').onclick = () => { if (confirm('Remove all checked-off items?')) store.clearChecked(code); };
-$('#depClear').onclick = () => { if (confirm('Clear the empties list? The points stay.')) store.clearDeposit(code); };
-$('#resetBtn').onclick = () => { if (confirm('Reset the leaderboard for a new round?')) store.resetScores(code); };
-/* ---------- Teilen (QR-Code + Link) ---------- */
+$('#clearBtn').onclick = () => { if (confirm(t('confirmClearDone'))) store.clearChecked(code); };
+$('#depClear').onclick = () => { if (confirm(t('confirmClearEmpties'))) store.clearDeposit(code); };
+$('#resetBtn').onclick = () => { if (confirm(t('confirmReset'))) store.resetScores(code); };
+/* ---------- Sharing (QR code + link) ---------- */
 const shareUrl = () => new URL(`?list=${code}`, location.href.split('?')[0]).href;
 function loadQr() {
   if (window.qrcode) return Promise.resolve();
@@ -239,32 +245,47 @@ function loadQr() {
     s.onload = res; s.onerror = rej; document.head.appendChild(s);
   });
 }
-$('#shareBtn').onclick = async () => {
-  $('#shareCode').textContent = code;
+async function openShareDialog() {
+  $('#shareLocalBox').classList.toggle('hide', !isLocal());
+  $('#shareSharedBox').classList.toggle('hide', isLocal());
   $('#shareDlg').classList.remove('hide');
+  if (isLocal()) return;
+  $('#shareCode').textContent = code;
   try {
     await loadQr();
     const qr = window.qrcode(0, 'M'); qr.addData(shareUrl()); qr.make();
     $('#qr').innerHTML = qr.createSvgTag({ cellSize: 6, margin: 2, scalable: true });
-  } catch (e) { $('#qr').textContent = 'Could not create the QR code.'; }
+  } catch (e) { $('#qr').textContent = t('qrFail'); }
+}
+const closeShareDialog = () => $('#shareDlg').classList.add('hide');
+$('#shareBtn').onclick = openShareDialog;
+$('#shareClose').onclick = closeShareDialog;
+$('#shareCloseLocal').onclick = closeShareDialog;
+$('#shareDlg').onclick = e => { if (e.target.id === 'shareDlg') closeShareDialog(); };
+$('#shareStart').onclick = () => { closeShareDialog(); me.name ? shareLocalList() : askIdentity(shareLocalList); };
+$('#joinBtn').onclick = () => { const c = $('#codeIn').value.trim().toUpperCase(); if (c) { closeShareDialog(); joinShared(c); } };
+$('#leaveBtn').onclick = () => {
+  if (!confirm(t('confirmLeave'))) return;
+  LS.set('code', ''); history.replaceState(null, '', location.pathname);
+  closeShareDialog(); startLocal();
 };
-$('#shareClose').onclick = () => $('#shareDlg').classList.add('hide');
-$('#shareDlg').onclick = e => { if (e.target.id === 'shareDlg') $('#shareDlg').classList.add('hide'); };
 $('#shareLink').onclick = async () => {
   const url = shareUrl();
-  try { if (navigator.share) return await navigator.share({ title: 'Shopping list', text: `Join our shopping list (code ${code})`, url }); } catch (e) { return; }
-  try { await navigator.clipboard.writeText(url); toast('Link copied'); } catch (e) { prompt('Link to share:', url); }
+  try { if (navigator.share) return await navigator.share({ title: t('shareTitleText'), text: t('shareText', { code }), url }); } catch (e) { return; }
+  try { await navigator.clipboard.writeText(url); toast(t('linkCopied')); } catch (e) { prompt(t('linkPrompt'), url); }
 };
 document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
   document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
   show(b.dataset.t);
 });
 function show(id) {
+  if (isLocal() && id === 'vScore') id = 'vList'; // the game only exists once the list is shared
+  $('#vWelcome').classList.add('hide');
   for (const v of ['vList', 'vDeposit', 'vCheckout', 'vScore']) $('#' + v).classList.toggle('hide', v !== id);
   setWake(id === 'vCheckout');
 }
 
-/* ---------- Barcode-Scanner ---------- */
+/* ---------- Barcode scanner ---------- */
 let zxingReader = null, scanStream = null, scanBusy = false;
 function loadZxing() {
   if (window.ZXing) return Promise.resolve();
@@ -283,28 +304,28 @@ async function productName(ean) {
     return name ? (p.brands ? `${name} (${p.brands.split(',')[0]})` : name) : null;
   } catch (e) { return null; }
 }
-// Bekannten Artikel abhaken, sonst neu anlegen und gleich in den Korb legen
+// Check off a known item, otherwise create it and put it in the basket right away
 async function handleEan(ean) {
   if (scanBusy) return; scanBusy = true;
   try {
     let it = Object.values(state.items).find(i => i.ean === ean);
     if (!it) {
-      $('#scanMsg').textContent = 'Looking up product …';
+      $('#scanMsg').textContent = t('lookingUp');
       const name = await productName(ean);
       it = name && Object.values(state.items).find(i => i.title.toLowerCase() === name.toLowerCase());
-      if (!it) { it = { id: uid(), title: name || `Item ${ean}` }; store.add(code, { id: it.id, title: it.title, ean }, myKey()); }
+      if (!it) { it = { id: uid(), title: name || t('itemFallback', { ean }) }; store.add(code, { id: it.id, title: it.title, ean }, myKey()); }
     }
-    if (!it.checked) { store.check(code, it.id, myKey(), true); toast(`✓ ${it.title} in the basket`); }
-    else toast(`${it.title} is already in the basket`);
+    if (!it.checked) { store.check(code, it.id, myKey(), true); toast(t('toastInBasket', { item: it.title })); }
+    else toast(t('toastAlready', { item: it.title }));
     if (navigator.vibrate) navigator.vibrate(60);
     closeScanner();
   } finally { scanBusy = false; }
 }
 async function openScanner() {
-  $('#scanner').classList.remove('hide'); $('#scanMsg').textContent = 'Hold the barcode inside the frame';
+  $('#scanner').classList.remove('hide'); $('#scanMsg').textContent = t('scanHint');
   const video = $('#cam');
   try {
-    if ('BarcodeDetector' in window) { // Chrome/Android: eingebaut
+    if ('BarcodeDetector' in window) { // Chrome/Android: built in
       scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
       video.srcObject = scanStream; await video.play();
       const det = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
@@ -314,60 +335,92 @@ async function openScanner() {
         setTimeout(loop, 200);
       };
       loop();
-    } else { // iOS/Safari u. a.: zxing nachladen
+    } else { // iOS/Safari etc.: load zxing on demand
       await loadZxing();
       zxingReader = new ZXing.BrowserMultiFormatReader();
       zxingReader.decodeFromConstraints({ video: { facingMode: 'environment' } }, video, r => { if (r) handleEan(r.getText()); });
     }
   } catch (e) {
-    $('#scanMsg').textContent = 'Camera not available (needs HTTPS and permission). You can enter the code below.';
+    $('#scanMsg').textContent = t('cameraFail');
   }
 }
 function closeScanner() {
   if (zxingReader) { zxingReader.reset(); zxingReader = null; }
-  if (scanStream) { scanStream.getTracks().forEach(t => t.stop()); scanStream = null; }
+  if (scanStream) { scanStream.getTracks().forEach(track => track.stop()); scanStream = null; }
   $('#cam').srcObject = null; $('#scanner').classList.add('hide');
 }
 $('#scanBtn').onclick = openScanner;
 $('#scanClose').onclick = closeScanner;
 $('#eanForm').onsubmit = e => { e.preventDefault(); const v = $('#eanIn').value.trim(); $('#eanIn').value = ''; if (/^\d{8,14}$/.test(v)) handleEan(v); };
 
-/* ---------- Start / Beitritt ---------- */
+/* ---------- Start / joining ---------- */
 function buildEmojis() {
   $('#emojis').innerHTML = EMOJIS.map(e => `<button type="button" class="${e === me.emoji ? 'on' : ''}">${e}</button>`).join('');
   $('#emojis').onclick = ev => { const b = ev.target.closest('button'); if (!b) return; me.emoji = b.textContent; buildEmojis(); };
 }
-function needName() {
+// Name and emoji are only needed once there are other people (sharing or joining).
+function askIdentity(next) {
+  pending = next;
+  $('#welcomeErr').textContent = ''; $('#nameIn').value = me.name;
+  for (const v of ['vList', 'vDeposit', 'vCheckout', 'vScore']) $('#' + v).classList.add('hide');
+  $('#tabs').classList.add('hide'); $('#vWelcome').classList.remove('hide');
+}
+$('#newList').onclick = () => {
   const n = $('#nameIn').value.trim().slice(0, 20);
-  if (!n) { $('#welcomeErr').textContent = 'Please enter your name first.'; return false; }
-  me.name = n; LS.set('me', me); return true;
-}
-async function enter(c) {
-  try {
-    if (!(await store.exists(c))) { $('#welcomeErr').textContent = 'This list does not exist.'; return; }
-  } catch (e) { $('#welcomeErr').textContent = 'No connection to the database.'; return; }
-  code = c; LS.set('code', c);
-  history.replaceState(null, '', `?list=${c}`);
-  startList();
-}
-function startList() {
-  $('#vWelcome').classList.add('hide'); $('#tabs').classList.remove('hide'); $('#shareBtn').classList.remove('hide');
+  if (!n) { $('#welcomeErr').textContent = t('needName'); return; }
+  me.name = n; LS.set('me', me);
+  const next = pending; pending = null; if (next) next();
+};
+function enterApp() {
+  $('#tabs').classList.remove('hide'); $('#shareBtn').classList.remove('hide');
+  document.body.classList.toggle('local', isLocal());
   show('vList');
-  store.join(code, myKey());
   connect();
 }
-$('#newList').onclick = async () => { if (needName()) { try { enter(await store.create()); } catch (e) { $('#welcomeErr').textContent = 'No connection to the database.'; } } };
-$('#joinBtn').onclick = () => { if (needName()) enter($('#codeIn').value.trim().toUpperCase()); };
+function startLocal() {
+  code = LOCAL; store = localStore;
+  enterApp();
+}
+function startShared(c) {
+  code = c; store = remoteStore;
+  LS.set('code', c); history.replaceState(null, '', `?list=${c}`);
+  store.join(code, myKey());
+  enterApp();
+}
+async function joinShared(c) {
+  const go = async () => {
+    try {
+      if (!(await remoteStore.exists(c))) { toast(t('noList')); return startLocal(); }
+    } catch (e) { toast(t('noDb')); return startLocal(); }
+    startShared(c);
+  };
+  me.name ? go() : askIdentity(go);
+}
+// Upload the local list, then continue on the shared one. The local copy is removed only after the upload succeeded.
+async function shareLocalList() {
+  try {
+    const data = { items: (await localDb.get(LOCAL, 'items')) || {}, deposit: (await localDb.get(LOCAL, 'deposit')) || {} };
+    const c = await remoteStore.create();
+    await remoteStore.importList(c, data, myKey());
+    await localDb.remove(LOCAL, '');
+    startShared(c);
+    openShareDialog();
+  } catch (e) { toast(t('noDb')); startLocal(); }
+}
 
 async function init() {
+  applyStatic();
   buildEmojis();
-  $('#nameIn').value = me.name;
-  store = createStore(firebaseConfig ? await firebaseAdapter(firebaseConfig) : localAdapter());
-  if (store.mode === 'local') $('#demoBanner').classList.remove('hide');
+  localDb = localAdapter(); localStore = createStore(localDb);
+  remoteStore = firebaseConfig ? createStore(await firebaseAdapter(firebaseConfig)) : localStore;
+  if (!firebaseConfig) $('#demoBanner').classList.remove('hide');
   render();
   loadVg().then(v => { vg = v; render(); }).catch(() => {});
-  if (code && me.name && await store.exists(code).catch(() => false)) startList();
-  else { $('#vWelcome').classList.remove('hide'); $('#codeIn').value = code; }
+  const urlCode = (new URLSearchParams(location.search).get('list') || '').toUpperCase();
+  const savedCode = LS.get('code', '');
+  if (urlCode && urlCode !== savedCode) joinShared(urlCode);
+  else if (savedCode && me.name) startShared(savedCode);
+  else startLocal();
 }
 init();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});

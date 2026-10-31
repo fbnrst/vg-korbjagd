@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import { buildIndex, cleanTitle, infoText, parseShareLink, decryptShared } from '../public/vg.js';
 
-// Vendor-UMD-Datei in einem eigenen Kontext laden (liefert CryptoJS)
+// Load the vendor UMD file in its own context (provides CryptoJS)
 const sandbox = { crypto: globalThis.crypto };
 vm.runInNewContext(fs.readFileSync(new URL('../public/vendor/crypto-js.js', import.meta.url), 'utf8'), sandbox);
 const CryptoJS = sandbox.CryptoJS;
@@ -15,12 +15,12 @@ const raw = {
   countries: { 31: 'Deutschland', 5: 'Österreich', 1: 'siehe Etikett' }, units: { 2: 'kg', 3: 'Stück' },
 };
 
-test('Titel werden von Trennstrichen der VG-Daten bereinigt', () => {
+test('titles are cleaned of hyphenation breaks in the VG data', () => {
   assert.equal(cleanTitle('Fruchtwürfel- mischung'), 'Fruchtwürfelmischung');
   assert.equal(cleanTitle('Schafmilch- Joghurt Natur'), 'Schafmilch-Joghurt Natur');
 });
 
-test('Index: Nummer, Titel, Suche und Infotext', () => {
+test('index: number, title, search and info text', () => {
   const ix = buildIndex(raw);
   assert.equal(ix.lookup(7900).title, 'Fruchtwürfelmischung');
   assert.equal(ix.lookup('1181').unit, 'Stück');
@@ -31,12 +31,12 @@ test('Index: Nummer, Titel, Suche und Infotext', () => {
   assert.equal(infoText(ix.lookup(1076)), 'kg');
 });
 
-test('Teilen-Link der Original-App wird erkannt', () => {
+test('share link of the original app is recognised', () => {
   assert.deepEqual(parseShareLink('Schau: https://app.vg-dresden.de/list?shareId=123#AbCdEf'), { id: '123', key: 'AbCdEf' });
   assert.equal(parseShareLink('https://example.org'), null);
 });
 
-test('geteilte Liste der Original-App wird entschlüsselt', () => {
+test('shared list of the original app is decrypted', () => {
   const list = [{ title: 'Hafermilch', id: 1, amount: 2, unit: 'Stück', vgNum: 4711, checked: true, date: 0, hasVgNum: true, order: 0 }, { title: 'Brot', amount: 1, checked: false }];
   const cipher = CryptoJS.AES.encrypt(JSON.stringify(list), 'geheimerSchluessel').toString();
   const items = decryptShared(CryptoJS, cipher, 'geheimerSchluessel');
@@ -45,7 +45,7 @@ test('geteilte Liste der Original-App wird entschlüsselt', () => {
   assert.throws(() => decryptShared(CryptoJS, cipher, 'falsch'));
 });
 
-test('Pfand-Typen stehen im Index', () => {
+test('deposit types are in the index', () => {
   const ix = buildIndex({ ...raw, deposits: [{ id: 1, name: 'Flasche Schraubver.', vgNum: 2009 }] });
   assert.deepEqual(ix.deposits, [{ id: 1, name: 'Flasche Schraubver.', vgNum: 2009 }]);
   assert.deepEqual(buildIndex(raw).deposits, []);

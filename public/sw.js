@@ -1,6 +1,6 @@
-const VERSION = 'v3';
+const VERSION = 'v4';
 const CACHE = 'korbjagd-' + VERSION;
-const FILES = ['./', './index.html', './app.js', './store.js', './vg.js', './firebase-config.js', './manifest.json', './icon.svg',
+const FILES = ['./', './index.html', './app.js', './store.js', './vg.js', './i18n.js', './legal-config.js', './privacy.html', './docs/index.html', './firebase-config.js', './manifest.json', './icon.svg',
   './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png', './icons/apple-touch-icon.png',
   './vendor/qrcode.js', './vendor/crypto-js.js'];
 
@@ -14,7 +14,7 @@ self.addEventListener('activate', e => {
     .then(() => self.clients.claim()));
 });
 
-// Netz zuerst, bei Fehler Cache. Nur gleiche Origin (Firebase, VG-Server usw. bleiben unberührt).
+// Network first, cache on failure. Same origin only (Firebase, VG server etc. are left alone).
 self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;

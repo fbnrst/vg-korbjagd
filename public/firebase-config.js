@@ -1,5 +1,5 @@
-// Firebase-Webkonfiguration (öffentliche Kennungen, keine Geheimnisse). Zugriff regelt database.rules.json.
-// Mit `export default null;` läuft die App im lokalen Demo-Modus.
+// Firebase web configuration (public identifiers, not secrets). Access is governed by database.rules.json.
+// With `export default null;` the app runs in local demo mode.
 export default {
   apiKey: 'AIzaSyAtfR4g3H--R5FXkVhadZY2eZbhnLTy-h8',
   authDomain: 'vg-korbjagd.firebaseapp.com',

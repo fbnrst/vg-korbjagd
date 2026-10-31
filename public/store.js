@@ -1,9 +1,9 @@
-// Datenschicht: Listenlogik einmal geschrieben, gegen einen Adapter (Firebase oder lokal).
-// Adapter-Schnittstelle: subscribe(code, cb, onStatus) -> unsubscribe, get(code, path),
-// update(code, path, fn) -> {committed} (Transaktion; fn gibt undefined zurück = abbrechen, null = löschen),
+// Data layer: list logic written once, against an adapter (Firebase or local).
+// Adapter interface: subscribe(code, cb, onStatus) -> unsubscribe, get(code, path),
+// update(code, path, fn) -> {committed} (transaction; fn returns undefined = abort, null = delete),
 // set(code, path, value), remove(code, path).
-// Firebase-Schlüsselzeichen und HTML-Sonderzeichen (Schlüssel landen im Rendering) werden ersetzt.
-// Muss zu den Regeln in database.rules.json passen: "<Emoji ohne Leerzeichen> <Name>", höchstens 60 Zeichen.
+// Firebase key characters and HTML special characters (keys end up in the rendering) are replaced.
+// Must match the rules in database.rules.json: "<emoji without spaces> <name>", at most 60 characters.
 const BAD = /[.$#\[\]\/<>&"'`\u0000-\u001f]/g;
 export const userKey = (emoji, name) => {
   const e = String(emoji ?? '').replace(BAD, '_').replace(/\s+/g, '').slice(0, 20) || '🙂';
@@ -36,8 +36,8 @@ export async function firebaseAdapter(cfg) {
   };
 }
 
-// Lokaler Adapter: JSON in einem Storage (localStorage), Tabs im selben Browser sehen sich über das storage-Event.
-// Nur zum Ausprobieren ohne Firebase-Konto und für Tests (dort mit eigenem Storage-Objekt).
+// Local adapter: JSON in a storage (localStorage); tabs in the same browser see each other via the storage event.
+// Only for trying things out without a Firebase account and for tests (with their own storage object).
 export function localAdapter(storage = globalThis.localStorage, listen = true) {
   const KEY = 'korbjagd-local-db', subs = new Set();
   const load = () => { try { return JSON.parse(storage.getItem(KEY)) || {}; } catch (e) { return {}; } };
@@ -55,7 +55,7 @@ export function localAdapter(storage = globalThis.localStorage, listen = true) {
       ks.slice(0, -1).forEach(k => { chain.push(chain[chain.length - 1][k] = chain[chain.length - 1][k] || {}); });
       const last = ks[ks.length - 1];
       if (value == null) delete chain[chain.length - 1][last]; else chain[chain.length - 1][last] = value;
-      // wie Firebase: leere Knoten verschwinden
+      // like Firebase: empty nodes disappear
       for (let i = chain.length - 1; i > 0 && !Object.keys(chain[i]).length; i--) delete chain[i - 1][ks[i - 1]];
     }
     save(d);
@@ -78,6 +78,13 @@ export function localAdapter(storage = globalThis.localStorage, listen = true) {
   };
 }
 
+// Normalised item as stored in the database (also used when moving a local list to a shared one)
+const makeItem = (i, user) => ({
+  id: i.id, title: String(i.title).trim().slice(0, 120), amount: i.amount > 1 ? Math.min(999, Math.round(i.amount)) : 1,
+  unit: i.unit ? String(i.unit).slice(0, 20) : null, info: i.info ? String(i.info).slice(0, 200) : null,
+  vgNum: toNum(i.vgNum), ean: /^\d{8,14}$/.test(i.ean) ? i.ean : null,
+  checked: false, checkedBy: null, checkedAt: null, addedBy: user, addedAt: Date.now() });
+
 export function createStore(db) {
   const bump = (code, key, d) => isUserKey(key) ? db.update(code, `scores/${key}`, n => Math.min(100000, Math.max(0, (n || 0) + d))) : null;
   const CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -96,10 +103,7 @@ export function createStore(db) {
     add(code, item, user) {
       const title = String(item.title || '').trim().slice(0, 120);
       if (!title || !isId(item.id) || !isUserKey(user)) return null;
-      return db.update(code, `items/${item.id}`, old => old ? undefined : {
-        id: item.id, title, amount: item.amount > 1 ? Math.min(999, Math.round(item.amount)) : 1, unit: item.unit ? String(item.unit).slice(0, 20) : null,
-        info: item.info ? String(item.info).slice(0, 200) : null, vgNum: toNum(item.vgNum), ean: /^\d{8,14}$/.test(item.ean) ? item.ean : null,
-        checked: false, checkedBy: null, checkedAt: null, addedBy: user, addedAt: Date.now() });
+      return db.update(code, `items/${item.id}`, old => old ? undefined : makeItem({ ...item, title }, user));
     },
     async check(code, id, user, want) {
       if (!isId(id) || !isUserKey(user)) return;
@@ -111,8 +115,8 @@ export function createStore(db) {
       });
       if (r.committed) await bump(code, want ? user : prev.checkedBy, want ? 1 : -1);
     },
-    // VG-Nummer nachtragen; mit checkToo landet der Artikel dabei im Korb
-    // extra: {title, info} aus der VG-Datenbank; der Titel ersetzt nur den Platzhalter "VG no. 123" (früher "VG-Nr. 123")
+    // Add the VG number later; with checkToo the item also goes into the basket
+    // extra: {title, info} from the VG database; the title only replaces the placeholder "VG no. 123" (formerly "VG-Nr. 123")
     async setNum(code, id, user, vgNum, checkToo, extra = {}) {
       if (!isId(id) || !isUserKey(user)) return;
       vgNum = toNum(vgNum);
@@ -133,13 +137,13 @@ export function createStore(db) {
       await db.update(code, `items/${id}`, old => { prev = old; return old ? null : undefined; });
       if (prev && prev.checked) await bump(code, prev.checkedBy, -1);
     },
-    // Leergut: deposit/<Typ>/<Nutzer> = Stück. Jedes Stück gibt dem, der es einträgt, einen Punkt.
+    // Deposit: deposit/<type>/<user> = pieces. Each piece gives the person who enters it one point.
     async depositAdd(code, typeId, user) {
       if (!/^[A-Za-z0-9_-]{1,20}$/.test(String(typeId)) || !isUserKey(user)) return;
       const r = await db.update(code, `deposit/${typeId}/${user}`, n => (n || 0) + 1);
       if (r.committed) await bump(code, user, 1);
     },
-    // Weniger: erst eigene Stücke, sonst die des größten Beitragenden (Punkt geht dort wieder ab)
+    // Fewer: own pieces first, otherwise those of the largest contributor (the point is deducted there)
     async depositRemove(code, typeId, user) {
       if (!/^[A-Za-z0-9_-]{1,20}$/.test(String(typeId))) return;
       const group = (await db.get(code, `deposit/${typeId}`)) || {};
@@ -150,6 +154,23 @@ export function createStore(db) {
       if (took) await bump(code, victim, -1);
     },
     clearDeposit: code => db.remove(code, 'deposit'),
+    // Move a local list into a (new) shared list. Items keep their state, but no points are awarded:
+    // the game starts with sharing. Empties of all local contributors are summed up under `user`.
+    async importList(code, { items = {}, deposit = {} } = {}, user) {
+      if (!isUserKey(user)) return;
+      for (const i of Object.values(items || {})) {
+        if (!i || !isId(i.id) || !String(i.title || '').trim()) continue;
+        const item = makeItem(i, user);
+        if (i.checked) { item.checked = true; item.checkedBy = user; item.checkedAt = Number(i.checkedAt) || Date.now(); }
+        item.addedAt = Number(i.addedAt) || item.addedAt;
+        await db.set(code, `items/${i.id}`, item);
+      }
+      for (const [typeId, group] of Object.entries(deposit || {})) {
+        const n = Math.round(Object.values(group || {}).reduce((sum, v) => sum + (Number(v) || 0), 0));
+        if (n > 0 && /^[A-Za-z0-9_-]{1,20}$/.test(typeId)) await db.set(code, `deposit/${typeId}/${user}`, Math.min(100000, n));
+      }
+      await db.update(code, `scores/${user}`, n => (n == null ? 0 : undefined));
+    },
     async clearChecked(code) {
       const items = (await db.get(code, 'items')) || {};
       await Promise.all(Object.values(items).filter(i => i.checked).map(i => db.remove(code, `items/${i.id}`)));

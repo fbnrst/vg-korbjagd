@@ -1,4 +1,4 @@
-# prek / pre-commit: Installation mit `prek install`, manuell mit `prek run --all-files`
+# prek / pre-commit: install with `prek install`, run manually with `prek run --all-files`
 exclude: ^public/vendor/
 repos:
   - repo: builtin
@@ -19,7 +19,7 @@ repos:
   - repo: local
     hooks:
       - id: node-check
-        name: JavaScript-Syntax (node --check)
+        name: JavaScript syntax (node --check)
         language: system
         entry: node --check
         files: ^public/.*\.js$

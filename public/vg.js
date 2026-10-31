@@ -1,5 +1,5 @@
-// VG-Dresden-Stammdaten (Produkte, Hersteller, Länder, Einheiten) direkt vom VG-Server, im Browser zwischengespeichert.
-// Die Endpunkte antworten mit CORS "*", daher braucht es keinen Proxy (siehe docs/vg-api.md).
+// VG Dresden master data (products, manufacturers, countries, units) straight from the VG server, cached in the browser.
+// The endpoints answer with CORS "*", so no proxy is needed (see docs/vg-api.md).
 const BASE = 'https://app.vg-dresden.de/php/';
 const CACHE_KEY = 'korbjagd-vg-v2';
 
@@ -43,9 +43,9 @@ export const infoText = p => [p.unit && p.unit !== '---' ? p.unit : '', p.manufa
   p.country && p.country !== 'siehe Etikett' ? p.country : '', p.regional ? 'regional' : ''].filter(Boolean).join(' · ');
 
 const fromLs = () => { try { return JSON.parse(localStorage.getItem(CACHE_KEY)); } catch (e) { return null; } };
-const toLs = v => { try { localStorage.setItem(CACHE_KEY, JSON.stringify(v)); } catch (e) { /* Speicher voll: nächstes Mal neu laden */ } };
+const toLs = v => { try { localStorage.setItem(CACHE_KEY, JSON.stringify(v)); } catch (e) { /* storage full: reload next time */ } };
 
-// Lädt die Daten (aus dem Cache, wenn die Prüfsummen noch stimmen). Gibt null zurück, wenn nichts verfügbar ist.
+// Loads the data (from the cache if the checksums still match). Returns null if nothing is available.
 export async function loadVg() {
   const cached = fromLs();
   let sums = null;
@@ -64,17 +64,17 @@ export async function loadVg() {
   } catch (e) { return cached ? buildIndex(cached) : null; }
 }
 
-/* ---------- Listen aus der Original-VG-App importieren ---------- */
-// Teilen-Link der Original-App: https://app.vg-dresden.de/list?shareId=123#SCHLÜSSEL
+/* ---------- Import lists from the original VG app ---------- */
+// Share link of the original app: https://app.vg-dresden.de/list?shareId=123#KEY
 export function parseShareLink(text) {
   const m = String(text).match(/shareId=(\d+)#([^\s]+)/);
   return m ? { id: m[1], key: m[2] } : null;
 }
-// Die Liste liegt AES-verschlüsselt (CryptoJS-Passphrase) auf dem VG-Server, der Schlüssel steht nur im Link.
+// The list is stored AES-encrypted (CryptoJS passphrase) on the VG server; the key is only in the link.
 export function decryptShared(CryptoJS, cipherText, key) {
   const plain = CryptoJS.AES.decrypt(cipherText, key).toString(CryptoJS.enc.Utf8);
   const items = JSON.parse(plain);
-  if (!Array.isArray(items)) throw new Error('unerwartetes Format');
+  if (!Array.isArray(items)) throw new Error('unexpected format');
   return items.filter(i => i && i.title).map(i => ({ title: String(i.title), vgNum: i.vgNum || null,
     amount: Math.max(1, Math.round(+i.amount || 1)), unit: i.unit || '', checked: !!i.checked }));
 }
