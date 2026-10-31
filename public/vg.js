@@ -107,7 +107,8 @@ export function vgNumFromCode(text) {
 }
 
 // How alike are two product names (0..1)? The best match between any two words, as the Dice coefficient of their
-// letter pairs, after dropping umlauts/case, tiny words, numbers and generic words like "Bio". Plural and spelling
+// letter pairs, after dropping umlauts/case, tiny words, numbers and generic words like "Bio"; listed synonyms
+// (Porree/Lauch) count as 1. Plural and spelling
 // variants score high (Tomate/Tomaten 0.91, Äpfel/Apfel 1), compounds and different products low
 // (Apfel/Apfelsaft 0.67, Apfel/Orange 0). Nothing to compare (empty, only numbers) counts as 1: do not bother the user.
 const GENERIC = new Set(['bio', 'frisch', 'frische', 'regional', 'natur', 'naturell', 'stueck', 'packung', 'mini', 'maxi', 'gross', 'klein']);
@@ -121,11 +122,33 @@ function dice(a, b) {
   const total = (a.length - 1) + (b.length - 1);
   return total > 0 ? 2 * common / total : 0;
 }
+// Words that mean the same thing (regional names, spelling variants). Extend this list when a pair is questioned
+// although the shopper would call it the same product. Words are compared without umlauts and case.
+const SYNONYM_GROUPS = [
+  ['porree', 'lauch', 'breitlauch'], ['möhre', 'möhren', 'karotte', 'karotten', 'mohrrübe', 'mohrrüben'],
+  ['zucchini', 'courgette', 'zucchino'], ['tomate', 'tomaten', 'paradeiser'], ['aprikose', 'aprikosen', 'marille', 'marillen'],
+  ['rucola', 'rukola', 'ruccola', 'rauke'], ['blumenkohl', 'karfiol'], ['brokkoli', 'broccoli'],
+  ['feldsalat', 'rapunzel', 'rapunzelsalat', 'nüsslisalat', 'vogerlsalat', 'ackersalat'],
+  ['kartoffel', 'kartoffeln', 'erdapfel', 'erdäpfel'], ['süßkartoffel', 'süßkartoffeln', 'batate'],
+  ['aubergine', 'auberginen', 'eierfrucht'], ['meerrettich', 'kren'], ['rotkohl', 'rotkraut', 'blaukraut'],
+  ['weißkohl', 'weißkraut', 'kappes'], ['wirsing', 'wirz', 'welschkohl'], ['grünkohl', 'braunkohl', 'krauskohl', 'federkohl'],
+  ['rosenkohl', 'sprossenkohl'], ['frühlingszwiebel', 'frühlingszwiebeln', 'lauchzwiebel', 'lauchzwiebeln', 'schlotten'],
+  ['pflaume', 'pflaumen', 'zwetschge', 'zwetschgen', 'zwetschke', 'zwetschken'], ['kohlrübe', 'steckrübe', 'wruke'],
+  ['johannisbeere', 'johannisbeeren', 'ribisel', 'ribiseln'], ['gurke', 'gurken', 'salatgurke', 'schlangengurke'],
+  ['paprika', 'paprikaschote', 'paprikaschoten'], ['mais', 'zuckermais', 'maiskolben'], ['sellerie', 'knollensellerie'],
+  ['sahne', 'rahm', 'obers'], ['quark', 'topfen'], ['joghurt', 'jogurt', 'yoghurt', 'yogurt'],
+  ['brötchen', 'semmel', 'schrippe', 'weckle', 'wecken'], ['hackfleisch', 'gehacktes', 'faschiertes'],
+  ['marmelade', 'konfitüre'],
+];
+const SYNONYM_OF = new Map();
+SYNONYM_GROUPS.forEach((g, i) => g.forEach(w => SYNONYM_OF.set(normName(w), i)));
+const synonyms = (x, y) => SYNONYM_OF.has(x) && SYNONYM_OF.get(x) === SYNONYM_OF.get(y);
+
 export function nameSimilarity(a, b) {
   const wa = nameWords(a), wb = nameWords(b);
   if (!wa.length || !wb.length) return 1;
   let best = 0;
-  for (const x of wa) for (const y of wb) best = Math.max(best, dice(x, y));
+  for (const x of wa) for (const y of wb) best = Math.max(best, synonyms(x, y) ? 1 : dice(x, y));
   return best;
 }
 // Below this the app asks "is that really the same product?"

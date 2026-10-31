@@ -178,10 +178,12 @@ document.addEventListener('input', e => {
   const f = e.target.closest('[data-vg]');
   if (f) f.querySelector('.rowbtn.ok').disabled = !(parseInt(e.target.value, 10) > 0);
 });
-// A typed number whose product has a completely different name than the item (apple vs. orange): ask first.
-// Placeholder entries have no real name, so they are accepted without a question.
+// A typed number whose product has a completely different name than the item (apple vs. orange), or that the database
+// lists as unused ("unbesetzt"): ask first. The shop may still use it, so it can be confirmed.
 function numberFits(p, n, item) {
-  if (!p || !item || p.placeholder || similarNames(p.title, item.title)) return true;
+  if (!p) return true;
+  if (p.placeholder) return confirm(t('confirmPlaceholder', { n, product: p.title })); // an unused number is most likely a typo
+  if (!item || similarNames(p.title, item.title)) return true;
   return confirm(t('confirmNumberMismatch', { n, product: p.title, listed: item.title }));
 }
 document.addEventListener('submit', e => {
@@ -217,10 +219,11 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && editingId)
 $('#addForm').onsubmit = e => {
   e.preventDefault();
   const v = $('#addIn').value.trim(); if (!v) return;
-  $('#addIn').value = ''; $('#addSuggest').classList.add('hide'); syncAddButton();
-  if (parseShareLink(v)) return openImport(v); // a share link from the original app was pasted
   const isNum = /^\d+$/.test(v);
   const p = vg && isNum ? vg.lookup(v) : null; // names are added as typed, without a number
+  if (p && p.placeholder && !numberFits(p, v, null)) return; // declined: the typed number stays in the field
+  $('#addIn').value = ''; $('#addSuggest').classList.add('hide'); syncAddButton();
+  if (parseShareLink(v)) return openImport(v); // a share link from the original app was pasted
   if (p) store.add(code, { id: uid(), title: p.title, vgNum: p.vgNum }, myKey());
   else store.add(code, { id: uid(), title: isNum ? t('vgPlaceholderTitle', { n: v }) : v, vgNum: isNum ? +v : null }, myKey());
   if (isNum && !p) toast(vg ? t('vgNotInDb', { n: v }) : t('vgNotLoaded'));
@@ -426,7 +429,8 @@ async function productName(ean) {
 async function scanForRow(text, p, target, n, manualNumber) {
   const checkToo = scanTarget.checkToo && !target.checked;
   if (p) {
-    if (!p.placeholder && !similarNames(p.title, target.title) && !confirm(t('confirmScanMismatch', { scanned: p.title, listed: target.title }))) return;
+    if (p.placeholder) { if (!numberFits(p, p.vgNum, target)) return; }
+    else if (!similarNames(p.title, target.title) && !confirm(t('confirmScanMismatch', { scanned: p.title, listed: target.title }))) return;
     store.setNum(code, target.id, myKey(), p.vgNum, checkToo, { title: p.title });
     toast(`✓ ${p.title}`);
   } else if (manualNumber && n) { // a typed VG number that is not in the database: keep it anyway, like in the input bar
@@ -451,6 +455,7 @@ async function handleCode(raw, opts = {}) {
       if (target) await scanForRow(ean, p, target, n, opts.manualNumber);
       closeScanner(); return;
     }
+    if (p && p.placeholder && !numberFits(p, n, null)) { closeScanner(); return; } // unused number, declined
     if (p) { // add the labelled product (or find it on the list) and put it in the basket
       let it = Object.values(state.items).find(i => i.vgNum === p.vgNum);
       if (!it) { it = { id: uid(), title: p.title }; store.add(code, { id: it.id, title: p.title, vgNum: p.vgNum }, myKey()); }

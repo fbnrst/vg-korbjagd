@@ -92,10 +92,13 @@ test('VG numbers are read from shelf label codes like in the original app', () =
 test('similarNames lets alike names pass and asks for different products', () => {
   const same = [['Äpfel', 'Apfel Elstar'], ['Weißkohl', 'Weisskohl Frankreich'], ['Tomate', 'Tomaten'], ['Zwiebel', 'Zwiebel rot'],
     ['Kartoffeln', 'Kartoffel festkochend'], ['Datteln', 'Dattel Deglet Nour'], ['Vollmilchpulver 1kg', 'Milchpulver'], ['Bio Apfel', 'Apfel Elstar'],
-    ['', 'Brot'], ['VG no. 123', 'Brot'], ['Ei', 'Eier']];
+    ['', 'Brot'], ['VG no. 123', 'Brot'], ['Ei', 'Eier'],
+    ['Porree', 'Lauch'], ['Lauch', 'Porree Bio'], ['Möhren', 'Karotte'], ['Zucchini', 'Courgette'], ['Tomate', 'Paradeiser'],
+    ['Aprikosen', 'Marille'], ['Rucola', 'Rauke'], ['Blumenkohl', 'Karfiol'], ['Brokkoli', 'Broccoli'], ['Feldsalat', 'Rapunzel']];
   for (const [x, y] of same) assert.ok(similarNames(x, y), `${x} ~ ${y} should pass without a question (${nameSimilarity(x, y).toFixed(2)})`);
   const different = [['Apfel', 'Orange'], ['Apfel', 'Orangensaft'], ['Apfel', 'Apfelsaft'], ['Milch', 'Vollmilchschokolade'],
-    ['Bio Apfel', 'Bio Orange'], ['Datteln', 'Reformationsbrot'], ['Milch', 'Zucchini']];
+    ['Bio Apfel', 'Bio Orange'], ['Datteln', 'Reformationsbrot'], ['Milch', 'Zucchini'],
+    ['Porree', 'Karotte'], ['Lauch', 'Zucchini']];
   for (const [x, y] of different) assert.ok(!similarNames(x, y), `${x} vs ${y} should be questioned (${nameSimilarity(x, y).toFixed(2)})`);
   assert.equal(nameSimilarity('Apfel', 'Apfel'), 1);
 });
