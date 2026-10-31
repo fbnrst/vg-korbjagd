@@ -111,8 +111,8 @@ function render() {
   const MEDAL = { 1: '🥇', 2: '🥈', 3: '🥉' };
   const max = Math.max(1, placed[0] ? placed[0].n : 1);
   const at = p => placed.filter(x => x.place === p && x.n > 0);
-  // nobody has a point yet: everyone stands on the podium with 0 (no medals), instead of an empty field
-  const podium = placed.some(x => x.n > 0) ? [...at(2), ...at(1), ...at(3)] : placed;
+  // the first three places in the classic order 2-1-3, then everybody without points (nobody is left out)
+  const podium = [...at(2), ...at(1), ...at(3), ...placed.filter(x => x.n === 0)];
   $('#podium').innerHTML = podium.map(({ k, n, place }) => {
     const w = splitKey(k), h = 30 + 80 * n / max;
     return `<div class="pod"><div class="e">${esc(w.emoji)}</div><div>${esc(w.name)}</div><div class="bar" style="height:${h}px">${n > 0 ? MEDAL[place] + ' ' : ''}${esc(n)}</div></div>`;
