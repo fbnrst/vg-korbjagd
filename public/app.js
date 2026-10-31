@@ -4,7 +4,10 @@ import { loadVg, parseShareLink, fetchSharedList, vgNumFromCode, similarNames } 
 import { t, applyStatic } from './i18n.js';
 
 const $ = s => document.querySelector(s);
-const EMOJIS = ['🦊','🐼','🐯','🦄','🐸','🐙','🦖','🚀','⭐','🍓','🐵','🦁'];
+// Player emojis: single code points only (no skin tones or joined sequences, those render differently across phones)
+const EMOJIS = ['🦊','🐼','🐯','🦁','🐸','🐙','🦄','🦖','🐧','🦈','🦉','🐝',
+  '🤖','👽','👻','🧙','🦸','🐲',
+  '🚀','⚡','🔥','🌈','🍓','🍕'];
 const LS = { get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch (e) { return d; } },
              set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
 
