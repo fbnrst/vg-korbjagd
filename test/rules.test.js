@@ -18,7 +18,7 @@ function snap(v) {
 }
 const test_ = (expr, vars, v) => {
   const js = expr.replace(/\$([a-z]+)/g, (_, n) => `__v.${n}`).replace(/\.matches\((\/.*?\/)\)/g, '.match($1)');
-  return !!new Function('newData', '__v', `const s = newData; return (${js.replace(/newData/g, 's')});`)(snap(v), vars);
+  return !!new Function('newData', '__v', 'now', `const s = newData; return (${js.replace(/newData/g, 's')});`)(snap(v), vars, Date.now());
 };
 
 // Checks value v at a node with rule branch r; children are checked recursively. Returns the error path or null.
@@ -49,15 +49,16 @@ const withItem = it => ({ meta: { created: 1 }, items: { [it.id]: it } });
 test('Rules: structure - read open, root closed, no writes at list level', () => {
   assert.equal(rules['.read'], false); assert.equal(rules['.write'], false);
   assert.equal(L['.read'], true);
-  assert.equal(L['.write'], undefined, 'no write permission on lists/$code (otherwise whole lists could be deleted/overwritten)');
+  assert.equal(L['.write'], '!newData.exists()', 'lists/$code may only be written to delete the whole list (never to create or overwrite it)');
   assert.equal(L.meta['.write'], '!data.exists()');
-  for (const k of ['items', 'scores', 'deposit']) assert.equal(L[k]['.write'], true);
+  for (const k of ['items', 'scores', 'deposit', 'activity']) assert.equal(L[k]['.write'], true);
 });
 
 test('Rules: valid documents from store.js are accepted', () => {
   assert.equal(list(withItem(goodItem())), null);
   assert.equal(list(withItem(goodItem({ unit: 'kg', amount: 3, info: 'Bio', vgNum: 4711, ean: '4012345678901', checked: true, checkedBy: U, checkedAt: 5 }))), null);
   assert.equal(list({ meta: { created: 1 }, scores: { [U]: 0 }, deposit: { 12: { [U]: 3 } } }), null);
+  assert.equal(list({ meta: { created: 1 }, activity: Date.now() }), null);
 });
 
 test('Rules: garbage is rejected', () => {
@@ -86,6 +87,9 @@ test('Rules: garbage is rejected', () => {
     [{ meta: { created: 'heute' } }, 'meta.created not a number'],
     [{ items: { a1: goodItem() } }, 'list without meta'],
     [{ meta: { created: 1 }, muell: 1 }, 'unknown node'],
+    [{ meta: { created: 1 }, activity: 'gestern' }, 'activity as string'],
+    [{ meta: { created: 1 }, activity: -5 }, 'negative activity'],
+    [{ meta: { created: 1 }, activity: Date.now() + 3 * 86400000 }, 'activity far in the future (would keep a list alive forever)'],
   ];
   for (const [data, why] of bad) assert.notEqual(list(data), null, why);
   assert.notEqual(list(withItem(goodItem()), 'abc234'), null, 'code must be uppercase');

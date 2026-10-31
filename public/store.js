@@ -89,7 +89,7 @@ export function createStore(db) {
   const bump = (code, key, d) => isUserKey(key) ? db.update(code, `scores/${key}`, n => Math.min(100000, Math.max(0, (n || 0) + d))) : null;
   const CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   const randCode = () => Array.from({ length: 6 }, () => CHARS[Math.floor(Math.random() * CHARS.length)]).join('');
-  return {
+  const store = {
     mode: db.mode,
     subscribe: (code, cb, onStatus) => db.subscribe(code, cb, onStatus),
     async create() {
@@ -183,4 +183,24 @@ export function createStore(db) {
       await db.set(code, 'scores', scores);
     },
   };
+
+  // Activity stamp (`activity`, ms): the server-side cleanup deletes lists after a year without activity.
+  // Opening or changing a list counts; the stamp is written at most once per hour per list.
+  const touched = {};
+  const touch0 = code => Promise.resolve(db.set(code, 'activity', touched[code])).catch(() => {}); // rules not updated yet or offline: harmless
+  const touch = code => {
+    const now = Date.now();
+    if (!code || now - (touched[code] || 0) < 3600e3) return null;
+    touched[code] = now;
+    return touch0(code);
+  };
+  for (const name of ['join', 'add', 'check', 'setNum', 'remove', 'depositAdd', 'depositRemove', 'clearDeposit', 'clearChecked', 'resetScores', 'importList']) {
+    const fn = store[name];
+    store[name] = async (code, ...args) => { const r = await fn(code, ...args); touch(code); return r; };
+  }
+  const create = store.create;
+  store.create = async () => { const code = await create(); touched[code] = Date.now(); await touch0(code); return code; };
+  // Delete a whole list for everyone (the rules allow writes at list level only for deleting).
+  store.deleteList = async code => { delete touched[code]; await db.remove(code, ''); };
+  return store;
 }

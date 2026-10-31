@@ -29,6 +29,9 @@ function toast(msg) {
 
 /* ---------- Sync ---------- */
 function onSnapshot(s) {
+  if (!isLocal() && !(s && s.meta)) { // the shared list was deleted (by someone else or by the cleanup)
+    toast(t('toastListGone')); forgetShared(); startLocal(); return;
+  }
   const next = { items: (s && s.items) || {}, scores: (s && s.scores) || {}, deposit: (s && s.deposit) || {} };
   if (!first && !isLocal()) { // show other people's changes as a toast
     for (const i of Object.values(next.items)) {
@@ -101,7 +104,6 @@ function renderCheckout() {
   const dep = vg ? vg.deposits.filter(d => depSum(d.id) > 0).map(d => checkoutRow('d' + d.id, d.name, depSum(d.id), '', d.vgNum)) : [];
   $('#checkout').innerHTML = sec(t('secItems'), inBasket.filter(i => i.vgNum >= 1000).map(row))
     + sec(t('secBakery'), inBasket.filter(i => i.vgNum && i.vgNum < 1000).map(row))
-    + sec(t('secNoVg'), inBasket.filter(i => !i.vgNum).map(row))
     + sec(t('secEmpties'), dep)
     || `<p class="muted" style="text-align:center">${t('checkoutEmpty')}</p>`;
 }
@@ -128,6 +130,13 @@ function renderDeposit() {
 document.addEventListener('click', e => {
   const chk = e.target.closest('[data-chk]');
   if (chk) { const it = state.items[chk.dataset.chk]; if (it) store.check(code, it.id, myKey(), !it.checked); return; }
+  const sg = e.target.closest('[data-sug]');
+  if (sg) { // a suggested product was tapped: add it right away
+    const p = vg && vg.lookup(sg.dataset.sug);
+    if (p) store.add(code, { id: uid(), title: p.title, vgNum: p.vgNum }, myKey());
+    $('#addIn').value = ''; $('#addIn').dispatchEvent(new Event('input'));
+    return;
+  }
   const kr = e.target.closest('[data-checkout]');
   if (kr) { const k = kr.dataset.checkout; checkoutDone.has(k) ? checkoutDone.delete(k) : checkoutDone.add(k); renderCheckout(); return; }
   const dadd = e.target.closest('[data-dep-add]'), dsub = e.target.closest('[data-dep-sub]');
@@ -149,7 +158,7 @@ document.addEventListener('submit', e => {
 $('#addForm').onsubmit = e => {
   e.preventDefault();
   const v = $('#addIn').value.trim(); if (!v) return;
-  $('#addIn').value = ''; $('#addPreview').classList.add('hide'); $('#vgSug').innerHTML = '';
+  $('#addIn').value = ''; $('#addSuggest').classList.add('hide'); $('#vgSug').innerHTML = '';
   if (parseShareLink(v)) return openImport(v); // a share link from the original app was pasted
   const isNum = /^\d+$/.test(v);
   const p = vg && (isNum ? vg.lookup(v) : vg.byTitle(v));
@@ -187,14 +196,17 @@ applyMode(false);
 // While typing: names -> suggestions without numbers, number -> product preview
 $('#addIn').oninput = () => {
   if (numMode) $('#addIn').value = $('#addIn').value.replace(/\D/g, '');
-  const q = $('#addIn').value.trim(), pv = $('#addPreview');
+  const q = $('#addIn').value.trim(), box = $('#addSuggest');
   const isNum = /^\d+$/.test(q);
   $('#vgSug').innerHTML = vg && q.length >= 2 && !isNum
     ? vg.search(q).map(p => `<option value="${esc(p.title)}"></option>`).join('') : '';
-  const p = vg && isNum ? vg.lookup(q) : null;
-  pv.classList.toggle('hide', !isNum || !vg || (!p && q.length < 4));
-  pv.classList.toggle('miss', isNum && !p);
-  pv.textContent = p ? `→ ${p.title}` : t('noVgMatch');
+  // From three digits on: a tappable list of matching products (tap = add it)
+  const rows = vg && isNum && q.length >= 3 ? vg.searchByNumber(q) : [];
+  const miss = vg && isNum && q.length >= 4 && !rows.length;
+  box.classList.toggle('hide', !rows.length && !miss);
+  box.innerHTML = rows.length
+    ? rows.map(p => `<button type="button" class="sug" data-sug="${esc(p.vgNum)}"><b>${esc(p.vgNum)}</b><span>${esc(p.title)}</span></button>`).join('')
+    : miss ? `<span class="miss">${esc(t('noVgMatch'))}</span>` : '';
 };
 
 /* ---------- Import from the original VG app ---------- */
@@ -264,10 +276,17 @@ $('#shareCloseLocal').onclick = closeShareDialog;
 $('#shareDlg').onclick = e => { if (e.target.id === 'shareDlg') closeShareDialog(); };
 $('#shareStart').onclick = () => { closeShareDialog(); me.name ? shareLocalList() : askIdentity(shareLocalList); };
 $('#joinBtn').onclick = () => { const c = $('#codeIn').value.trim().toUpperCase(); if (c) { closeShareDialog(); joinShared(c); } };
+const forgetShared = () => { LS.set('code', ''); history.replaceState(null, '', location.pathname); };
 $('#leaveBtn').onclick = () => {
   if (!confirm(t('confirmLeave'))) return;
-  LS.set('code', ''); history.replaceState(null, '', location.pathname);
-  closeShareDialog(); startLocal();
+  forgetShared(); closeShareDialog(); startLocal();
+};
+$('#deleteBtn').onclick = async () => {
+  if (!confirm(t('confirmDeleteList'))) return;
+  const c = code;
+  if (unsub) { unsub(); unsub = null; } // do not react to our own deletion as if someone else had deleted the list
+  try { await store.deleteList(c); } catch (e) { connect(); toast(t('noDb')); return; }
+  closeShareDialog(); forgetShared(); startLocal(); toast(t('toastListDeleted'));
 };
 $('#shareLink').onclick = async () => {
   const url = shareUrl();

@@ -1,0 +1,34 @@
+name: Cleanup old lists
+# Deletes shared lists that had no activity for a year (see docs/retention.md). Needs the secret FIREBASE_SERVICE_ACCOUNT.
+on:
+  schedule:
+    - cron: '17 3 * * 1'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Only list what would be deleted'
+        type: boolean
+        default: true
+permissions:
+  contents: read
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    env:
+      FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+      DATABASE_URL: https://vg-korbjagd-default-rtdb.europe-west1.firebasedatabase.app
+      MAX_AGE_DAYS: '365'
+      DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      # Fail loudly: the privacy notice promises deletion after a year
+      - name: Check secret
+        run: |
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then
+            echo "::error::Secret FIREBASE_SERVICE_ACCOUNT is missing, the cleanup is not running. See docs/retention.md"
+            exit 1
+          fi
+      - run: node scripts/cleanup-lists.mjs

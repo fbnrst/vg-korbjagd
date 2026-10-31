@@ -28,6 +28,13 @@ export function buildIndex(raw) {
     size: list.length,
     deposits,
     lookup: n => byNum.get(+n) || null,
+    // Products whose VG number starts with the typed digits (exact match first, then ascending)
+    searchByNumber(prefix, limit = 6) {
+      const p = String(prefix);
+      const hits = list.filter(x => byNum.get(x.vgNum) === x && String(x.vgNum).startsWith(p));
+      hits.sort((a, b) => (String(b.vgNum) === p) - (String(a.vgNum) === p) || a.vgNum - b.vgNum);
+      return hits.slice(0, limit);
+    },
     byTitle: t => list.find(p => p.key === String(t).trim().toLowerCase()) || null,
     search(q, limit = 8) {
       const words = String(q).toLowerCase().split(/\s+/).filter(Boolean);

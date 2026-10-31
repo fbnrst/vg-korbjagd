@@ -5,12 +5,17 @@
     "lists": {
       "$code": {
         ".read": true,
+        ".write": "!newData.exists()",
         ".validate": "$code.matches(/^[A-Z0-9]{6}$/) && newData.hasChildren(['meta'])",
         "meta": {
           ".write": "!data.exists()",
           ".validate": "newData.hasChildren(['created'])",
           "created": { ".validate": "newData.isNumber() && newData.val() > 0" },
           "$other": { ".validate": false }
+        },
+        "activity": {
+          ".write": true,
+          ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() <= now + 86400000"
         },
         "items": {
           ".write": true,

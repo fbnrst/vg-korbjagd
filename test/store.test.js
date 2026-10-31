@@ -155,3 +155,28 @@ test('importList ignores broken items and invalid users', async () => {
   await s.importList(c, { items: { ok: { id: 'ok', title: 'Fine' } } }, 'nokey');
   assert.equal(await db.get(c, 'items'), null);
 });
+
+test('activity stamp: set on creation, refreshed by changes at most once per hour', async () => {
+  const { s, db } = setup();
+  const realNow = Date.now;
+  try {
+    const c = await s.create();
+    const created = await db.get(c, 'activity');
+    assert.ok(created > 0);
+    await s.add(c, item('t1', 'Tea'), A);                           // within the hour: no new write
+    assert.equal(await db.get(c, 'activity'), created);
+    Date.now = () => created + 2 * 3600e3;
+    await s.add(c, item('t2', 'Coffee'), A);                        // two hours later: stamp is refreshed
+    assert.equal(await db.get(c, 'activity'), created + 2 * 3600e3);
+  } finally { Date.now = realNow; }
+});
+
+test('deleteList removes the whole list', async () => {
+  const { s, db } = setup(); const c = await s.create();
+  await s.add(c, item('d1', 'Milk'), A); await s.depositAdd(c, '1', A);
+  assert.equal(await s.exists(c), true);
+  await s.deleteList(c);
+  assert.equal(await s.exists(c), false);
+  assert.equal(await db.get(c, 'items'), null);
+  assert.equal(await db.get(c, 'scores'), null);
+});

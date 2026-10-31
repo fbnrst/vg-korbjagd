@@ -3,5 +3,5 @@
 export default {
   name: 'Fabian Rost',
   contactUrl: 'https://github.com/fbnrst/vg-korbjagd/issues',
-  email: '',
+  email: 'fabianrost@mailbox.org',
 };
