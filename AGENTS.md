@@ -8,6 +8,7 @@ Guidance for AI agents and humans working on **vg-korbjagd**: a shared shopping 
 - **The web app UI is localised**: it follows the system language, German or English (English is the fallback). All user-visible text lives in `public/i18n.js` (`STRINGS.en` and `STRINGS.de`, keys must exist in both). Do not hard-code UI text in `app.js`; static texts in `index.html` have English defaults that `applyStatic()` replaces. Use `t('key', { param })`. Never name a loop variable `t` in `app.js` (it shadows the translation function). `?lang=de|en` overrides the language for testing.
 - Documentation: `README.md` is English. `docs/*.md` are currently German and stay German unless asked otherwise. The end-user help page (`public/docs/index.html`) and the privacy notice (`public/privacy.html`) are bilingual and follow the same language detection.
 - Data coming from the VG servers (product and deposit names) stays German.
+- When telling the maintainer where to click in an external web console (Firebase, Google Cloud, GitHub, Apple, ...), use the **English** names of menus, tabs and buttons exactly as the English interface shows them (for example *Project settings → General → Your apps → Add app*, *Security → Secret scanning → Close as*), even though the conversation is German. The maintainer's consoles are set to English; German translations only cause searching.
 
 ## Layout
 
