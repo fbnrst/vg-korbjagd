@@ -1,0 +1,2 @@
+autofix test line with trailing spaces   
+second line
