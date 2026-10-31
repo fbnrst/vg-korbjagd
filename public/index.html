@@ -16,14 +16,18 @@
 :root{--bg:#f1f4ea;--card:#fff;--fg:#2b2f26;--mute:#666;--green:#587f06;--fill:#587f06;--on-fill:#fff;--accent:#669c03;--green2:#e8edde;--line:#d4dac8;--red:#b3322a;--hdr:#8bad73;--hdr-fg:#17210f;--hdr-btn:rgba(0,0,0,.1);--orange:#f7a642}
 @media(prefers-color-scheme:dark){:root{--bg:#12170e;--card:#1b2216;--fg:#e8edde;--mute:#a3b09a;--green:#8bad73;--fill:#587f06;--on-fill:#fff;--accent:#8bad73;--green2:#2a3323;--line:#2e3828;--red:#e46a5c;--hdr:#232d1b;--hdr-fg:#e8edde;--hdr-btn:rgba(255,255,255,.12);--orange:#f7a642}}
 *{box-sizing:border-box;touch-action:manipulation} /* no double-tap zoom; pinch zoom stays available */
-body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.4 system-ui,sans-serif;padding-bottom:env(safe-area-inset-bottom)}
-header{position:sticky;top:0;z-index:5;transform:translateY(var(--vvtop,0px));background:var(--hdr);color:var(--hdr-fg);padding:6px 12px;display:flex;align-items:center;gap:10px}
+html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.4 system-ui,sans-serif}
+/* App shell: header on top, the list scrolls in the middle, input bar and tabs at the bottom. While the keyboard is open
+   the shell is only as high as the visible area (--app-h), so the list stays anchored at the top and shrinks from below. */
+#app{position:fixed;left:0;right:0;top:0;height:100vh;height:100dvh;height:var(--app-h,100dvh);display:flex;flex-direction:column;transform:translateY(var(--vvtop,0px))}
+header{position:relative;flex:none;z-index:5;background:var(--hdr);color:var(--hdr-fg);padding:6px 12px;display:flex;align-items:center;gap:10px}
 header h1{font-size:17px;margin:0;flex:1}
 header button{background:var(--hdr-btn);color:var(--hdr-fg);border:0;border-radius:8px;padding:6px 10px;font-size:14px}
 header .ibtn{width:36px;height:36px;padding:0;display:grid;place-items:center}
 header .ibtn.hide{display:none}
 #dot{width:10px;height:10px;border-radius:50%;background:var(--red)}#dot.on{background:var(--green)}
-main{max-width:640px;margin:0 auto;padding:8px 16px calc(150px + env(safe-area-inset-bottom))}
+main{flex:1;min-height:0;width:100%;max-width:640px;margin:0 auto;padding:8px 16px 16px;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:8px}
 #items,#doneCard{padding:2px 12px}#items:empty{padding:0}
 input,button{font:inherit}
@@ -38,16 +42,14 @@ a{color:var(--green)}
 .opt{display:flex;gap:10px;align-items:center;padding:8px 0;cursor:pointer}
 .opt input{width:20px;height:20px;accent-color:var(--green)}
 .row{display:flex;gap:8px;align-items:center}
-/* Input bar pinned above the tab bar; while typing it moves onto the keyboard (--kb comes from visualViewport) */
+/* Input bar and tab bar are the bottom rows of the app shell; while typing the tab bar is hidden */
 :root{--tabs:46px}
-#addBar{position:fixed;left:0;right:0;bottom:calc(var(--tabs) + env(safe-area-inset-bottom));z-index:6;background:var(--bg);border-top:1px solid var(--line);padding:8px 12px}
+#addBar{flex:none;z-index:6;background:var(--bg);border-top:1px solid var(--line);padding:8px 12px}
 #addBar>*{max-width:640px;margin-left:auto;margin-right:auto}
 #addBar form{margin:0}
 body.local .tabs [data-t=vScore],body.local #dot{display:none}
 body.typing .tabs{display:none}
-body.typing #addBar{bottom:var(--kb,0px);padding-bottom:calc(8px + env(safe-area-inset-bottom))}
-body.typing main{padding-bottom:90px}
-.tabs{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+.tabs{flex:none;display:flex;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
 .tabs button{flex:1;height:var(--tabs);padding:0 2px;border:0;background:none;color:var(--mute);font-size:13px}
 .tabs button.on{color:var(--green);font-weight:700}
 .item{display:flex;align-items:center;gap:8px;padding:5px 2px;border-bottom:1px solid var(--line);line-height:1.25}
@@ -56,7 +58,7 @@ body.typing main{padding-bottom:90px}
 .chk::after{content:'';position:absolute;inset:-9px} /* visual size stays small, the tap area does not */
 .item.done .chk{background:var(--fill)}
 .item.done .t{text-decoration:line-through;color:var(--mute)}
-.t{flex:1;min-width:84px;overflow-wrap:anywhere}#addSuggest{display:flex;flex-direction:column;gap:6px;margin-bottom:8px;max-height:38vh;overflow:auto}
+.t{flex:1;min-width:84px;overflow-wrap:anywhere}#addSuggest{display:flex;flex-direction:column;gap:6px;margin-bottom:8px;max-height:32vh;overflow:auto}
 #addSuggest .sug{display:flex;gap:12px;align-items:baseline;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;color:var(--fg);font:inherit}
 #addSuggest .sug b{min-width:48px;color:var(--green);font-variant-numeric:tabular-nums}
 #addSuggest .miss{padding:6px 4px;color:var(--mute);font-size:14px}
@@ -98,14 +100,6 @@ body.typing main{padding-bottom:90px}
 </style>
 </head>
 <body>
-<header>
-  <span id="dot" title="Connection"></span>
-  <h1 id="headInfo">🛒 0/0</h1>
-  <button id="listBtn" class="hide ibtn" type="button" aria-label="Reset list" title="Reset list"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg></button>
-  <button id="helpBtn" class="ibtn" type="button" aria-label="Help &amp; privacy" title="Help &amp; privacy" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2.5-3 4"/><path d="M12 17.5h.01"/></svg></button>
-  <button id="shareBtn" class="hide ibtn" type="button" aria-label="Share" title="Share"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/></svg></button>
-  <div id="helpMenu" class="menu hide" role="menu"><a href="docs/index.html" id="helpLink" role="menuitem">Help</a><a href="privacy.html" class="privacyLink" role="menuitem">Privacy</a></div>
-</header>
 <div id="toast"></div>
 <div id="shareDlg" class="hide">
   <div class="card" style="text-align:center;max-width:340px;width:100%">
@@ -159,6 +153,15 @@ body.typing main{padding-bottom:90px}
   <form id="eanForm" class="row"><input type="number" id="eanIn" inputmode="numeric" placeholder="Enter code manually"><button class="btn">OK</button></form>
   <button class="btn sec" id="scanClose" type="button">Close</button>
 </div>
+<div id="app">
+<header>
+  <span id="dot" title="Connection"></span>
+  <h1 id="headInfo">🛒 0/0</h1>
+  <button id="listBtn" class="hide ibtn" type="button" aria-label="Reset list" title="Reset list"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg></button>
+  <button id="helpBtn" class="ibtn" type="button" aria-label="Help &amp; privacy" title="Help &amp; privacy" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2.5-3 4"/><path d="M12 17.5h.01"/></svg></button>
+  <button id="shareBtn" class="hide ibtn" type="button" aria-label="Share" title="Share"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/></svg></button>
+  <div id="helpMenu" class="menu hide" role="menu"><a href="docs/index.html" id="helpLink" role="menuitem">Help</a><a href="privacy.html" class="privacyLink" role="menuitem">Privacy</a></div>
+</header>
 <main>
   <p id="demoBanner" class="card hide" style="background:var(--green2)">Demo mode: no database set up yet, the list is only visible in this browser (see README).</p>
   <!-- Welcome -->
@@ -177,15 +180,6 @@ body.typing main{padding-bottom:90px}
 
   <!-- List -->
   <section id="vList" class="hide">
-    <div id="addBar">
-      <div id="addSuggest" class="hide"></div>
-      <form id="addForm" class="row">
-        <input type="text" id="addIn" placeholder="Item or VG number …" autocomplete="off">
-        <button class="btn sec" type="button" id="modeBtn" aria-pressed="false" aria-label="Number mode" title="Number mode">123</button>
-        <button class="btn sec ibtn2" type="button" id="scanBtn" aria-label="Scan barcode"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M8 7v10"/><path d="M12 7v10"/><path d="M16 7v10"/></svg></button>
-        <button class="btn" id="addGo" aria-label="Add" disabled>+</button>
-      </form>
-    </div>
     <div class="card" id="items"></div>
     <div class="card hide" id="doneCard"><div id="doneHead" class="muted" style="font-weight:600;font-size:14px;margin:4px 0 0"></div><div id="doneItems"></div></div>
   </section>
@@ -213,12 +207,22 @@ body.typing main{padding-bottom:90px}
     </div>
   </section>
 </main>
+  <div id="addBar" class="hide">
+    <div id="addSuggest" class="hide"></div>
+    <form id="addForm" class="row">
+      <input type="text" id="addIn" placeholder="Item or VG number …" autocomplete="off">
+      <button class="btn sec" type="button" id="modeBtn" aria-pressed="false" aria-label="Number mode" title="Number mode">123</button>
+      <button class="btn sec ibtn2" type="button" id="scanBtn" aria-label="Scan barcode"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M8 7v10"/><path d="M12 7v10"/><path d="M16 7v10"/></svg></button>
+      <button class="btn" id="addGo" aria-label="Add" disabled>+</button>
+    </form>
+  </div>
 <nav class="tabs hide" id="tabs">
   <button data-t="vList" class="on">📝 List</button>
   <button data-t="vDeposit">♻️ Empties</button>
   <button data-t="vCheckout">🧾 Checkout</button>
   <button data-t="vScore">🏆 Ranking</button>
 </nav>
+</div>
 
 <script type="module" src="app.js"></script>
 </body>

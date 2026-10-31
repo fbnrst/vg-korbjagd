@@ -230,18 +230,21 @@ function applyMode(focus) {
 $('#modeBtn').onclick = () => { numMode = !numMode; LS.set('numMode', numMode); applyMode(true); };
 applyMode(false);
 
-// Input bar above the keyboard: hide the tab bar and pin the bar to the bottom edge of the visible area
-// (iOS only moves the visual viewport; Chrome/Android resize the page thanks to resizes-content)
+// Keyboard: while typing, the app shell is exactly as high as the visible area (iOS pans the visual viewport and
+// overlays the keyboard, Chrome/Android resize the page). The header stays on top, the list stays anchored at the top and
+// loses space at the bottom, the input bar sits right above the keyboard, the tab bar is hidden.
 {
   const vv = window.visualViewport, bar = $('#addBar');
-  // While the keyboard is open iOS pans the visual viewport; the header follows it (--vvtop) so it stays visible
   const place = () => {
-    const top = vv ? Math.max(0, Math.round(vv.offsetTop)) : 0;
-    const kb = vv ? Math.max(0, Math.round(window.innerHeight - vv.height - top)) : 0;
-    document.body.style.setProperty('--kb', kb + 'px'); document.body.style.setProperty('--vvtop', top + 'px');
+    if (!vv) return;
+    document.body.style.setProperty('--app-h', Math.round(vv.height) + 'px');
+    document.body.style.setProperty('--vvtop', Math.max(0, Math.round(vv.offsetTop)) + 'px');
   };
   $('#addIn').addEventListener('focus', () => { document.body.classList.add('typing'); place(); });
-  $('#addIn').addEventListener('blur', () => setTimeout(() => { if (document.activeElement !== $('#addIn')) { document.body.classList.remove('typing'); document.body.style.removeProperty('--kb'); document.body.style.removeProperty('--vvtop'); } }, 100));
+  $('#addIn').addEventListener('blur', () => setTimeout(() => {
+    if (document.activeElement === $('#addIn')) return;
+    document.body.classList.remove('typing'); document.body.style.removeProperty('--app-h'); document.body.style.removeProperty('--vvtop');
+  }, 100));
   if (vv) { const follow = () => { if (document.body.classList.contains('typing')) place(); }; vv.addEventListener('resize', follow); vv.addEventListener('scroll', follow); }
   // buttons in the bar must not steal focus, otherwise the keyboard closes
   bar.addEventListener('pointerdown', e => { if (e.target.closest('button') && e.target.id !== 'scanBtn') e.preventDefault(); });
@@ -381,6 +384,7 @@ function show(id) {
   if (isLocal() && id === 'vScore') id = 'vList'; // the game only exists once the list is shared
   $('#vWelcome').classList.add('hide');
   for (const v of ['vList', 'vDeposit', 'vCheckout', 'vScore']) $('#' + v).classList.toggle('hide', v !== id);
+  $('#addBar').classList.toggle('hide', id !== 'vList'); // the input bar belongs to the list tab
   setWake(id === 'vCheckout');
 }
 
@@ -495,7 +499,7 @@ function askIdentity(next) {
   pending = next;
   $('#welcomeErr').textContent = ''; $('#nameIn').value = me.name;
   for (const v of ['vList', 'vDeposit', 'vCheckout', 'vScore']) $('#' + v).classList.add('hide');
-  $('#tabs').classList.add('hide'); $('#vWelcome').classList.remove('hide');
+  $('#tabs').classList.add('hide'); $('#addBar').classList.add('hide'); $('#vWelcome').classList.remove('hide');
 }
 $('#newList').onclick = () => {
   const n = $('#nameIn').value.trim().slice(0, 20);
