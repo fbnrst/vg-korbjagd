@@ -92,13 +92,15 @@ async function scenes(browser, base, lang) {
   await shot('suggest');
   await page.fill('#addIn', '');
   await page.evaluate(() => document.activeElement && document.activeElement.blur());
-  // 3) checkout
-  await row('#items', 'Möhren').locator('[data-chk]').click();
-  await tab('vCheckout'); await shot('checkout');
-  // 4) empties
+  // 3) empties
   await tab('vDeposit');
   for (const [id, n] of [[1, 3], [3, 2], [6, 1]]) for (let i = 0; i < n; i++) { await page.click(`[data-dep-add="${id}"]`); await page.waitForTimeout(60); }
   await shot('empties');
+  // 4) checkout: more items with numbers in the basket, one bakery item (number below 1000), and the empties from above
+  await tab('vList');
+  await add('790');
+  for (const t of ['Roggenbrot', 'Balsamico', 'Möhren']) { await row('#items', t).locator('[data-chk]').click(); await page.waitForTimeout(150); }
+  await tab('vCheckout'); await shot('checkout');
   // 5) reset dialog
   await tab('vList');
   await page.click('#listBtn'); await shot('reset'); await page.click('#resetCancel');
