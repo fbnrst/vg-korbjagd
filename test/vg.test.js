@@ -94,7 +94,8 @@ test('similarNames lets alike names pass and asks for different products', () =>
     ['Kartoffeln', 'Kartoffel festkochend'], ['Datteln', 'Dattel Deglet Nour'], ['Vollmilchpulver 1kg', 'Milchpulver'], ['Bio Apfel', 'Apfel Elstar'],
     ['', 'Brot'], ['VG no. 123', 'Brot'], ['Ei', 'Eier'],
     ['Porree', 'Lauch'], ['Lauch', 'Porree Bio'], ['Möhren', 'Karotte'], ['Zucchini', 'Courgette'], ['Tomate', 'Paradeiser'],
-    ['Aprikosen', 'Marille'], ['Rucola', 'Rauke'], ['Blumenkohl', 'Karfiol'], ['Brokkoli', 'Broccoli'], ['Feldsalat', 'Rapunzel']];
+    ['Aprikosen', 'Marille'], ['Rucola', 'Rauke'], ['Blumenkohl', 'Karfiol'], ['Brokkoli', 'Broccoli'], ['Feldsalat', 'Rapunzel'],
+    ['Weintrauben', 'Traube weiß Sugraone kernlos']];
   for (const [x, y] of same) assert.ok(similarNames(x, y), `${x} ~ ${y} should pass without a question (${nameSimilarity(x, y).toFixed(2)})`);
   const different = [['Apfel', 'Orange'], ['Apfel', 'Orangensaft'], ['Apfel', 'Apfelsaft'], ['Milch', 'Vollmilchschokolade'],
     ['Bio Apfel', 'Bio Orange'], ['Datteln', 'Reformationsbrot'], ['Milch', 'Zucchini'],

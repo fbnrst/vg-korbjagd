@@ -138,7 +138,7 @@ const SYNONYM_GROUPS = [
   ['paprika', 'paprikaschote', 'paprikaschoten'], ['mais', 'zuckermais', 'maiskolben'], ['sellerie', 'knollensellerie'],
   ['sahne', 'rahm', 'obers'], ['quark', 'topfen'], ['joghurt', 'jogurt', 'yoghurt', 'yogurt'],
   ['brötchen', 'semmel', 'schrippe', 'weckle', 'wecken'], ['hackfleisch', 'gehacktes', 'faschiertes'],
-  ['marmelade', 'konfitüre'],
+  ['marmelade', 'konfitüre'], ['traube', 'trauben', 'weintraube', 'weintrauben', 'tafeltraube', 'tafeltrauben'],
 ];
 const SYNONYM_OF = new Map();
 SYNONYM_GROUPS.forEach((g, i) => g.forEach(w => SYNONYM_OF.set(normName(w), i)));
