@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { createStore, localAdapter, userKey, isUserKey } from '../public/store.js';
+import { createStore, localAdapter, userKey, isUserKey, parseListCode } from '../public/store.js';
 
 const mem = () => { const m = {}; return { getItem: k => m[k] ?? null, setItem: (k, v) => { m[k] = v; } }; };
 const setup = () => { const db = localAdapter(mem(), false); return { db, s: createStore(db) }; };
@@ -238,4 +238,11 @@ test('after a new round old items score nothing and never push a counter below z
   assert.deepEqual(await db.get(c, 'scores'), { [A]: 0, [B]: 0 });
   await s.check(c, 'o1', B, true);                                   // new points only for new actions
   assert.deepEqual(await db.get(c, 'scores'), { [A]: 0, [B]: 1 });
+});
+
+test('parseListCode takes a typed code or the link of a shared list and nothing else', () => {
+  assert.equal(parseListCode('k7m2qx'), 'K7M2QX');
+  assert.equal(parseListCode('  K7M2QX '), 'K7M2QX');
+  assert.equal(parseListCode('https://fbnrst.github.io/vg-korbjagd/?list=ab12cd'), 'AB12CD');
+  for (const bad of ['', 'K7M2Q', 'K7M2QXX', 'K7 M2Q', 'https://example.com/', 'VG 4455', '4455', null, undefined]) assert.equal(parseListCode(bad), null, String(bad));
 });

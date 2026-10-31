@@ -1,5 +1,5 @@
 import firebaseConfig from './firebase-config.js';
-import { createStore, firebaseAdapter, localAdapter, userKey } from './store.js';
+import { createStore, firebaseAdapter, localAdapter, userKey, parseListCode } from './store.js';
 import { loadVg, parseShareLink, fetchSharedList, vgNumFromCode, similarNames } from './vg.js';
 import { t, applyStatic } from './i18n.js';
 
@@ -365,7 +365,20 @@ $('#shareBtn').onclick = openShareDialog;
 $('#shareClose').onclick = closeShareDialog;
 $('#shareDlg').onclick = e => { if (e.target.id === 'shareDlg') closeShareDialog(); };
 $('#shareStart').onclick = () => { closeShareDialog(); me.name ? shareLocalList() : askIdentity(shareLocalList); };
-$('#joinBtn').onclick = () => { const c = $('#codeIn').value.trim().toUpperCase(); if (c) { closeShareDialog(); joinShared(c); } };
+// Join dialog (menu on the local list, or "or join a list" in the share dialog): type the code, or scan the QR code
+const closeJoin = () => { $('#joinDlg').classList.add('hide'); $('#codeIn').value = ''; };
+function openJoin() { dismissKeyboard(); $('#joinDlg').classList.remove('hide'); }
+$('#menuJoin').onclick = openJoin;
+$('#orJoin').onclick = () => { closeShareDialog(); openJoin(); };
+$('#joinClose').onclick = closeJoin;
+$('#joinDlg').onclick = e => { if (e.target.id === 'joinDlg') closeJoin(); };
+$('#joinScan').onclick = () => { closeJoin(); scanTarget = null; openScanner(true); };
+$('#joinForm').onsubmit = e => {
+  e.preventDefault();
+  const c = parseListCode($('#codeIn').value);
+  if (!c) { toast(t('notAList')); return; }
+  closeJoin(); joinShared(c);
+};
 const forgetShared = () => { LS.set('code', ''); history.replaceState(null, '', location.pathname); };
 // "..." menu in the header: reset, VG import, leave (shared lists only), help and privacy
 {
@@ -466,6 +479,11 @@ async function scanForRow(text, p, target, n, manualNumber) {
   if (navigator.vibrate) navigator.vibrate(60);
 }
 async function handleCode(raw, opts = {}) {
+  if ($('#scanner').classList.contains('join')) { // scanning a list's QR code: only a list code or join link counts
+    const c = parseListCode(raw);
+    if (!c) { $('#scanMsg').textContent = t('notAList'); return; } // keep looking
+    closeScanner(); joinShared(c); return;
+  }
   if (scanBusy) return; scanBusy = true;
   try {
     const ean = String(raw).trim();
@@ -513,14 +531,15 @@ function stopCamera() {
 async function startCamera() {
   const my = ++camToken, video = $('#cam');
   try {
-    if ('BarcodeDetector' in window) { // Chrome/Android: built in
+    const join = $('#scanner').classList.contains('join'); // QR codes of lists instead of product barcodes
+    if ('BarcodeDetector' in window && (!join || (await BarcodeDetector.getSupportedFormats()).includes('qr_code'))) { // Chrome/Android: built in
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
       if (my !== camToken) { stream.getTracks().forEach(track => track.stop()); return; }
       scanStream = stream; video.srcObject = stream; await video.play();
-      const det = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
+      const det = new BarcodeDetector({ formats: join ? ['qr_code'] : ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
       const loop = async () => {
         if (!scanStream || my !== camToken) return;
-        try { const r = await det.detect(video); if (r[0]) return handleCode(r[0].rawValue); } catch (e) {}
+        try { const r = await det.detect(video); if (r[0]) { await handleCode(r[0].rawValue); if (!scanStream || my !== camToken) return; } } catch (e) {}
         setTimeout(loop, 200);
       };
       loop();
@@ -534,14 +553,15 @@ async function startCamera() {
     if (my === camToken) $('#scanMsg').textContent = t('cameraFail');
   }
 }
-function openScanner() {
+function openScanner(join = false) {
   dismissKeyboard();
-  $('#scanner').classList.remove('hide', 'manual'); $('#scanMsg').textContent = t('scanHint');
+  $('#scanner').classList.remove('hide', 'manual'); $('#scanner').classList.toggle('join', join);
+  $('#scanMsg').textContent = t(join ? 'scanQrHint' : 'scanHint');
   startCamera();
 }
 function closeScanner() {
   stopCamera();
-  $('#scanner').classList.add('hide'); $('#scanner').classList.remove('manual'); scanTarget = null;
+  $('#scanner').classList.add('hide'); $('#scanner').classList.remove('manual', 'join'); scanTarget = null;
   $('#eanIn').value = ''; $('#scanSuggest').classList.add('hide');
 }
 $('#scanBtn').onclick = () => { scanTarget = null; openScanner(); };
@@ -587,7 +607,7 @@ $('#newList').onclick = () => {
 };
 function enterApp() {
   $('#tabs').classList.remove('hide'); $('#shareBtn').classList.remove('hide');
-  for (const id of ['#menuReset', '#menuImport', '#menuLeave']) $(id).classList.remove('hide'); // #menuLeave is hidden on the local list by CSS (body.local)
+  for (const id of ['#menuReset', '#menuImport', '#menuJoin', '#menuLeave']) $(id).classList.remove('hide'); // #menuLeave is hidden on the local list by CSS (body.local)
   document.body.classList.toggle('local', isLocal());
   show('vList');
   connect();

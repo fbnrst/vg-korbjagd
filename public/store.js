@@ -11,6 +11,13 @@ export const userKey = (emoji, name) => {
   return `${e} ${n}`;
 };
 export const isUserKey = k => typeof k === 'string' && k.length <= 60 && /^[^ <>&"'`]{1,20} [^<>&"'`]{1,30}$/.test(k);
+// A list code typed by hand, or the link / QR content of a shared list ("...?list=CODE"): the code or null
+export function parseListCode(text) {
+  let s = String(text || '').trim();
+  try { const c = new URL(s).searchParams.get('list'); if (c) s = c; } catch (e) { /* not a link: plain code */ }
+  s = s.toUpperCase();
+  return /^[A-Z0-9]{6}$/.test(s) ? s : null;
+}
 export const isId = k => typeof k === 'string' && /^[A-Za-z0-9_-]{1,40}$/.test(k);
 const toNum = v => { const n = Math.round(Number(v)); return Number.isFinite(n) && n >= 1 && n <= 9999999 ? n : null; };
 
