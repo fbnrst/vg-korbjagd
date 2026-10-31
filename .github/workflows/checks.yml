@@ -18,25 +18,5 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 24
-      # File hygiene, JSON/YAML, syntax, tests; gitleaks runs in its own job over the whole history
+      # Everything runs through prek, gitleaks included (whole working tree, see .pre-commit-config.yaml)
       - uses: j178/prek-action@v3.1.0
-        env:
-          SKIP: gitleaks
-  gitleaks:
-    name: Secrets (gitleaks)
-    runs-on: ubuntu-latest
-    env:
-      GITLEAKS_VERSION: 8.30.1
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-      - name: Download gitleaks and verify checksum
-        run: |
-          base="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}"
-          curl -sSfL -O "$base/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
-          curl -sSfL -O "$base/gitleaks_${GITLEAKS_VERSION}_checksums.txt"
-          grep " gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz\$" "gitleaks_${GITLEAKS_VERSION}_checksums.txt" | sha256sum -c -
-          tar -xzf "gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" gitleaks
-      - name: gitleaks over the entire history
-        run: ./gitleaks git --config .gitleaks.toml --redact --no-banner --verbose .

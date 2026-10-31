@@ -67,7 +67,7 @@ python3 -m http.server 3100 --directory public       # serve the app (port 3000 
 prek run --all-files                                 # all checks (installed as git hook via `prek install`)
 ```
 
-Checks: prek (`.pre-commit-config.yaml`: file hygiene, JSON/YAML, `node --check`, tests, gitleaks) locally, the same in GitHub Actions (`.github/workflows/checks.yml`, plus a full-history gitleaks scan). `pages.yml` tests and deploys `public/`.
+Checks: prek (`.pre-commit-config.yaml`: file hygiene, JSON/YAML, `node --check`, tests, gitleaks) locally, the same in GitHub Actions (`.github/workflows/checks.yml`): **one prek job, gitleaks included, no separate gitleaks job** (the maintainer's decision). The gitleaks hook is a local golang hook that scans the whole working tree (`gitleaks dir`) because the hook that gitleaks ships only looks at staged changes, which finds nothing in CI. `pages.yml` tests and deploys `public/`.
 
 ## Testing notes
 

@@ -46,7 +46,7 @@ The site has two versions: the root shows the latest release (the newest git tag
 
 Conventions for humans and agents are in [AGENTS.md](AGENTS.md): source code and comments are English, the UI follows the system language.
 
-Code checks run locally as a git hook through [prek](https://github.com/j178/prek) (configuration: `.pre-commit-config.yaml`): file hygiene, JSON/YAML, JavaScript syntax, tests and gitleaks (secrets; the public Firebase configuration is allowed in `.gitleaks.toml`). Run `prek install` once, `prek run --all-files` manually. The screenshots of the help page are built locally from the real app (`npm install`, then `npm run docs:screenshots`; needs Chrome, sample data instead of real VG data) and only on explicit request. Every image is looked at before it is committed. The same checks run in GitHub Actions (`.github/workflows/checks.yml`), where gitleaks also scans the whole history.
+Code checks run locally as a git hook through [prek](https://github.com/j178/prek) (configuration: `.pre-commit-config.yaml`): file hygiene, JSON/YAML, JavaScript syntax, tests and gitleaks (secrets; the public Firebase configuration is allowed in `.gitleaks.toml`). Run `prek install` once, `prek run --all-files` manually. The screenshots of the help page are built locally from the real app (`npm install`, then `npm run docs:screenshots`; needs Chrome, sample data instead of real VG data) and only on explicit request. Every image is looked at before it is committed. The same checks run in GitHub Actions (`.github/workflows/checks.yml`) as a single prek job: gitleaks is part of prek, there is no separate secrets job.
 
 ## License
 
