@@ -121,22 +121,24 @@ function render() {
 }
 
 /* ---------- Checkout ---------- */
-const checkoutDone = new Set(); // marked done locally (per phone)
+const checkoutDone = new Set(); // rows marked done at the checkout: local to this phone and not saved (gone after a reload)
 const byTitle = (a, b) => a.title.localeCompare(b.title, 'de');
 function checkoutRow(key, title, amount, unit, no) {
   const weight = ['g', 'kg', 'Liter'].includes(unit) || amount === 1;
   const mid = unit && amount ? `<small>[${weight ? esc(amount) + ' ' : ''}${esc(unit)}]</small>` : '';
   const times = !weight && amount > 1 ? `<small>${esc(amount)} × </small>` : '';
-  return `<div class="kr${checkoutDone.has(key) ? ' off' : ''}" data-checkout="${esc(key)}"><div class="nm">${esc(title)}${mid}</div><div class="no">${times}${esc(no || '–')}</div></div>`;
+  return { key, html: `<div class="kr${checkoutDone.has(key) ? ' off' : ''}" data-checkout="${esc(key)}"><div class="nm">${esc(title)}${mid}</div><div class="no">${times}${esc(no || '–')}</div></div>` };
 }
 function renderCheckout() {
   const inBasket = Object.values(state.items).filter(i => i.checked).sort(byTitle);
   const sec = (head, rows) => rows.length ? `<div class="card ks"><h3>${head}</h3>${rows.join('')}</div>` : '';
   const row = i => checkoutRow(i.id, i.title, i.amount, i.unit, i.vgNum);
   const dep = vg ? vg.deposits.filter(d => depSum(d.id) > 0).map(d => checkoutRow('d' + d.id, d.name, depSum(d.id), '', d.vgNum)) : [];
-  $('#checkout').innerHTML = sec(t('secItems'), inBasket.filter(i => i.vgNum >= 1000).map(row))
-    + sec(t('secBakery'), inBasket.filter(i => i.vgNum && i.vgNum < 1000).map(row))
-    + sec(t('secEmpties'), dep)
+  const items = inBasket.filter(i => i.vgNum >= 1000).map(row), bakery = inBasket.filter(i => i.vgNum && i.vgNum < 1000).map(row);
+  // rows that are done slide down into their own block below everything else (tap again to bring one back)
+  const open = rows => rows.filter(r => !checkoutDone.has(r.key)).map(r => r.html);
+  const done = [...items, ...bakery, ...dep].filter(r => checkoutDone.has(r.key)).map(r => r.html);
+  $('#checkout').innerHTML = sec(t('secItems'), open(items)) + sec(t('secBakery'), open(bakery)) + sec(t('secEmpties'), open(dep)) + sec(t('secDone'), done)
     || `<p class="muted" style="text-align:center">${t('checkoutEmpty')}</p>`;
 }
 let wakeLock = null;

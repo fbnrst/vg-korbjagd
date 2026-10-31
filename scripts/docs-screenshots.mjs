@@ -100,7 +100,9 @@ async function scenes(browser, base, lang) {
   await tab('vList');
   await add('790');
   for (const t of ['Roggenbrot', 'Balsamico', 'Möhren']) { await row('#items', t).locator('[data-chk]').click(); await page.waitForTimeout(150); }
-  await tab('vCheckout'); await shot('checkout');
+  await tab('vCheckout');
+  await page.click('[data-checkout]:has-text("Möhren")'); await page.click('[data-checkout]:has-text("Milchflasche")'); // two rows done: they slide into the block at the bottom
+  await shot('checkout');
   // 5) reset dialog (opened from the menu)
   await tab('vList');
   await page.click('#menuBtn'); await page.click('#menuReset'); await shot('reset'); await page.click('#resetCancel');

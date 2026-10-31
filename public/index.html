@@ -94,7 +94,7 @@ body.typing .tabs{display:none}
 .emojis{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
 .emojis button{font-size:26px;border:2px solid transparent;background:var(--bg);border-radius:10px;padding:2px 6px}
 .emojis button.on{border-color:var(--green)}
-.podium{display:flex;align-items:flex-end;justify-content:center;gap:10px;margin:14px 0;min-height:150px}
+.podium{display:flex;align-items:flex-end;justify-content:center;gap:10px;margin:2px 0 14px;min-height:150px}
 .pod{text-align:center;flex:1;max-width:110px}
 .pod .bar{background:var(--fill);border-radius:10px 10px 0 0;color:var(--on-fill);font-weight:700;padding-top:6px}
 .pod .e{font-size:34px}
@@ -221,7 +221,6 @@ body.typing .tabs{display:none}
   <!-- Leaderboard -->
   <section id="vScore" class="hide">
     <div class="card">
-      <h2 style="margin:0">Who is in the lead?</h2>
       <div class="podium" id="podium"></div>
       <div id="ranks"></div>
       <button class="btn sec" id="resetBtn" style="margin-top:12px">New round</button>
