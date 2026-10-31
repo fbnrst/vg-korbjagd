@@ -115,8 +115,12 @@ export function vgNumFromCode(text) {
 const GENERIC = new Set(['bio', 'frisch', 'frische', 'regional', 'natur', 'naturell', 'stueck', 'packung', 'mini', 'maxi', 'gross', 'klein',
   // colours say nothing about the product: "Traube rot" and "Paprika rot" share a word but not a product
   'rot', 'rote', 'roter', 'rotes', 'grun', 'grune', 'gruner', 'gelb', 'gelbe', 'gelber', 'weiss', 'weisse', 'weisser', 'schwarz', 'schwarze', 'schwarzer', 'blau', 'blaue', 'blauer', 'braun', 'braune', 'bunt', 'bunte']);
-const normName = s => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ß/g, 'ss');
-const nameWords = s => normName(s).split(/[^a-z0-9]+/).filter(w => w.length >= 3 && !GENERIC.has(w) && !/^\d+$/.test(w));
+// Spelling variants collapse: umlauts and their digraphs (Müsli ~ Muesli), c for k (Caramel ~ Karamell, Lactase ~ Laktase)
+const normName = s => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ß/g, 'ss')
+  .replace(/ae/g, 'a').replace(/oe/g, 'o').replace(/ue/g, 'u').replace(/c(?!h)/g, 'k');
+// A hyphenated word counts twice: in parts and joined ("Karamell-Sirup": karamell, sirup and karamellsirup)
+const nameWords = s => normName(s).split(/[^a-z0-9-]+/).flatMap(t => t.includes('-') ? [...t.split('-'), t.replace(/-/g, '')] : [t])
+  .filter(w => w.length >= 3 && !GENERIC.has(w) && !/^\d+$/.test(w));
 function dice(a, b) {
   if (a === b) return 1;
   if (a.length < 4 || b.length < 4) return 0; // three letters share too many pairs by chance (brot ~ rot)
@@ -174,7 +178,7 @@ const SYNONYM_OF = new Map();
 SYNONYM_GROUPS.forEach((g, i) => g.forEach(w => SYNONYM_OF.set(normName(w), i)));
 // Collective words: the plain word fits every compound that ends in it ("Brot" ~ "Vollkornbrot", "Brötchen" ~ "Milchbrötchen",
 // but Roggenbrot vs Dinkelbrot are two products and stay questioned)
-const COLLECTIVES = ['brot', 'brotchen', 'baguette', 'croissant'];
+const COLLECTIVES = ['brot', 'brötchen', 'baguette', 'croissant'].map(normName);
 const collective = (x, y) => COLLECTIVES.some(c => (x === c && y.endsWith(c)) || (y === c && x.endsWith(c)));
 const synonyms = (x, y) => SYNONYM_OF.has(x) && SYNONYM_OF.get(x) === SYNONYM_OF.get(y);
 

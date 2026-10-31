@@ -9,7 +9,8 @@
     "test": "node --test",
     "docs:screenshots": "node scripts/docs-screenshots.mjs",
     "icons": "node scripts/make-icons.mjs",
-    "matching:check": "node scripts/check-matching.mjs"
+    "matching:check": "node scripts/check-matching.mjs",
+    "matching:off": "node scripts/check-off-synonyms.mjs"
   },
   "engines": {
     "node": ">=18"

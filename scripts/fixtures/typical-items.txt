@@ -53,6 +53,13 @@ Brötchen => Milchbrötchen
 Baguette => Roggenbaguette
 Croissant => Schokocroissant
 Eier => Eier Freiland
+Karamellsirup => Karamell-Sirup
+Karamell => Caramel Sauce
+Müsli => Muesli Früchte
+Laktase => Lactase
+Kartoffeldextrin => Kartoffel-Dextrin
+Soja-Lecithin => Sojalecithin
+Joghurt-Früchte => Joghurtfrüchte
 
 # Checked: different products, the name check must keep asking
 Apfel != Apfelsaft Kaiser

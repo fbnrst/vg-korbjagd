@@ -56,7 +56,7 @@ The name check and the synonym lists in `public/vg.js` need a look every few mon
 4. Look at the VG list itself too: frequent words that no everyday item covers yet. Add the new everyday items to the list.
 5. `npm test`, bump `VERSION` in `public/sw.js`, commit, push (after the user's yes).
 
-Ideas for candidates, not bundled (size, licence, quality): OpenThesaurus (German synonyms, CC BY-SA 4.0 or LGPL 2.1, attribution needed) and the taxonomies of Open Food Facts (ODbL). Use them to look words up, then curate by hand.
+`npm run matching:off` (`scripts/check-off-synonyms.mjs`) is a second source of candidates: it downloads the German synonym sets of the Open Food Facts ingredient taxonomy (ODbL) into memory and lists the pairs the name check would question. Nothing from it is stored in the repo or bundled into the app; each candidate is judged by hand like the others. OpenThesaurus (German synonyms, CC BY-SA 4.0 or LGPL 2.1, attribution needed) is another place to look words up, also not bundled.
 
 ## Commands
 
