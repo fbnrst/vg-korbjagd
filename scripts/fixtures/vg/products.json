@@ -1,0 +1,227 @@
+[
+{
+"id": 1,
+"vgNum": 790,
+"unitID": 2,
+"manufacturerID": 1,
+"countryID": 1,
+"title": "Roggenbrot",
+"isRegional": 0
+},
+{
+"id": 2,
+"vgNum": 7900,
+"unitID": 2,
+"manufacturerID": 1,
+"countryID": 1,
+"title": "Haferflocken",
+"isRegional": 0
+},
+{
+"id": 3,
+"vgNum": 7901,
+"unitID": 2,
+"manufacturerID": 2,
+"countryID": 2,
+"title": "Aprikosen",
+"isRegional": 0
+},
+{
+"id": 4,
+"vgNum": 7902,
+"unitID": 2,
+"manufacturerID": 2,
+"countryID": 2,
+"title": "Datteln",
+"isRegional": 0
+},
+{
+"id": 5,
+"vgNum": 7903,
+"unitID": 3,
+"manufacturerID": 1,
+"countryID": 1,
+"title": "Dinkelspiralen",
+"isRegional": 0
+},
+{
+"id": 6,
+"vgNum": 7904,
+"unitID": 2,
+"manufacturerID": 1,
+"countryID": 1,
+"title": "Pflaumen",
+"isRegional": 1
+},
+{
+"id": 7,
+"vgNum": 7905,
+"unitID": 2,
+"manufacturerID": 1,
+"countryID": 1,
+"title": "Walnüsse",
+"isRegional": 0
+},
+{
+"id": 8,
+"vgNum": 1076,
+"unitID": 2,
+"manufacturerID": 1,
+"countryID": 1,
+"title": "Milchpulver",
+"isRegional": 0
+},
+{
+"id": 9,
+"vgNum": 2586,
+"unitID": 3,
+"manufacturerID": 1,
+"countryID": 1,
+"title": "Haferdrink",
+"isRegional": 0
+},
+{
+"id": 10,
+"vgNum": 2590,
+"unitID": 3,
+"manufacturerID": 1,
+"countryID": 1,
+"title": "Sojajoghurt",
+"isRegional": 0
+},
+{
+"id": 11,
+"vgNum": 3100,
+"unitID": 3,
+"manufacturerID": 2,
+"countryID": 2,
+"title": "Olivenöl",
+"isRegional": 0
+},
+{
+"id": 12,
+"vgNum": 3105,
+"unitID": 3,
+"manufacturerID": 2,
+"countryID": 2,
+"title": "Balsamico",
+"isRegional": 0
+},
+{
+"id": 13,
+"vgNum": 3300,
+"unitID": 3,
+"manufacturerID": 1,
+"countryID": 1,
+"title": "Basilikum im Topf",
+"isRegional": 1
+},
+{
+"id": 14,
+"vgNum": 4455,
+"unitID": 2,
+"manufacturerID": 1,
+"countryID": 1,
+"title": "Porree",
+"isRegional": 1
+},
+{
+"id": 15,
+"vgNum": 4464,
+"unitID": 2,
+"manufacturerID": 1,
+"countryID": 1,
+"title": "Möhren",
+"isRegional": 1
+},
+{
+"id": 16,
+"vgNum": 4470,
+"unitID": 2,
+"manufacturerID": 1,
+"countryID": 1,
+"title": "Zwiebeln",
+"isRegional": 1
+},
+{
+"id": 17,
+"vgNum": 4480,
+"unitID": 2,
+"manufacturerID": 1,
+"countryID": 1,
+"title": "Äpfel Elstar",
+"isRegional": 1
+},
+{
+"id": 18,
+"vgNum": 4481,
+"unitID": 2,
+"manufacturerID": 1,
+"countryID": 1,
+"title": "Birnen",
+"isRegional": 1
+},
+{
+"id": 19,
+"vgNum": 4490,
+"unitID": 2,
+"manufacturerID": 1,
+"countryID": 1,
+"title": "Kartoffeln festkochend",
+"isRegional": 1
+},
+{
+"id": 20,
+"vgNum": 5520,
+"unitID": 2,
+"manufacturerID": 2,
+"countryID": 2,
+"title": "Zucchini",
+"isRegional": 0
+},
+{
+"id": 21,
+"vgNum": 6100,
+"unitID": 3,
+"manufacturerID": 2,
+"countryID": 2,
+"title": "Kaffee",
+"isRegional": 0
+},
+{
+"id": 22,
+"vgNum": 6101,
+"unitID": 4,
+"manufacturerID": 2,
+"countryID": 2,
+"title": "Schwarzer Tee",
+"isRegional": 0
+},
+{
+"id": 23,
+"vgNum": 7100,
+"unitID": 3,
+"manufacturerID": 1,
+"countryID": 1,
+"title": "Vollkornbrot",
+"isRegional": 0
+},
+{
+"id": 24,
+"vgNum": 7101,
+"unitID": 3,
+"manufacturerID": 1,
+"countryID": 1,
+"title": "Dinkelbrötchen",
+"isRegional": 0
+},
+{
+"id": 25,
+"vgNum": 7102,
+"unitID": 3,
+"manufacturerID": 1,
+"countryID": 1,
+"title": "Brezel",
+"isRegional": 0
+}
+]

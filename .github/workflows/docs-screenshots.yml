@@ -1,0 +1,63 @@
+name: Docs screenshots
+# Renders the screenshots of the help page (scripts/docs-screenshots.mjs) and opens a pull request when they changed.
+# Deliberately NOT on every push. It runs
+#   - when the help page, the screenshot script or its demo data change on main, and
+#   - by hand (Actions -> Docs screenshots -> Run workflow), e.g. after a visible UI change.
+# The images (public/docs/img) are not a trigger, so merging the pull request does not start another run.
+# One-time setting for the pull request step: Settings -> Actions -> General -> Workflow permissions ->
+# "Allow GitHub Actions to create and approve pull requests". The images are always attached as an artifact as well.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/docs/index.html'
+      - 'scripts/docs-screenshots.mjs'
+      - 'scripts/fixtures/**'
+  workflow_dispatch:
+permissions:
+  contents: write
+  pull-requests: write
+concurrency:
+  group: docs-screenshots
+  cancel-in-progress: true
+jobs:
+  screenshots:
+    name: Render screenshots
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      # The runner has Google Chrome; colour emoji need a font
+      - name: Install the emoji font
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-color-emoji
+      - name: Render the screenshots
+        run: node scripts/docs-screenshots.mjs
+      - uses: actions/upload-artifact@v7
+        with:
+          name: docs-screenshots
+          path: public/docs/img
+      - name: Open a pull request when the images changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if git diff --quiet -- public/docs/img && [ -z "$(git ls-files --others --exclude-standard public/docs/img)" ]; then
+            echo "The screenshots did not change, nothing to do."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          branch="docs/screenshots-${GITHUB_RUN_ID}"
+          git checkout -b "$branch"
+          git add public/docs/img
+          git commit -m "Update help screenshots"
+          git push origin "$branch"
+          if ! gh pr create --base main --head "$branch" --title "Update help screenshots" \
+              --body "Rendered by the Docs screenshots workflow (run ${GITHUB_RUN_ID}) from the current app. Please look at the images before merging."; then
+            echo "::error::Could not open the pull request. Enable Settings -> Actions -> General -> 'Allow GitHub Actions to create and approve pull requests', or download the artifact of this run."
+            exit 1
+          fi
