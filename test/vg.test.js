@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import { buildIndex, isPlaceholder, cleanTitle, infoText, parseShareLink, decryptShared } from '../public/vg.js';
+import { vgNumFromCode, similarNames, buildIndex, isPlaceholder, cleanTitle, infoText, parseShareLink, decryptShared } from '../public/vg.js';
 
 // Load the vendor UMD file in its own context (provides CryptoJS)
 const sandbox = { crypto: globalThis.crypto };
@@ -76,4 +76,25 @@ test('placeholder entries (unused number slots) are never suggested but their ex
   assert.deepEqual(ix.searchByNumber('130').map(p => p.vgNum), [1302]);              // not suggested by number ...
   assert.deepEqual(ix.searchNames('unbesetzt'), []);                                // ... nor by name
   assert.equal(ix.size, 2);
+});
+
+test('VG numbers are read from shelf label codes like in the original app', () => {
+  assert.equal(vgNumFromCode('00073448'), 7344);                    // EAN-8: digits 4-7 are the number, the last one is the check digit
+  assert.equal(vgNumFromCode('000000007344'.concat('1')), 7344);    // EAN-13: first 12 digits, zero padded
+  assert.equal(vgNumFromCode('VG 7344 kg Äpfel Deutschland'), 7344); // QR label
+  assert.equal(vgNumFromCode('vg 12 Stück Brot'), 12);
+  assert.equal(vgNumFromCode('4006381333931'), null);               // ordinary EAN-13: number would be far too large
+  assert.equal(vgNumFromCode('12345'), null);
+  assert.equal(vgNumFromCode('VG abc'), null);
+  assert.equal(vgNumFromCode(''), null);
+});
+
+test('similarNames only objects to completely different names', () => {
+  assert.ok(similarNames('Vollmilchpulver 1kg', 'Milchpulver'));    // one contains the other
+  assert.ok(similarNames('Äpfel', 'Apfel Elstar'));                  // umlauts and shared start
+  assert.ok(similarNames('Balsamico', 'Balsamessig'));               // same first four letters
+  assert.ok(similarNames('Weißkohl', 'Weisskohl Frankreich'));       // ß
+  assert.ok(similarNames('', 'Brot'));                               // nothing to compare
+  assert.ok(!similarNames('Datteln', 'Reformationsbrot'));
+  assert.ok(!similarNames('Milch', 'Zucchini'));
 });

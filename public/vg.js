@@ -91,6 +91,31 @@ export async function loadVg() {
   } catch (e) { return cached ? buildIndex(cached) : null; }
 }
 
+/* ---------- Scanned codes ---------- */
+// VG shelf labels carry the VG number in their code (same rules as the original app):
+//  - QR code text "VG <number> <unit> <name> <country>"
+//  - 8 digits incl. check digit: "00073448" -> 7344
+//  - 13 digits incl. check digit: the first 12 digits are the number, zero padded
+// Anything else (an ordinary product EAN) returns null.
+export function vgNumFromCode(text) {
+  const s = String(text).trim();
+  let n = NaN;
+  if (/^VG\s/i.test(s)) n = Number(s.split(/\s+/)[1]);
+  else if (/^\d{8}$/.test(s)) n = Number(s.slice(3, 7));
+  else if (/^\d{13}$/.test(s)) n = Number(s.slice(0, 12));
+  return Number.isInteger(n) && n >= 1 && n <= 9999999 ? n : null;
+}
+
+// Do two product names look like the same thing? True if they share a word (or the start of one), or one contains
+// the other. Used to ask before a scan changes an item whose name is completely different.
+export function similarNames(a, b) {
+  const norm = s => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ß/g, 'ss');
+  const words = s => norm(s).split(/[^a-z0-9]+/).filter(w => w.length >= 3);
+  const wa = words(a), wb = words(b);
+  if (!wa.length || !wb.length) return true; // nothing to compare: do not bother the user
+  return wa.some(x => wb.some(y => x.includes(y) || y.includes(x) || (x.length >= 4 && y.length >= 4 && x.slice(0, 4) === y.slice(0, 4))));
+}
+
 /* ---------- Import lists from the original VG app ---------- */
 // Share link of the original app: https://app.vg-dresden.de/list?shareId=123#KEY
 export function parseShareLink(text) {

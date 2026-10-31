@@ -132,6 +132,19 @@ export function createStore(db) {
       });
       if (newlyChecked) await bump(code, user, 1);
     },
+    // Remember a scanned product barcode on an item (so scanning it again finds the item); optionally check it off
+    async setEan(code, id, user, ean, checkToo) {
+      if (!isId(id) || !isUserKey(user) || !/^\d{8,14}$/.test(String(ean))) return;
+      let newlyChecked = false;
+      await db.update(code, `items/${id}`, old => {
+        newlyChecked = false;
+        if (!old) return undefined;
+        const next = { ...old, ean: String(ean) };
+        if (checkToo && !old.checked) { next.checked = true; next.checkedBy = user; next.checkedAt = Date.now(); newlyChecked = true; }
+        return next;
+      });
+      if (newlyChecked) await bump(code, user, 1);
+    },
     async remove(code, id) {
       let prev;
       await db.update(code, `items/${id}`, old => { prev = old; return old ? null : undefined; });
@@ -196,7 +209,7 @@ export function createStore(db) {
     touched[code] = now;
     return touch0(code);
   };
-  for (const name of ['join', 'add', 'check', 'setNum', 'remove', 'depositAdd', 'depositRemove', 'clearDeposit', 'clearChecked', 'clearAll', 'resetScores', 'importList']) {
+  for (const name of ['join', 'add', 'check', 'setNum', 'setEan', 'remove', 'depositAdd', 'depositRemove', 'clearDeposit', 'clearChecked', 'clearAll', 'resetScores', 'importList']) {
     const fn = store[name];
     store[name] = async (code, ...args) => { const r = await fn(code, ...args); touch(code); return r; };
   }

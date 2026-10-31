@@ -1,6 +1,6 @@
 import firebaseConfig from './firebase-config.js';
 import { createStore, firebaseAdapter, localAdapter, userKey } from './store.js';
-import { loadVg, parseShareLink, fetchSharedList } from './vg.js';
+import { loadVg, parseShareLink, fetchSharedList, vgNumFromCode, similarNames } from './vg.js';
 import { t, applyStatic } from './i18n.js';
 
 const $ = s => document.querySelector(s);
@@ -62,8 +62,10 @@ function itemHtml(i) {
   const editing = editingId === i.id;
   const chip = i.vgNum ? esc(i.vgNum) : i.checked ? `＋ ${t('noShort')}` : '';
   const sub = chip && !editing ? `<button type="button" class="numedit" data-editnum="${id}" aria-label="${t('ariaEditNum')}">${chip}</button>` : '';
-  const vgIn = editing ? `<form data-vgedit="${id}"><input class="vg" type="number" inputmode="numeric" value="${esc(i.vgNum || '')}" placeholder="${t('noShort')}"></form>`
-    : i.vgNum || i.checked ? '' : `<form data-vg="${id}"><input class="vg" type="number" inputmode="numeric" placeholder="${t('noShort')}"></form>`;
+  // iPhones have no Return key on the number pad: every number field has a confirm button, plus a scan button
+  const buttons = (checkToo, disabled = false) => `<button class="rowbtn ok" type="submit"${disabled ? ' disabled' : ''} aria-label="${t('ariaConfirm')}">✓</button><button class="rowbtn" type="button" data-scanrow="${id}" data-checktoo="${checkToo}" aria-label="${t('scanBarcode')}"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M8 7v10"/><path d="M12 7v10"/><path d="M16 7v10"/></svg></button>`;
+  const vgIn = editing ? `<form data-vgedit="${id}"><input class="vg" type="number" inputmode="numeric" enterkeyhint="done" value="${esc(i.vgNum || '')}" placeholder="${t('noShort')}">${buttons(0)}</form>`
+    : i.vgNum || i.checked ? '' : `<form data-vg="${id}"><input class="vg" type="number" inputmode="numeric" enterkeyhint="done" placeholder="${t('noShort')}">${buttons(1, true)}</form>`;
   return `<div class="item ${i.checked ? 'done' : ''}">
       <button class="chk" data-chk="${esc(i.id)}" aria-label="${t(i.checked ? 'ariaBack' : 'ariaCheck')}">${i.checked ? '✓' : ''}</button>
       <div class="t">${i.amount > 1 ? `${esc(i.amount)}${i.unit ? ' ' + esc(i.unit) : '×'} ` : ''}${esc(i.title)}<small>${sub}</small></div>${by}${vgIn}
@@ -159,6 +161,8 @@ document.addEventListener('click', e => {
   }
   const kr = e.target.closest('[data-checkout]');
   if (kr) { const k = kr.dataset.checkout; checkoutDone.has(k) ? checkoutDone.delete(k) : checkoutDone.add(k); renderCheckout(); return; }
+  const sr = e.target.closest('[data-scanrow]');
+  if (sr) { scanTarget = { id: sr.dataset.scanrow, checkToo: sr.dataset.checktoo === '1' }; openScanner(); return; }
   const en = e.target.closest('[data-editnum]');
   if (en) { editingId = en.dataset.editnum; render(); return; }
   const dadd = e.target.closest('[data-dep-add]'), dsub = e.target.closest('[data-dep-sub]');
@@ -166,6 +170,11 @@ document.addEventListener('click', e => {
   if (dsub) { store.depositRemove(code, dsub.dataset.depSub, myKey()); return; }
   const del = e.target.closest('[data-del]');
   if (del) { const it = state.items[del.dataset.del]; if (it && confirm(t('confirmDelete', { item: it.title }))) store.remove(code, it.id); }
+});
+// The quick number field: its confirm button only works with a valid number
+document.addEventListener('input', e => {
+  const f = e.target.closest('[data-vg]');
+  if (f) f.querySelector('.rowbtn.ok').disabled = !(parseInt(e.target.value, 10) > 0);
 });
 document.addEventListener('submit', e => {
   const fe = e.target.closest('[data-vgedit]');
@@ -192,13 +201,13 @@ document.addEventListener('submit', e => {
 // Leaving the edit field (blur) or pressing Escape cancels the edit
 document.addEventListener('focusout', e => {
   if (!e.target.closest('[data-vgedit]')) return;
-  setTimeout(() => { if (editingId && !document.activeElement?.closest('[data-vgedit]')) { editingId = null; render(); } }, 150);
+  setTimeout(() => { if (editingId && !document.activeElement?.closest('[data-vgedit]') && $('#scanner').classList.contains('hide')) { editingId = null; render(); } }, 350);
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && editingId) { editingId = null; render(); } });
 $('#addForm').onsubmit = e => {
   e.preventDefault();
   const v = $('#addIn').value.trim(); if (!v) return;
-  $('#addIn').value = ''; $('#addSuggest').classList.add('hide');
+  $('#addIn').value = ''; $('#addSuggest').classList.add('hide'); syncAddButton();
   if (parseShareLink(v)) return openImport(v); // a share link from the original app was pasted
   const isNum = /^\d+$/.test(v);
   const p = vg && isNum ? vg.lookup(v) : null; // names are added as typed, without a number
@@ -234,8 +243,11 @@ applyMode(false);
 }
 
 // While typing: tappable suggestions (names without numbers, or products for typed digits)
+// The add button is only in the accent colour (and tappable) when there is something to add
+const syncAddButton = () => { $('#addGo').disabled = !$('#addIn').value.trim(); };
 $('#addIn').oninput = () => {
   if (numMode) $('#addIn').value = $('#addIn').value.replace(/\D/g, '');
+  syncAddButton();
   const q = $('#addIn').value.trim(), box = $('#addSuggest');
   const isNum = /^\d+$/.test(q);
   // Tappable list, tap = add the item: from three digits on for numbers, from two letters on for names (no duplicates)
@@ -369,6 +381,7 @@ function show(id) {
 
 /* ---------- Barcode scanner ---------- */
 let zxingReader = null, scanStream = null, scanBusy = false;
+let scanTarget = null; // {id, checkToo} while the scanner was opened for one list item
 function loadZxing() {
   if (window.ZXing) return Promise.resolve();
   return new Promise((res, rej) => {
@@ -387,9 +400,41 @@ async function productName(ean) {
   } catch (e) { return null; }
 }
 // Check off a known item, otherwise create it and put it in the basket right away
-async function handleEan(ean) {
+// Scan for one list item (button on the row): a VG label sets its number, an ordinary barcode is remembered on the item.
+// If the scanned product is named completely differently, ask first.
+async function scanForRow(text, p, target) {
+  const checkToo = scanTarget.checkToo && !target.checked;
+  if (p) {
+    if (!similarNames(p.title, target.title) && !confirm(t('confirmScanMismatch', { scanned: p.title, listed: target.title }))) return;
+    store.setNum(code, target.id, myKey(), p.vgNum, checkToo, { title: p.title });
+    toast(`✓ ${p.title}`);
+  } else if (/^\d{8,14}$/.test(text)) {
+    $('#scanMsg').textContent = t('lookingUp');
+    const name = await productName(text);
+    if (name && !similarNames(name, target.title) && !confirm(t('confirmScanMismatch', { scanned: name, listed: target.title }))) return;
+    store.setEan(code, target.id, myKey(), text, checkToo);
+    toast(`✓ ${target.title}`);
+  } else { toast(t('scanUnknown')); return; }
+  if (navigator.vibrate) navigator.vibrate(60);
+}
+async function handleCode(raw) {
   if (scanBusy) return; scanBusy = true;
   try {
+    const ean = String(raw).trim();
+    const n = vg ? vgNumFromCode(ean) : null, p = n && vg.lookup(n); // a VG shelf label carries the VG number
+    if (scanTarget) {
+      const target = state.items[scanTarget.id];
+      if (target) await scanForRow(ean, p, target);
+      closeScanner(); return;
+    }
+    if (p) { // add the labelled product (or find it on the list) and put it in the basket
+      let it = Object.values(state.items).find(i => i.vgNum === p.vgNum);
+      if (!it) { it = { id: uid(), title: p.title }; store.add(code, { id: it.id, title: p.title, vgNum: p.vgNum }, myKey()); }
+      if (!it.checked) { store.check(code, it.id, myKey(), true); toast(t('toastInBasket', { item: it.title })); }
+      else toast(t('toastAlready', { item: it.title }));
+      if (navigator.vibrate) navigator.vibrate(60);
+      closeScanner(); return;
+    }
     let it = Object.values(state.items).find(i => i.ean === ean);
     if (!it) {
       $('#scanMsg').textContent = t('lookingUp');
@@ -413,14 +458,14 @@ async function openScanner() {
       const det = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
       const loop = async () => {
         if (!scanStream) return;
-        try { const r = await det.detect(video); if (r[0]) return handleEan(r[0].rawValue); } catch (e) {}
+        try { const r = await det.detect(video); if (r[0]) return handleCode(r[0].rawValue); } catch (e) {}
         setTimeout(loop, 200);
       };
       loop();
     } else { // iOS/Safari etc.: load zxing on demand
       await loadZxing();
       zxingReader = new ZXing.BrowserMultiFormatReader();
-      zxingReader.decodeFromConstraints({ video: { facingMode: 'environment' } }, video, r => { if (r) handleEan(r.getText()); });
+      zxingReader.decodeFromConstraints({ video: { facingMode: 'environment' } }, video, r => { if (r) handleCode(r.getText()); });
     }
   } catch (e) {
     $('#scanMsg').textContent = t('cameraFail');
@@ -429,11 +474,11 @@ async function openScanner() {
 function closeScanner() {
   if (zxingReader) { zxingReader.reset(); zxingReader = null; }
   if (scanStream) { scanStream.getTracks().forEach(track => track.stop()); scanStream = null; }
-  $('#cam').srcObject = null; $('#scanner').classList.add('hide');
+  $('#cam').srcObject = null; $('#scanner').classList.add('hide'); scanTarget = null;
 }
-$('#scanBtn').onclick = openScanner;
+$('#scanBtn').onclick = () => { scanTarget = null; openScanner(); };
 $('#scanClose').onclick = closeScanner;
-$('#eanForm').onsubmit = e => { e.preventDefault(); const v = $('#eanIn').value.trim(); $('#eanIn').value = ''; if (/^\d{8,14}$/.test(v)) handleEan(v); };
+$('#eanForm').onsubmit = e => { e.preventDefault(); const v = $('#eanIn').value.trim(); $('#eanIn').value = ''; if (/^\d{8,14}$/.test(v)) handleCode(v); };
 
 /* ---------- Start / joining ---------- */
 function buildEmojis() {

@@ -212,3 +212,16 @@ test('the VG number of an item can be added, changed and removed without touchin
   await s.setNum(c, 'n1', A, 'abc', false);                        // garbage is ignored, no number
   assert.equal((await db.get(c, 'items/n1')).vgNum ?? null, null);
 });
+
+test('setEan remembers a scanned barcode on an item and can check it off', async () => {
+  const { s, db } = setup(); const c = await s.create();
+  await s.add(c, item('e1', 'Oat drink'), A);
+  await s.setEan(c, 'e1', A, '4056489123456', false);
+  let it = await db.get(c, 'items/e1');
+  assert.equal(it.ean, '4056489123456'); assert.equal(it.checked, false);
+  await s.setEan(c, 'e1', A, '4056489123456', true);
+  it = await db.get(c, 'items/e1');
+  assert.equal(it.checked, true); assert.equal((await db.get(c, 'scores'))[A], 1);
+  await s.setEan(c, 'e1', A, 'abc', false);                          // invalid codes are ignored
+  assert.equal((await db.get(c, 'items/e1')).ean, '4056489123456');
+});
