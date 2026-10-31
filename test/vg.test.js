@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import { buildIndex, cleanTitle, infoText, parseShareLink, decryptShared } from '../public/vg.js';
+import { buildIndex, isPlaceholder, cleanTitle, infoText, parseShareLink, decryptShared } from '../public/vg.js';
 
 // Load the vendor UMD file in its own context (provides CryptoJS)
 const sandbox = { crypto: globalThis.crypto };
@@ -49,4 +49,31 @@ test('deposit types are in the index', () => {
   const ix = buildIndex({ ...raw, deposits: [{ id: 1, name: 'Flasche Schraubver.', vgNum: 2009 }] });
   assert.deepEqual(ix.deposits, [{ id: 1, name: 'Flasche Schraubver.', vgNum: 2009 }]);
   assert.deepEqual(buildIndex(raw).deposits, []);
+});
+
+test('name suggestions collapse duplicate names; the number is only kept when the name is unambiguous', () => {
+  const ix = buildIndex({
+    products: [[1100, 'Äpfel', 2, 1, 1, 0], [1101, 'Äpfel', 2, 1, 1, 0], [1102, 'Apfelsaft', 3, 1, 1, 0], [1102, 'Apfelsaft', 3, 1, 1, 0], [1200, 'Birnen', 2, 1, 1, 0]],
+    man: { 1: 'Hof' }, countries: { 1: 'Deutschland' }, units: { 2: 'kg', 3: 'Stück' },
+  });
+  const names = ix.searchNames('äpfel');
+  assert.deepEqual(names, [{ title: 'Äpfel', vgNum: null, count: 2 }]);            // two products, shown once, no number
+  const juice = ix.searchNames('apfelsaft');
+  assert.deepEqual(juice, [{ title: 'Apfelsaft', vgNum: 1102, count: 1 }]);        // same number twice counts once
+  assert.deepEqual(ix.titleInfo('Äpfel'), { title: 'Äpfel', vgNum: null });
+  assert.deepEqual(ix.titleInfo(' birnen '), { title: 'Birnen', vgNum: 1200 });
+  assert.equal(ix.titleInfo('Kirschen'), null);
+  assert.equal(ix.searchNames('zzz').length, 0);
+  assert.equal(ix.searchNames('', 6).length, 0);
+});
+
+test('placeholder entries (unused number slots) are not offered as products', () => {
+  assert.ok(isPlaceholder('unbesetzt Backwaren') && isPlaceholder('RESERVIERT -NICHT VERWENDEN') && isPlaceholder('  Reserviert Bistro'));
+  assert.ok(!isPlaceholder('Reformationsbrot') && !isPlaceholder('Tee unbesetzt'));
+  const ix = buildIndex({ products: [[1300, 'unbesetzt Backwaren', 2, 1, 1, 0], [1301, 'RESERVIERT -NICHT VERWENDEN', 2, 1, 1, 0], [1302, 'Reformationsbrot', 2, 1, 1, 0]],
+    man: { 1: 'Hof' }, countries: { 1: 'Deutschland' }, units: { 2: 'kg' } });
+  assert.equal(ix.lookup(1300), null);
+  assert.deepEqual(ix.searchByNumber('130').map(p => p.vgNum), [1302]);
+  assert.deepEqual(ix.searchNames('unbesetzt'), []);
+  assert.equal(ix.size, 1);
 });

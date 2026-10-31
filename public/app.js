@@ -138,6 +138,13 @@ document.addEventListener('click', e => {
     $('#addIn').value = ''; $('#addIn').dispatchEvent(new Event('input'));
     return;
   }
+  const sn = e.target.closest('[data-sugname]');
+  if (sn) { // a suggested name was tapped: add it right away (with its VG number if the name is unambiguous)
+    const p = vg && vg.titleInfo(sn.dataset.sugname);
+    if (p) store.add(code, { id: uid(), title: p.title, vgNum: p.vgNum }, myKey());
+    $('#addIn').value = ''; $('#addIn').dispatchEvent(new Event('input'));
+    return;
+  }
   const kr = e.target.closest('[data-checkout]');
   if (kr) { const k = kr.dataset.checkout; checkoutDone.has(k) ? checkoutDone.delete(k) : checkoutDone.add(k); renderCheckout(); return; }
   const dadd = e.target.closest('[data-dep-add]'), dsub = e.target.closest('[data-dep-sub]');
@@ -159,10 +166,10 @@ document.addEventListener('submit', e => {
 $('#addForm').onsubmit = e => {
   e.preventDefault();
   const v = $('#addIn').value.trim(); if (!v) return;
-  $('#addIn').value = ''; $('#addSuggest').classList.add('hide'); $('#vgSug').innerHTML = '';
+  $('#addIn').value = ''; $('#addSuggest').classList.add('hide');
   if (parseShareLink(v)) return openImport(v); // a share link from the original app was pasted
   const isNum = /^\d+$/.test(v);
-  const p = vg && (isNum ? vg.lookup(v) : vg.byTitle(v));
+  const p = vg && (isNum ? vg.lookup(v) : vg.titleInfo(v));
   if (p) store.add(code, { id: uid(), title: p.title, vgNum: p.vgNum }, myKey());
   else store.add(code, { id: uid(), title: isNum ? t('vgPlaceholderTitle', { n: v }) : v, vgNum: isNum ? +v : null }, myKey());
   if (isNum && !p) toast(vg ? t('vgNotInDb', { n: v }) : t('vgNotLoaded'));
@@ -194,20 +201,19 @@ applyMode(false);
   bar.addEventListener('pointerdown', e => { if (e.target.closest('button') && e.target.id !== 'scanBtn') e.preventDefault(); });
 }
 
-// While typing: names -> suggestions without numbers, number -> product preview
+// While typing: tappable suggestions (names without numbers, or products for typed digits)
 $('#addIn').oninput = () => {
   if (numMode) $('#addIn').value = $('#addIn').value.replace(/\D/g, '');
   const q = $('#addIn').value.trim(), box = $('#addSuggest');
   const isNum = /^\d+$/.test(q);
-  $('#vgSug').innerHTML = vg && q.length >= 2 && !isNum
-    ? vg.search(q).map(p => `<option value="${esc(p.title)}"></option>`).join('') : '';
-  // From three digits on: a tappable list of matching products (tap = add it)
-  const rows = vg && isNum && q.length >= 3 ? vg.searchByNumber(q) : [];
-  const miss = vg && isNum && q.length >= 4 && !rows.length;
-  box.classList.toggle('hide', !rows.length && !miss);
-  box.innerHTML = rows.length
-    ? rows.map(p => `<button type="button" class="sug" data-sug="${esc(p.vgNum)}"><b>${esc(p.vgNum)}</b><span>${esc(p.title)}</span></button>`).join('')
-    : miss ? `<span class="miss">${esc(t('noVgMatch'))}</span>` : '';
+  // Tappable list, tap = add the item: from three digits on for numbers, from two letters on for names (no duplicates)
+  const nums = vg && isNum && q.length >= 3 ? vg.searchByNumber(q) : [];
+  const names = vg && !isNum && q.length >= 2 ? vg.searchNames(q) : [];
+  const miss = vg && isNum && q.length >= 4 && !nums.length;
+  box.classList.toggle('hide', !nums.length && !names.length && !miss);
+  box.innerHTML = nums.map(p => `<button type="button" class="sug" data-sug="${esc(p.vgNum)}"><b>${esc(p.vgNum)}</b><span>${esc(p.title)}</span></button>`).join('')
+    + names.map(p => `<button type="button" class="sug" data-sugname="${esc(p.title)}"><span>${esc(p.title)}</span></button>`).join('')
+    + (miss ? `<span class="miss">${esc(t('noVgMatch'))}</span>` : '');
 };
 
 /* ---------- Import from the original VG app ---------- */

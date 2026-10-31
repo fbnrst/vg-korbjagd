@@ -13,11 +13,14 @@ const getJson = async name => JSON.parse(await get(name));
 // "Voll- milchschokolade" -> "Vollmilchschokolade", "Schafmilch- Joghurt" -> "Schafmilch-Joghurt"
 export const cleanTitle = t => String(t).replace(/- (?=[A-ZÄÖÜ])/g, '-').replace(/- (?=[a-zäöüß])/g, '').replace(/\s+/g, ' ').trim();
 
+// About a fifth of the VG list are unused number slots ("unbesetzt …", "RESERVIERT …"): not real products
+export const isPlaceholder = title => /^(unbesetzt|reserviert)\b/i.test(String(title).trim());
+
 export function buildIndex(raw) {
   const { products, man, countries, units } = raw;
   const deposits = raw.deposits || [];
   const byNum = new Map();
-  const list = products.map(([vgNum, title, unitID, manID, countryID, regional]) => {
+  const list = products.filter(p => !isPlaceholder(p[1])).map(([vgNum, title, unitID, manID, countryID, regional]) => {
     const p = { vgNum, title: cleanTitle(title), unit: units[unitID] || '', manufacturer: man[manID] || '',
       country: countries[countryID] || '', regional: !!regional };
     p.key = p.title.toLowerCase();
@@ -34,6 +37,18 @@ export function buildIndex(raw) {
       const hits = list.filter(x => byNum.get(x.vgNum) === x && String(x.vgNum).startsWith(p));
       hits.sort((a, b) => (String(b.vgNum) === p) - (String(a.vgNum) === p) || a.vgNum - b.vgNum);
       return hits.slice(0, limit);
+    },
+    // Name suggestions without duplicates: products with the same name collapse into one entry.
+    // vgNum is only set when the name is unambiguous (otherwise the user adds the number later).
+    searchNames(q, limit = 6) {
+      const hits = this.search(q, Infinity).filter(p => byNum.get(p.vgNum) === p), groups = new Map();
+      for (const p of hits) { const g = groups.get(p.key); if (g) g.count++; else groups.set(p.key, { title: p.title, vgNum: p.vgNum, count: 1 }); }
+      return [...groups.values()].slice(0, limit).map(g => ({ title: g.title, vgNum: g.count === 1 ? g.vgNum : null, count: g.count }));
+    },
+    // Exact name -> the same shape as searchNames (number only if unambiguous), or null
+    titleInfo(t) {
+      const key = String(t).trim().toLowerCase(), same = list.filter(p => p.key === key && byNum.get(p.vgNum) === p);
+      return same.length ? { title: same[0].title, vgNum: same.length === 1 ? same[0].vgNum : null } : null;
     },
     byTitle: t => list.find(p => p.key === String(t).trim().toLowerCase()) || null,
     search(q, limit = 8) {

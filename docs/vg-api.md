@@ -18,6 +18,8 @@ Beispiele:
     getProductList.php   -> [{"id":1,"vgNum":7900,"unitID":2,"manufacturerID":158,"countryID":31,"title":"Fruchtwürfel- mischung","isRegional":0}, …]
     getChecksums.php     -> [{"table":"d02fcebe.countries","checksum":3053541427}, …]
 
+Rund ein Fünftel der Einträge (1904 von 9034, Stand 2026-10-31) sind keine echten Produkte, sondern unbenutzte Nummernplätze mit Titeln wie „unbesetzt …“ oder „RESERVIERT …“. Die App filtert sie in `public/vg.js` (`isPlaceholder`) aus Suche und Nummernerkennung.
+
 Verknüpfung: `product.unitID` → Units, `product.manufacturerID` → Manufacturers, `product.countryID` → Countries. Produkte haben **keine EAN**, nur die VG-Nummer.
 
 Antworten sind JSON, kommen aber mit `Content-Type: text/html`.
