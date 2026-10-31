@@ -5,8 +5,47 @@
     "lists": {
       "$code": {
         ".read": true,
-        ".write": true,
-        ".validate": "$code.matches(/^[A-Z0-9]{6}$/)"
+        ".validate": "$code.matches(/^[A-Z0-9]{6}$/) && newData.hasChildren(['meta'])",
+        "meta": {
+          ".write": "!data.exists()",
+          ".validate": "newData.hasChildren(['created'])",
+          "created": { ".validate": "newData.isNumber() && newData.val() > 0" },
+          "$other": { ".validate": false }
+        },
+        "items": {
+          ".write": true,
+          "$id": {
+            ".validate": "$id.matches(/^[A-Za-z0-9_-]{1,40}$/) && newData.hasChildren(['id', 'title', 'amount', 'checked', 'addedBy', 'addedAt'])",
+            "id": { ".validate": "newData.isString() && newData.val() === $id" },
+            "title": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 120" },
+            "amount": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 999 && newData.val() % 1 === 0" },
+            "unit": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 20" },
+            "info": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 200" },
+            "vgNum": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 9999999 && newData.val() % 1 === 0" },
+            "ean": { ".validate": "newData.isString() && newData.val().matches(/^[0-9]{8,14}$/)" },
+            "checked": { ".validate": "newData.isBoolean()" },
+            "checkedBy": { ".validate": "newData.isString() && newData.val().length <= 60 && newData.val().matches(/^[^ <>&\"'`]{1,20} [^<>&\"'`]{1,30}$/)" },
+            "checkedAt": { ".validate": "newData.isNumber() && newData.val() > 0" },
+            "addedBy": { ".validate": "newData.isString() && newData.val().length <= 60 && newData.val().matches(/^[^ <>&\"'`]{1,20} [^<>&\"'`]{1,30}$/)" },
+            "addedAt": { ".validate": "newData.isNumber() && newData.val() > 0" },
+            "$other": { ".validate": false }
+          }
+        },
+        "scores": {
+          ".write": true,
+          "$user": {
+            ".validate": "$user.length <= 60 && $user.matches(/^[^ <>&\"'`]{1,20} [^<>&\"'`]{1,30}$/) && newData.isNumber() && newData.val() >= 0 && newData.val() <= 100000 && newData.val() % 1 === 0"
+          }
+        },
+        "deposit": {
+          ".write": true,
+          "$typ": {
+            "$user": {
+              ".validate": "$typ.matches(/^[A-Za-z0-9_-]{1,20}$/) && $user.length <= 60 && $user.matches(/^[^ <>&\"'`]{1,20} [^<>&\"'`]{1,30}$/) && newData.isNumber() && newData.val() >= 1 && newData.val() <= 100000 && newData.val() % 1 === 0"
+            }
+          }
+        },
+        "$other": { ".validate": false }
       }
     }
   }
