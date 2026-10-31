@@ -161,6 +161,8 @@ document.addEventListener('click', e => {
   }
   const kr = e.target.closest('[data-checkout]');
   if (kr) { const k = kr.dataset.checkout; checkoutDone.has(k) ? checkoutDone.delete(k) : checkoutDone.add(k); renderCheckout(); return; }
+  const ss = e.target.closest('[data-scansug]');
+  if (ss) { $('#eanIn').value = ''; $('#eanIn').dispatchEvent(new Event('input')); handleCode(`VG ${ss.dataset.scansug}`, { manualNumber: true }); return; }
   const sr = e.target.closest('[data-scanrow]');
   if (sr) { scanTarget = { id: sr.dataset.scanrow, checkToo: sr.dataset.checktoo === '1' }; openScanner(); return; }
   const en = e.target.closest('[data-editnum]');
@@ -176,6 +178,12 @@ document.addEventListener('input', e => {
   const f = e.target.closest('[data-vg]');
   if (f) f.querySelector('.rowbtn.ok').disabled = !(parseInt(e.target.value, 10) > 0);
 });
+// A typed number whose product has a completely different name than the item (apple vs. orange): ask first.
+// Placeholder entries have no real name, so they are accepted without a question.
+function numberFits(p, n, item) {
+  if (!p || !item || p.placeholder || similarNames(p.title, item.title)) return true;
+  return confirm(t('confirmNumberMismatch', { n, product: p.title, listed: item.title }));
+}
 document.addEventListener('submit', e => {
   const fe = e.target.closest('[data-vgedit]');
   if (fe) { // change, add or (empty field) remove the VG number of an item; the basket state stays as it is
@@ -183,6 +191,7 @@ document.addEventListener('submit', e => {
     const raw = fe.querySelector('input').value.trim(), v = parseInt(raw, 10);
     if (raw && !(v > 0)) return;
     const id = fe.dataset.vgedit, p = raw && vg ? vg.lookup(v) : null;
+    if (!numberFits(p, v, state.items[id])) return; // keep editing so the number can be corrected
     editingId = null;
     store.setNum(code, id, myKey(), raw ? v : null, false, p ? { title: p.title } : {});
     if (raw) toast(p ? `✓ ${p.title}` : t(vg ? 'vgNotInDb' : 'vgSaved', { n: v }));
@@ -195,6 +204,7 @@ document.addEventListener('submit', e => {
   const v = parseInt(f.querySelector('input').value, 10);
   if (!(v > 0)) return;
   const p = vg && vg.lookup(v);
+  if (!numberFits(p, v, state.items[f.dataset.vg])) return; // the field keeps the typed number
   store.setNum(code, f.dataset.vg, myKey(), v, true, p ? { title: p.title } : {}); // entering the number puts it in the basket
   toast(p ? `✓ ${p.title}` : t(vg ? 'vgNotInDb' : 'vgSaved', { n: v }));
 });
@@ -230,7 +240,7 @@ function applyMode(focus) {
 $('#modeBtn').onclick = () => { numMode = !numMode; LS.set('numMode', numMode); applyMode(true); };
 applyMode(false);
 
-// Keyboard: while typing, the app shell is exactly as high as the visible area (iOS pans the visual viewport and
+// Keyboard: while typing, the app shell (and the dialogs/scanner overlay) is exactly as high as the visible area (iOS pans the visual viewport and
 // overlays the keyboard, Chrome/Android resize the page). The header stays on top, the list stays anchored at the top and
 // loses space at the bottom, the input bar sits right above the keyboard, the tab bar is hidden.
 {
@@ -240,11 +250,13 @@ applyMode(false);
     document.body.style.setProperty('--app-h', Math.round(vv.height) + 'px');
     document.body.style.setProperty('--vvtop', Math.max(0, Math.round(vv.offsetTop)) + 'px');
   };
-  $('#addIn').addEventListener('focus', () => { document.body.classList.add('typing'); place(); });
-  $('#addIn').addEventListener('blur', () => setTimeout(() => {
-    if (document.activeElement === $('#addIn')) return;
+  // Any text field counts: the input bar, the number fields on the rows, and the fields in the dialogs and the scanner
+  const isTextField = el => el && el.tagName === 'INPUT' && !['radio', 'checkbox', 'button', 'submit'].includes(el.type);
+  document.addEventListener('focusin', e => { if (isTextField(e.target)) { document.body.classList.add('typing'); place(); } });
+  document.addEventListener('focusout', e => { if (isTextField(e.target)) setTimeout(() => {
+    if (isTextField(document.activeElement)) return;
     document.body.classList.remove('typing'); document.body.style.removeProperty('--app-h'); document.body.style.removeProperty('--vvtop');
-  }, 100));
+  }, 100); });
   if (vv) { const follow = () => { if (document.body.classList.contains('typing')) place(); }; vv.addEventListener('resize', follow); vv.addEventListener('scroll', follow); }
   // buttons in the bar must not steal focus, otherwise the keyboard closes
   bar.addEventListener('pointerdown', e => { if (e.target.closest('button') && e.target.id !== 'scanBtn') e.preventDefault(); });
@@ -411,12 +423,15 @@ async function productName(ean) {
 // Check off a known item, otherwise create it and put it in the basket right away
 // Scan for one list item (button on the row): a VG label sets its number, an ordinary barcode is remembered on the item.
 // If the scanned product is named completely differently, ask first.
-async function scanForRow(text, p, target) {
+async function scanForRow(text, p, target, n, manualNumber) {
   const checkToo = scanTarget.checkToo && !target.checked;
   if (p) {
-    if (!similarNames(p.title, target.title) && !confirm(t('confirmScanMismatch', { scanned: p.title, listed: target.title }))) return;
+    if (!p.placeholder && !similarNames(p.title, target.title) && !confirm(t('confirmScanMismatch', { scanned: p.title, listed: target.title }))) return;
     store.setNum(code, target.id, myKey(), p.vgNum, checkToo, { title: p.title });
     toast(`✓ ${p.title}`);
+  } else if (manualNumber && n) { // a typed VG number that is not in the database: keep it anyway, like in the input bar
+    store.setNum(code, target.id, myKey(), n, checkToo, {});
+    toast(t('vgNotInDb', { n }));
   } else if (/^\d{8,14}$/.test(text)) {
     $('#scanMsg').textContent = t('lookingUp');
     const name = await productName(text);
@@ -426,14 +441,14 @@ async function scanForRow(text, p, target) {
   } else { toast(t('scanUnknown')); return; }
   if (navigator.vibrate) navigator.vibrate(60);
 }
-async function handleCode(raw) {
+async function handleCode(raw, opts = {}) {
   if (scanBusy) return; scanBusy = true;
   try {
     const ean = String(raw).trim();
     const n = vg ? vgNumFromCode(ean) : null, p = n && vg.lookup(n); // a VG shelf label carries the VG number
     if (scanTarget) {
       const target = state.items[scanTarget.id];
-      if (target) await scanForRow(ean, p, target);
+      if (target) await scanForRow(ean, p, target, n, opts.manualNumber);
       closeScanner(); return;
     }
     if (p) { // add the labelled product (or find it on the list) and put it in the basket
@@ -443,6 +458,11 @@ async function handleCode(raw) {
       else toast(t('toastAlready', { item: it.title }));
       if (navigator.vibrate) navigator.vibrate(60);
       closeScanner(); return;
+    }
+    if (opts.manualNumber && n) { // a typed VG number that is not in the database: add it with a placeholder name
+      const it = { id: uid(), title: t('vgPlaceholderTitle', { n }) };
+      store.add(code, { id: it.id, title: it.title, vgNum: n }, myKey()); store.check(code, it.id, myKey(), true);
+      toast(t('vgNotInDb', { n })); closeScanner(); return;
     }
     let it = Object.values(state.items).find(i => i.ean === ean);
     if (!it) {
@@ -484,10 +504,27 @@ function closeScanner() {
   if (zxingReader) { zxingReader.reset(); zxingReader = null; }
   if (scanStream) { scanStream.getTracks().forEach(track => track.stop()); scanStream = null; }
   $('#cam').srcObject = null; $('#scanner').classList.add('hide'); scanTarget = null;
+  $('#eanIn').value = ''; $('#scanSuggest').classList.add('hide');
 }
 $('#scanBtn').onclick = () => { scanTarget = null; openScanner(); };
 $('#scanClose').onclick = closeScanner;
-$('#eanForm').onsubmit = e => { e.preventDefault(); const v = $('#eanIn').value.trim(); $('#eanIn').value = ''; if (/^\d{8,14}$/.test(v)) handleCode(v); };
+// Suggestions under the manual field of the scanner dialog (VG numbers from three digits on, tap = use it)
+$('#eanIn').oninput = () => {
+  const q = $('#eanIn').value.trim(), box = $('#scanSuggest');
+  const rows = vg && /^\d{3,7}$/.test(q) ? vg.searchByNumber(q) : [];
+  const miss = vg && /^\d{4,7}$/.test(q) && !rows.length && !vg.lookup(q);
+  box.classList.toggle('hide', !rows.length && !miss);
+  box.innerHTML = rows.map(p => `<button type="button" class="sug" data-scansug="${esc(p.vgNum)}"><b>${esc(p.vgNum)}</b><span>${esc(p.title)}</span></button>`).join('')
+    + (miss ? `<span class="miss">${esc(t('noVgMatch'))}</span>` : '');
+};
+// Manual entry in the scanner dialog: 1-7 digits are a VG number, 8-14 digits a barcode number
+$('#eanForm').onsubmit = e => {
+  e.preventDefault();
+  const v = $('#eanIn').value.trim(); $('#eanIn').value = '';
+  if (/^\d{1,7}$/.test(v)) handleCode(`VG ${v}`, { manualNumber: true });
+  else if (/^\d{8,14}$/.test(v)) handleCode(v);
+  else $('#scanMsg').textContent = t('scanUnknown');
+};
 
 /* ---------- Start / joining ---------- */
 function buildEmojis() {

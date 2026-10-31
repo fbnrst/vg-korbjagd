@@ -59,9 +59,9 @@ body.typing .tabs{display:none}
 .item.done .chk{background:var(--fill)}
 .item.done .t{text-decoration:line-through;color:var(--mute)}
 .t{flex:1;min-width:84px;overflow-wrap:anywhere}#addSuggest{display:flex;flex-direction:column;gap:6px;margin-bottom:8px;max-height:32vh;overflow:auto}
-#addSuggest .sug{display:flex;gap:12px;align-items:baseline;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;color:var(--fg);font:inherit}
-#addSuggest .sug b{min-width:48px;color:var(--green);font-variant-numeric:tabular-nums}
-#addSuggest .miss{padding:6px 4px;color:var(--mute);font-size:14px}
+#addSuggest .sug,#scanSuggest .sug{display:flex;gap:12px;align-items:baseline;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;color:var(--fg);font:inherit}
+#addSuggest .sug b,#scanSuggest .sug b{min-width:48px;color:var(--green);font-variant-numeric:tabular-nums}
+#addSuggest .miss,#scanSuggest .miss{padding:6px 4px;color:var(--mute);font-size:14px}
 .dep{display:flex;align-items:center;gap:10px;padding:3px 0;border-bottom:1px solid var(--line)}.dep:last-child{border:0}.dep .t{flex:1}.dep .n{min-width:28px;text-align:center;font-weight:700;font-size:18px}.dep button{width:34px;height:34px;border-radius:50%;border:2px solid var(--green);background:none;color:var(--fg);font-size:22px;line-height:1}.dep button.add{background:var(--fill);color:var(--on-fill)}
 .ks{margin-bottom:8px;padding:8px 12px}.ks h3{margin:0 0 2px;font-size:12px;color:var(--mute);text-transform:uppercase;letter-spacing:.5px}.kr{display:flex;align-items:center;gap:10px;padding:7px 4px;border-bottom:1px solid var(--line);cursor:pointer}.kr:last-child{border:0}.kr .nm{flex:1;min-width:0;overflow-wrap:anywhere}.kr .nm small{color:var(--mute);margin-left:6px}.kr .no{font-size:21px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}.kr .no small{font-size:15px;font-weight:400;color:var(--mute)}.kr.off{opacity:.35}.kr.off .nm{text-decoration:line-through}
 #codeIn::placeholder{text-transform:none}
@@ -90,10 +90,11 @@ body.typing .tabs{display:none}
 #toast.show{transform:translateX(-50%) translateY(0)}
 .muted{color:var(--mute)}.hide{display:none!important}
 .big{font-size:22px;letter-spacing:4px;font-weight:700}
-#shareDlg,#importDlg,#resetDlg{position:fixed;inset:0;z-index:30;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px}
+#shareDlg,#importDlg,#resetDlg{position:fixed;left:0;right:0;top:var(--vvtop,0px);height:var(--app-h,100dvh);z-index:30;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px}
 #qr svg{width:100%;max-width:260px;height:auto;background:#fff;border-radius:10px}
-#scanner{position:fixed;inset:0;z-index:30;background:#000;color:#fff;display:flex;flex-direction:column;align-items:center;gap:12px;padding:16px}
+#scanner{position:fixed;left:0;right:0;top:var(--vvtop,0px);height:var(--app-h,100dvh);z-index:30;background:#000;color:#fff;display:flex;flex-direction:column;align-items:center;gap:12px;padding:16px}
 #scanner video{width:100%;max-width:520px;flex:1;min-height:0;object-fit:cover;border-radius:14px}
+#scanSuggest{display:flex;flex-direction:column;gap:6px;width:100%;max-width:520px;max-height:30%;overflow:auto}
 #scanFrame{position:absolute;top:30%;left:50%;width:70%;max-width:340px;height:90px;transform:translateX(-50%);border:3px solid #8cff6a;border-radius:12px;pointer-events:none}
 #scanMsg{margin:0;text-align:center}
 #eanForm{width:100%;max-width:520px}
@@ -150,6 +151,7 @@ body.typing .tabs{display:none}
   <video id="cam" playsinline muted></video>
   <div id="scanFrame"></div>
   <p id="scanMsg">Hold the barcode inside the frame</p>
+  <div id="scanSuggest" class="hide"></div>
   <form id="eanForm" class="row"><input type="number" id="eanIn" inputmode="numeric" placeholder="Enter code manually"><button class="btn">OK</button></form>
   <button class="btn sec" id="scanClose" type="button">Close</button>
 </div>

@@ -106,15 +106,31 @@ export function vgNumFromCode(text) {
   return Number.isInteger(n) && n >= 1 && n <= 9999999 ? n : null;
 }
 
-// Do two product names look like the same thing? True if they share a word (or the start of one), or one contains
-// the other. Used to ask before a scan changes an item whose name is completely different.
-export function similarNames(a, b) {
-  const norm = s => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ß/g, 'ss');
-  const words = s => norm(s).split(/[^a-z0-9]+/).filter(w => w.length >= 3);
-  const wa = words(a), wb = words(b);
-  if (!wa.length || !wb.length) return true; // nothing to compare: do not bother the user
-  return wa.some(x => wb.some(y => x.includes(y) || y.includes(x) || (x.length >= 4 && y.length >= 4 && x.slice(0, 4) === y.slice(0, 4))));
+// How alike are two product names (0..1)? The best match between any two words, as the Dice coefficient of their
+// letter pairs, after dropping umlauts/case, tiny words, numbers and generic words like "Bio". Plural and spelling
+// variants score high (Tomate/Tomaten 0.91, Äpfel/Apfel 1), compounds and different products low
+// (Apfel/Apfelsaft 0.67, Apfel/Orange 0). Nothing to compare (empty, only numbers) counts as 1: do not bother the user.
+const GENERIC = new Set(['bio', 'frisch', 'frische', 'regional', 'natur', 'naturell', 'stueck', 'packung', 'mini', 'maxi', 'gross', 'klein']);
+const normName = s => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ß/g, 'ss');
+const nameWords = s => normName(s).split(/[^a-z0-9]+/).filter(w => w.length >= 3 && !GENERIC.has(w) && !/^\d+$/.test(w));
+function dice(a, b) {
+  if (a === b) return 1;
+  const pairs = s => { const m = new Map(); for (let i = 0; i < s.length - 1; i++) { const k = s.slice(i, i + 2); m.set(k, (m.get(k) || 0) + 1); } return m; };
+  const A = pairs(a), B = pairs(b); let common = 0;
+  for (const [k, n] of A) common += Math.min(n, B.get(k) || 0);
+  const total = (a.length - 1) + (b.length - 1);
+  return total > 0 ? 2 * common / total : 0;
 }
+export function nameSimilarity(a, b) {
+  const wa = nameWords(a), wb = nameWords(b);
+  if (!wa.length || !wb.length) return 1;
+  let best = 0;
+  for (const x of wa) for (const y of wb) best = Math.max(best, dice(x, y));
+  return best;
+}
+// Below this the app asks "is that really the same product?"
+export const SIMILAR_ENOUGH = 0.75;
+export const similarNames = (a, b) => nameSimilarity(a, b) >= SIMILAR_ENOUGH;
 
 /* ---------- Import lists from the original VG app ---------- */
 // Share link of the original app: https://app.vg-dresden.de/list?shareId=123#KEY

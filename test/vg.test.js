@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import { vgNumFromCode, similarNames, buildIndex, isPlaceholder, cleanTitle, infoText, parseShareLink, decryptShared } from '../public/vg.js';
+import { vgNumFromCode, similarNames, nameSimilarity, buildIndex, isPlaceholder, cleanTitle, infoText, parseShareLink, decryptShared } from '../public/vg.js';
 
 // Load the vendor UMD file in its own context (provides CryptoJS)
 const sandbox = { crypto: globalThis.crypto };
@@ -89,12 +89,13 @@ test('VG numbers are read from shelf label codes like in the original app', () =
   assert.equal(vgNumFromCode(''), null);
 });
 
-test('similarNames only objects to completely different names', () => {
-  assert.ok(similarNames('Vollmilchpulver 1kg', 'Milchpulver'));    // one contains the other
-  assert.ok(similarNames('Äpfel', 'Apfel Elstar'));                  // umlauts and shared start
-  assert.ok(similarNames('Balsamico', 'Balsamessig'));               // same first four letters
-  assert.ok(similarNames('Weißkohl', 'Weisskohl Frankreich'));       // ß
-  assert.ok(similarNames('', 'Brot'));                               // nothing to compare
-  assert.ok(!similarNames('Datteln', 'Reformationsbrot'));
-  assert.ok(!similarNames('Milch', 'Zucchini'));
+test('similarNames lets alike names pass and asks for different products', () => {
+  const same = [['Äpfel', 'Apfel Elstar'], ['Weißkohl', 'Weisskohl Frankreich'], ['Tomate', 'Tomaten'], ['Zwiebel', 'Zwiebel rot'],
+    ['Kartoffeln', 'Kartoffel festkochend'], ['Datteln', 'Dattel Deglet Nour'], ['Vollmilchpulver 1kg', 'Milchpulver'], ['Bio Apfel', 'Apfel Elstar'],
+    ['', 'Brot'], ['VG no. 123', 'Brot'], ['Ei', 'Eier']];
+  for (const [x, y] of same) assert.ok(similarNames(x, y), `${x} ~ ${y} should pass without a question (${nameSimilarity(x, y).toFixed(2)})`);
+  const different = [['Apfel', 'Orange'], ['Apfel', 'Orangensaft'], ['Apfel', 'Apfelsaft'], ['Milch', 'Vollmilchschokolade'],
+    ['Bio Apfel', 'Bio Orange'], ['Datteln', 'Reformationsbrot'], ['Milch', 'Zucchini']];
+  for (const [x, y] of different) assert.ok(!similarNames(x, y), `${x} vs ${y} should be questioned (${nameSimilarity(x, y).toFixed(2)})`);
+  assert.equal(nameSimilarity('Apfel', 'Apfel'), 1);
 });
