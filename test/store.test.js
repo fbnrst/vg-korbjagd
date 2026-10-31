@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { createStore, localAdapter, userKey } from '../public/store.js';
+import { createStore, localAdapter, userKey, isUserKey } from '../public/store.js';
 
 const mem = () => { const m = {}; return { getItem: k => m[k] ?? null, setItem: (k, v) => { m[k] = v; } }; };
 const setup = () => { const db = localAdapter(mem(), false); return { db, s: createStore(db) }; };
@@ -102,4 +102,27 @@ test('Neue Runde zählt Leergut mit, Leergut leeren behält Punkte', async () =>
   await s.clearDeposit(c);
   assert.equal(await db.get(c, 'deposit'), null);
   assert.equal((await db.get(c, 'scores'))[A], 2);
+});
+
+test('Validierung: Müll-Eingaben werden verworfen oder entschärft', async () => {
+  const { s, db } = setup(); const c = await s.create();
+  assert.equal(await s.add(c, item('', 'x'), A), null);
+  assert.equal(await s.add(c, item('"><img onerror=x>', 'x'), A), null);
+  assert.equal(await s.add(c, item('ok', 'x'), '<svg/onload=alert(1)> x'), null);
+  await s.add(c, item('t', 'T'.repeat(500), { amount: 1e9, unit: 'u'.repeat(99), info: 'i'.repeat(999), ean: 'abc', vgNum: 'NaN' }), A);
+  const it = (await db.get(c, 'items/t'));
+  assert.equal(it.title.length, 120); assert.equal(it.amount, 999); assert.equal(it.unit.length, 20);
+  assert.equal(it.info.length, 200); assert.equal(it.ean, null); assert.equal(it.vgNum, null);
+  await s.setNum(c, 't', A, '12.4abc', false);
+  assert.equal((await db.get(c, 'items/t')).vgNum, null);
+  await s.depositAdd(c, '<x>', A);
+  assert.equal(await db.get(c, 'deposit'), null);
+});
+
+test('userKey: HTML- und Firebase-Sonderzeichen ersetzt, Länge begrenzt, gültiger Schlüssel', () => {
+  const k = userKey('<b>', 'A&B"C\'.$#[]/ ' + 'x'.repeat(99));
+  assert.ok(isUserKey(k), k);
+  assert.ok(!/[<>&"'`.$#\[\]\/]/.test(k));
+  assert.ok(isUserKey(userKey('', '')));
+  assert.ok(!isUserKey('<img onerror=1> x') && !isUserKey('nospace'));
 });

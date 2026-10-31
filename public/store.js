@@ -2,8 +2,17 @@
 // Adapter-Schnittstelle: subscribe(code, cb, onStatus) -> unsubscribe, get(code, path),
 // update(code, path, fn) -> {committed} (Transaktion; fn gibt undefined zurück = abbrechen, null = löschen),
 // set(code, path, value), remove(code, path).
-const BAD = /[.$#\[\]\/]/g;
-export const userKey = (emoji, name) => `${emoji} ${name}`.replace(BAD, '_');
+// Firebase-Schlüsselzeichen und HTML-Sonderzeichen (Schlüssel landen im Rendering) werden ersetzt.
+// Muss zu den Regeln in database.rules.json passen: "<Emoji ohne Leerzeichen> <Name>", höchstens 60 Zeichen.
+const BAD = /[.$#\[\]\/<>&"'`\u0000-\u001f]/g;
+export const userKey = (emoji, name) => {
+  const e = String(emoji ?? '').replace(BAD, '_').replace(/\s+/g, '').slice(0, 20) || '🙂';
+  const n = String(name ?? '').replace(BAD, '_').replace(/\s+/g, ' ').trim().slice(0, 30) || '_';
+  return `${e} ${n}`;
+};
+export const isUserKey = k => typeof k === 'string' && k.length <= 60 && /^[^ <>&"'`]{1,20} [^<>&"'`]{1,30}$/.test(k);
+export const isId = k => typeof k === 'string' && /^[A-Za-z0-9_-]{1,40}$/.test(k);
+const toNum = v => { const n = Math.round(Number(v)); return Number.isFinite(n) && n >= 1 && n <= 9999999 ? n : null; };
 
 export async function firebaseAdapter(cfg) {
   const V = '10.14.1';
@@ -70,7 +79,7 @@ export function localAdapter(storage = globalThis.localStorage, listen = true) {
 }
 
 export function createStore(db) {
-  const bump = (code, key, d) => key ? db.update(code, `scores/${key}`, n => Math.max(0, (n || 0) + d)) : null;
+  const bump = (code, key, d) => isUserKey(key) ? db.update(code, `scores/${key}`, n => Math.min(100000, Math.max(0, (n || 0) + d))) : null;
   const CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   const randCode = () => Array.from({ length: 6 }, () => CHARS[Math.floor(Math.random() * CHARS.length)]).join('');
   return {
@@ -83,16 +92,17 @@ export function createStore(db) {
       return code;
     },
     async exists(code) { return !!(await db.get(code, 'meta')); },
-    join: (code, user) => db.update(code, `scores/${user}`, n => (n == null ? 0 : undefined)),
+    join: (code, user) => !isUserKey(user) ? null : db.update(code, `scores/${user}`, n => (n == null ? 0 : undefined)),
     add(code, item, user) {
       const title = String(item.title || '').trim().slice(0, 120);
-      if (!title || !item.id) return null;
+      if (!title || !isId(item.id) || !isUserKey(user)) return null;
       return db.update(code, `items/${item.id}`, old => old ? undefined : {
         id: item.id, title, amount: item.amount > 1 ? Math.min(999, Math.round(item.amount)) : 1, unit: item.unit ? String(item.unit).slice(0, 20) : null,
-        info: item.info ? String(item.info).slice(0, 200) : null, vgNum: item.vgNum || null, ean: /^\d{8,14}$/.test(item.ean) ? item.ean : null,
+        info: item.info ? String(item.info).slice(0, 200) : null, vgNum: toNum(item.vgNum), ean: /^\d{8,14}$/.test(item.ean) ? item.ean : null,
         checked: false, checkedBy: null, checkedAt: null, addedBy: user, addedAt: Date.now() });
     },
     async check(code, id, user, want) {
+      if (!isId(id) || !isUserKey(user)) return;
       let prev;
       const r = await db.update(code, `items/${id}`, old => {
         prev = old;
@@ -104,11 +114,13 @@ export function createStore(db) {
     // VG-Nummer nachtragen; mit checkToo landet der Artikel dabei im Korb
     // extra: {title, info} aus der VG-Datenbank; der Titel ersetzt nur den Platzhalter "VG-Nr. 123"
     async setNum(code, id, user, vgNum, checkToo, extra = {}) {
+      if (!isId(id) || !isUserKey(user)) return;
+      vgNum = toNum(vgNum);
       let newlyChecked = false;
       await db.update(code, `items/${id}`, old => {
         newlyChecked = false;
         if (!old) return undefined;
-        const next = { ...old, vgNum: vgNum || null };
+        const next = { ...old, vgNum };
         if (extra.info) next.info = String(extra.info).slice(0, 200);
         if (extra.title && /^VG-Nr\. \d+$/.test(old.title)) next.title = String(extra.title).slice(0, 120);
         if (checkToo && !old.checked) { next.checked = true; next.checkedBy = user; next.checkedAt = Date.now(); newlyChecked = true; }
@@ -123,11 +135,13 @@ export function createStore(db) {
     },
     // Leergut: deposit/<Typ>/<Nutzer> = Stück. Jedes Stück gibt dem, der es einträgt, einen Punkt.
     async depositAdd(code, typeId, user) {
+      if (!/^[A-Za-z0-9_-]{1,20}$/.test(String(typeId)) || !isUserKey(user)) return;
       const r = await db.update(code, `deposit/${typeId}/${user}`, n => (n || 0) + 1);
       if (r.committed) await bump(code, user, 1);
     },
     // Weniger: erst eigene Stücke, sonst die des größten Beitragenden (Punkt geht dort wieder ab)
     async depositRemove(code, typeId, user) {
+      if (!/^[A-Za-z0-9_-]{1,20}$/.test(String(typeId))) return;
       const group = (await db.get(code, `deposit/${typeId}`)) || {};
       const victim = group[user] > 0 ? user : Object.keys(group).sort((a, b) => group[b] - group[a])[0];
       if (!victim) return;
