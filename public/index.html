@@ -48,7 +48,7 @@ input[type=text],input[type=number]{width:100%;padding:10px 12px;border:1px soli
 #toast.show{transform:translateX(-50%) translateY(0)}
 .muted{color:var(--mute)}.hide{display:none!important}
 .big{font-size:22px;letter-spacing:4px;font-weight:700}
-#shareDlg{position:fixed;inset:0;z-index:30;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px}
+#shareDlg,#importDlg{position:fixed;inset:0;z-index:30;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px}
 #qr svg{width:100%;max-width:260px;height:auto;background:#fff;border-radius:10px}
 #scanner{position:fixed;inset:0;z-index:30;background:#000;color:#fff;display:flex;flex-direction:column;align-items:center;gap:12px;padding:16px}
 #scanner video{width:100%;max-width:520px;flex:1;min-height:0;object-fit:cover;border-radius:14px}
@@ -71,6 +71,15 @@ input[type=text],input[type=number]{width:100%;padding:10px 12px;border:1px soli
     <div id="qr"></div>
     <p class="big" id="shareCode" style="margin:10px 0"></p>
     <div class="row" style="justify-content:center"><button class="btn sec" id="shareLink" type="button">Link senden</button><button class="btn" id="shareClose" type="button">Fertig</button></div>
+  </div>
+</div>
+<div id="importDlg" class="hide">
+  <div class="card" style="max-width:380px;width:100%">
+    <h2 style="margin:0 0 4px">Liste aus der VG-App</h2>
+    <p class="muted" style="margin:0 0 10px">In der VG-App die Liste teilen und den Link hier einfügen. Die Artikel kommen offen (nicht abgehakt) in diese Liste.</p>
+    <input type="text" id="importIn" placeholder="https://app.vg-dresden.de/list?shareId=…#…" autocomplete="off">
+    <p id="importMsg" class="muted" style="margin:8px 0"></p>
+    <div class="row" style="justify-content:flex-end"><button class="btn sec" id="importClose" type="button">Schließen</button><button class="btn" id="importGo" type="button">Importieren</button></div>
   </div>
 </div>
 <div id="scanner" class="hide">
@@ -100,13 +109,14 @@ input[type=text],input[type=number]{width:100%;padding:10px 12px;border:1px soli
   <!-- Liste -->
   <section id="vList" class="hide">
     <form id="addForm" class="card row">
-      <input type="text" id="addIn" placeholder="Artikel oder VG-Nummer …" autocomplete="off">
+      <input type="text" id="addIn" placeholder="Artikel oder VG-Nummer …" autocomplete="off" list="vgSug"><datalist id="vgSug"></datalist>
       <button class="btn sec" type="button" id="scanBtn" aria-label="Barcode scannen">📷</button>
       <button class="btn">+</button>
     </form>
     <div class="card" id="items"></div>
-    <div class="row">
+    <div class="row" style="flex-wrap:wrap">
       <button class="btn sec" id="clearBtn">Erledigte entfernen</button>
+      <button class="btn sec" id="importBtn" title="Liste aus der VG-App holen">📥 VG-App</button>
       <span class="muted" id="count" style="margin-left:auto"></span>
     </div>
   </section>

@@ -20,16 +20,24 @@ Beispiele:
 
 Verknüpfung: `product.unitID` → Units, `product.manufacturerID` → Manufacturers, `product.countryID` → Countries. Produkte haben **keine EAN**, nur die VG-Nummer.
 
-Antworten sind JSON, kommen aber mit `Content-Type: text/html` und **ohne CORS-Header**. Browser können die Endpunkte daher nicht direkt abrufen, ein Server muss sie weiterreichen (die Original-App empfiehlt für die Entwicklung eine CORS-Erweiterung).
+Antworten sind JSON, kommen aber mit `Content-Type: text/html`.
+
+**CORS:** Sobald der Browser einen `Origin`-Header mitschickt, antworten die Endpunkte (auch auf den `OPTIONS`-Preflight) mit `access-control-allow-origin: *`. Ein einfacher `curl` ohne `Origin` zeigt den Header nicht, das hatte uns zunächst getäuscht. Browser-Apps können die Daten also direkt abrufen, ein Proxy ist nicht nötig. Umgesetzt in `public/vg.js` (Cache im `localStorage`, Aktualisierung über die Prüfsummen).
 
 ## Aktualisierung über Prüfsummen
 
 Die App ruft zuerst `getChecksums.php` ab, vergleicht je Tabelle mit der lokal gespeicherten Prüfsumme und lädt nur geänderte Listen neu. Zuordnung Tabelle → Endpunkt: `manufacturers`, `countries`, `vg-products`, `units`, `deposit`.
 
-## Schreibende Endpunkte (nicht abgefragt)
+## Geteilte Listen der Original-App
 
-Die App ruft außerdem `shareList.php`, `getSharedList.php` und `sendFeedback.php` auf (Listen teilen/importieren, Feedback). Sie wurden bewusst nicht ausprobiert; Details siehe Quelltext der Original-App.
+Die Original-App teilt Listen als Link `https://app.vg-dresden.de/list?shareId=<ID>#<SCHLÜSSEL>`.
 
-## Pläne für vg-korbjagd
+- `getSharedList.php` (POST, JSON `{"shareId": "<ID>"}`) liefert den Text der Liste.
+- Der Text ist mit CryptoJS-AES (Passphrase-Modus) verschlüsselt. Der Schlüssel steht nur im Link-Fragment (`#…`) und geht nie an den Server.
+- Entschlüsselt ergibt sich ein JSON-Array von `{title, id, amount, unit?, vgNum?, country?, checked, date, hasVgNum, order}`.
 
-Proxy mit Zwischenspeicher (z. B. Cloudflare Worker, da die App keinen eigenen Server mehr hat) (z. B. 24 h plus Prüfsummenvergleich) und Verknüpfung mit der VG-Nummer-Eingabe (Titel, Einheit, Hersteller, Land automatisch eintragen, Pfand). Noch nicht umgesetzt.
+vg-korbjagd importiert solche Links (Knopf „📥 VG-App“ oder Link ins Eingabefeld einfügen), siehe `fetchSharedList` / `decryptShared` in `public/vg.js`.
+
+## Weitere Endpunkte (nicht abgefragt)
+
+`shareList.php` (Liste teilen, schreibt auf den VG-Server) und `sendFeedback.php` wurden bewusst nicht ausprobiert. Eine Liste aus vg-korbjagd an die Original-App zu schicken wäre über `shareList.php` technisch möglich, schreibt aber auf den VG-Server und ist deshalb nicht umgesetzt.

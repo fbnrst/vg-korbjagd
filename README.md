@@ -26,10 +26,12 @@ Ohne Firebase-Konfiguration läuft die App im Demo-Modus: Daten nur im Browser, 
 
 Technik: Listenlogik in `public/store.js` (Firebase- und lokaler Adapter), Oberfläche in `public/app.js`. Abhaken läuft als Transaktion, damit zwei gleichzeitige Klicks nur einen Punkt geben. Firebase puffert Aktionen offline und sendet sie nach.
 
-Nicht enthalten: VG-Produktdatenbank, Pfand. Die VG-Endpunkte sind in [docs/vg-api.md](docs/vg-api.md) beschrieben.
+**VG-Nummern:** Die App lädt die VG-Stammdaten direkt vom VG-Server und erkennt Nummern (Eingabe oder Nr.-Feld an einem Artikel): Titel, Einheit, Hersteller und Land werden eingetragen, beim Tippen gibt es Vorschläge. **Import:** Teilen-Link aus der Original-VG-App im Knopf „📥 VG-App“ (oder im Eingabefeld) einfügen, die Artikel kommen offen in die Liste. Details und Endpunkte: [docs/vg-api.md](docs/vg-api.md).
+
+Nicht enthalten: Pfand.
 
 ## Lizenz
 
 BSD 3-Clause, siehe [LICENSE](LICENSE). Die VG-Daten (siehe `docs/vg-api.md`) gehören der VG Dresden und sind nicht Teil dieser Lizenz.
 
-Enthaltene Fremdsoftware: `public/vendor/qrcode.js` (qrcode-generator 1.4.4, Kazuhiko Arase, MIT-Lizenz, Hinweis steht im Dateikopf).
+Enthaltene Fremdsoftware (MIT, Hinweise in den Dateiköpfen): `public/vendor/qrcode.js` (qrcode-generator 1.4.4), `public/vendor/crypto-js.js` (CryptoJS 4.2.0).

@@ -1,5 +1,6 @@
 import firebaseConfig from './firebase-config.js';
 import { createStore, firebaseAdapter, localAdapter, userKey } from './store.js';
+import { loadVg, infoText, parseShareLink, fetchSharedList } from './vg.js';
 
 const $ = s => document.querySelector(s);
 const EMOJIS = ['🦊','🐼','🐯','🦄','🐸','🐙','🦖','🚀','⭐','🍓','🐵','🦁'];
@@ -9,7 +10,7 @@ const LS = { get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; 
 const me = LS.get('me', { name: '', emoji: EMOJIS[0] });
 let code = (new URLSearchParams(location.search).get('list') || LS.get('code', '') || '').toUpperCase();
 let state = { items: {}, scores: {} };
-let store = null, unsub = null, first = true;
+let store = null, unsub = null, first = true, vg = null;
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
@@ -47,11 +48,11 @@ function render() {
   const items = Object.values(state.items).sort((a, b) => (a.checked - b.checked) || ((a.addedAt || 0) - (b.addedAt || 0)));
   $('#items').innerHTML = items.length ? items.map(i => {
     const by = i.checked && i.checkedBy ? `<span class="badge">${esc(i.checkedBy)}</span>` : '';
-    const vg = i.vgNum ? `VG-Nr. ${i.vgNum}` : '';
+    const sub = [i.vgNum ? `VG-Nr. ${i.vgNum}` : '', i.info].filter(Boolean).join(' · ');
     const vgIn = i.vgNum ? '' : `<form data-vg="${i.id}"><input class="vg" type="number" inputmode="numeric" placeholder="Nr."></form>`;
     return `<div class="item ${i.checked ? 'done' : ''}">
       <button class="chk" data-chk="${i.id}" aria-label="abhaken">${i.checked ? '✓' : ''}</button>
-      <div class="t">${esc(i.title)}<small>${vg}</small></div>${by}${vgIn}
+      <div class="t">${i.amount > 1 ? `${i.amount}${i.unit ? ' ' + esc(i.unit) : '×'} ` : ''}${esc(i.title)}<small>${esc(sub)}</small></div>${by}${vgIn}
       <button class="x" data-del="${i.id}" aria-label="löschen">×</button></div>`;
   }).join('') : '<p class="muted" style="text-align:center">Noch nichts auf der Liste.</p>';
   const done = items.filter(i => i.checked).length;
@@ -79,14 +80,64 @@ document.addEventListener('submit', e => {
   if (!f) return;
   e.preventDefault();
   const v = parseInt(f.querySelector('input').value, 10);
-  if (v > 0) store.setNum(code, f.dataset.vg, myKey(), v, true); // Nummer eingeben = im Korb
+  if (!(v > 0)) return;
+  const p = vg && vg.lookup(v);
+  store.setNum(code, f.dataset.vg, myKey(), v, true, p ? { title: p.title, info: infoText(p) } : {}); // Nummer eingeben = im Korb
+  toast(p ? `✓ ${p.title}` : vg ? `VG-Nr. ${v} nicht in der VG-Datenbank` : `VG-Nr. ${v} gespeichert (VG-Daten nicht geladen)`);
 });
 $('#addForm').onsubmit = e => {
   e.preventDefault();
   const v = $('#addIn').value.trim(); if (!v) return;
-  const isNum = /^\d+$/.test(v);
-  store.add(code, { id: uid(), title: isNum ? `VG-Nr. ${v}` : v, vgNum: isNum ? +v : null }, myKey());
   $('#addIn').value = '';
+  if (parseShareLink(v)) return openImport(v); // Teilen-Link der Original-App eingefügt
+  const isNum = /^\d+$/.test(v);
+  const p = vg && (isNum ? vg.lookup(v) : vg.byTitle(v));
+  if (p) store.add(code, { id: uid(), title: p.title, vgNum: p.vgNum, unit: null, info: infoText(p) }, myKey());
+  else store.add(code, { id: uid(), title: isNum ? `VG-Nr. ${v}` : v, vgNum: isNum ? +v : null }, myKey());
+  if (isNum && !p) toast(vg ? `VG-Nr. ${v} nicht in der VG-Datenbank` : 'VG-Daten noch nicht geladen');
+};
+// Vorschläge aus der VG-Datenbank beim Tippen
+$('#addIn').oninput = () => {
+  const q = $('#addIn').value.trim();
+  $('#vgSug').innerHTML = vg && q.length >= 2 && !/^\d+$/.test(q)
+    ? vg.search(q).map(p => `<option value="${esc(p.title)}">VG ${p.vgNum}</option>`).join('') : '';
+};
+
+/* ---------- Import aus der Original-VG-App ---------- */
+let CryptoJSP = null;
+function loadCrypto() {
+  if (window.CryptoJS) return Promise.resolve(window.CryptoJS);
+  return CryptoJSP = CryptoJSP || new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = new URL('vendor/crypto-js.js', import.meta.url).href;
+    s.onload = () => res(window.CryptoJS); s.onerror = rej; document.head.appendChild(s);
+  });
+}
+function openImport(text = '') {
+  $('#importDlg').classList.remove('hide'); $('#importIn').value = text; $('#importMsg').textContent = '';
+  if (text) $('#importGo').click();
+}
+$('#importBtn').onclick = () => openImport();
+$('#importClose').onclick = () => $('#importDlg').classList.add('hide');
+$('#importGo').onclick = async () => {
+  const link = parseShareLink($('#importIn').value), msg = $('#importMsg');
+  if (!link) { msg.textContent = 'Das sieht nicht nach einem Teilen-Link der VG-App aus (…/list?shareId=123#…).'; return; }
+  msg.textContent = 'Lade Liste …';
+  try {
+    const items = await fetchSharedList(await loadCrypto(), link);
+    const have = new Set(Object.values(state.items).map(i => i.title.toLowerCase()));
+    let added = 0;
+    for (const it of items) {
+      const p = vg && it.vgNum ? vg.lookup(it.vgNum) : null;
+      const title = it.title;
+      if (have.has(title.toLowerCase())) continue;
+      have.add(title.toLowerCase());
+      store.add(code, { id: uid(), title, vgNum: it.vgNum, amount: it.amount, unit: it.unit, info: p ? infoText(p) : null }, myKey());
+      added++;
+    }
+    msg.textContent = `${added} von ${items.length} Artikeln übernommen${added < items.length ? ' (Rest war schon auf der Liste)' : ''}.`;
+    toast(`${added} Artikel aus der VG-App importiert`);
+  } catch (e) { msg.textContent = 'Liste konnte nicht geladen werden (Link abgelaufen oder falsch?).'; }
 };
 $('#clearBtn').onclick = () => { if (confirm('Alle abgehakten Artikel entfernen?')) store.clearChecked(code); };
 $('#resetBtn').onclick = () => { if (confirm('Rangliste für eine neue Runde zurücksetzen?')) store.resetScores(code); };
@@ -223,6 +274,7 @@ async function init() {
   store = createStore(firebaseConfig ? await firebaseAdapter(firebaseConfig) : localAdapter());
   if (store.mode === 'local') $('#demoBanner').classList.remove('hide');
   render();
+  loadVg().then(v => { vg = v; }).catch(() => {});
   if (code && me.name && await store.exists(code).catch(() => false)) startList();
   else { $('#vWelcome').classList.remove('hide'); $('#codeIn').value = code; }
 }

@@ -88,7 +88,8 @@ export function createStore(db) {
       const title = String(item.title || '').trim().slice(0, 120);
       if (!title || !item.id) return null;
       return db.update(code, `items/${item.id}`, old => old ? undefined : {
-        id: item.id, title, amount: 1, vgNum: item.vgNum || null, ean: /^\d{8,14}$/.test(item.ean) ? item.ean : null,
+        id: item.id, title, amount: item.amount > 1 ? Math.min(999, Math.round(item.amount)) : 1, unit: item.unit ? String(item.unit).slice(0, 20) : null,
+        info: item.info ? String(item.info).slice(0, 200) : null, vgNum: item.vgNum || null, ean: /^\d{8,14}$/.test(item.ean) ? item.ean : null,
         checked: false, checkedBy: null, checkedAt: null, addedBy: user, addedAt: Date.now() });
     },
     async check(code, id, user, want) {
@@ -101,12 +102,15 @@ export function createStore(db) {
       if (r.committed) await bump(code, want ? user : prev.checkedBy, want ? 1 : -1);
     },
     // VG-Nummer nachtragen; mit checkToo landet der Artikel dabei im Korb
-    async setNum(code, id, user, vgNum, checkToo) {
+    // extra: {title, info} aus der VG-Datenbank; der Titel ersetzt nur den Platzhalter "VG-Nr. 123"
+    async setNum(code, id, user, vgNum, checkToo, extra = {}) {
       let newlyChecked = false;
       await db.update(code, `items/${id}`, old => {
         newlyChecked = false;
         if (!old) return undefined;
         const next = { ...old, vgNum: vgNum || null };
+        if (extra.info) next.info = String(extra.info).slice(0, 200);
+        if (extra.title && /^VG-Nr\. \d+$/.test(old.title)) next.title = String(extra.title).slice(0, 120);
         if (checkToo && !old.checked) { next.checked = true; next.checkedBy = user; next.checkedAt = Date.now(); newlyChecked = true; }
         return next;
       });
