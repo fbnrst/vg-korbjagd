@@ -1,0 +1,53 @@
+# Configuration of `prek` (https://prek.j178.dev): install the git hook with `prek install`, run everything with
+# `prek run --all-files`. The same hooks run in GitHub Actions (.github/workflows/autofix.yml).
+#:schema https://www.schemastore.org/prek.json
+
+exclude = "^public/vendor/"
+
+# File hygiene: prek's own built-in hooks, nothing to download
+[[repos]]
+repo = "builtin"
+hooks = [
+  { id = "trailing-whitespace" },
+  { id = "end-of-file-fixer" },
+  { id = "mixed-line-ending" },
+  { id = "check-merge-conflict" },
+  { id = "check-json" },
+  { id = "check-yaml" },
+  { id = "check-added-large-files", args = ["--maxkb=600"] },
+  { id = "detect-private-key" },
+]
+
+# Our own hooks. Nothing relies on tools installed on the machine: prek provides Go (gitleaks) and Node itself.
+[[repos]]
+repo = "local"
+hooks = [
+  # Secrets: the whole working tree on every run, locally and in CI. The hook that gitleaks ships scans only staged
+  # changes, which finds nothing in CI.
+  {
+    id = "gitleaks",
+    name = "Secrets (gitleaks, whole tree)",
+    language = "golang",
+    additional_dependencies = ["github.com/zricethezav/gitleaks/v8@v8.30.1"],
+    entry = "gitleaks dir --config .gitleaks.toml --redact --no-banner",
+    pass_filenames = false,
+    always_run = true,
+  },
+  {
+    id = "node-check",
+    name = "JavaScript syntax (node --check)",
+    language = "node",
+    language_version = "24",
+    entry = "node --check",
+    files = '^public/.*\.js$',
+  },
+  {
+    id = "node-test",
+    name = "Tests (node --test)",
+    language = "node",
+    language_version = "24",
+    entry = "node --test",
+    pass_filenames = false,
+    always_run = true,
+  },
+]
