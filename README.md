@@ -4,13 +4,15 @@ Eine unabhängige, inoffizielle Einkaufslisten-App mit Live-Sync zwischen Handys
 
 Kein eigener Server nötig: statische Seite (GitHub Pages) + Firebase Realtime Database (Gratis-Stufe).
 
-## Benutzung
-1. Name + Emoji wählen, „Neue Liste starten“.
-2. „Teilen“ zeigt einen QR-Code zum Scannen (plus Code und „Link senden“ als Alternative).
-3. Artikel eintippen (reine Zahl = VG-Nummer) oder per 📷 Barcode scannen. Abhaken oder VG-Nummer eintragen legt den Artikel in den Korb, alle sehen es sofort mit dem Namen des Abhakers.
-4. Tab „Rangliste“: Punkte pro Artikel im Korb, „Neue Runde“ setzt zurück.
+## Funktionen
+- Gemeinsame Liste mit Live-Sync, Beitritt per QR-Code oder 6-stelligem Code
+- Artikel per Text, VG-Nummer (mit Produkterkennung aus den VG-Stammdaten) oder Barcode-Scanner (Open Food Facts)
+- Import von Listen der Original-VG-App (Teilen-Link)
+- Abhaken legt Artikel in den Korb, alle sehen, wer es war
+- Reiter Leergut (Pfand-Stücke zählen), Kasse (Artikel mit VG-Nummern, Bildschirm bleibt an) und Rangliste (Punkte fürs Abhaken und pro Leergut-Stück, „Neue Runde“)
+- Installierbar als PWA; Demo-Modus ohne Firebase
 
-Scanner: bekannter Artikel (gleicher Code oder Name) wird abgehakt, sonst neu angelegt (Name via Open Food Facts) und abgehakt. Kamera braucht HTTPS (GitHub Pages) oder localhost. Chrome/Android nutzt BarcodeDetector, Safari lädt zxing von jsDelivr nach.
+Dokumentation: [Anleitung für Eltern und Kinder](docs/anleitung.md) · [Architektur](docs/architecture.md) · [VG-Endpunkte](docs/vg-api.md)
 
 ## Lokal ausprobieren (Demo-Modus)
     npm start      # http://localhost:3000
@@ -24,11 +26,7 @@ Ohne Firebase-Konfiguration läuft die App im Demo-Modus: Daten nur im Browser, 
 3. Unter *Projekteinstellungen → Allgemein → Web-App hinzufügen* die Konfiguration kopieren und in `public/firebase-config.js` eintragen (öffentliche Kennungen, keine Geheimnisse).
 4. Auf GitHub unter *Settings → Pages → Source: GitHub Actions* stellen. Jeder Push auf `main` testet und veröffentlicht `public/` (`.github/workflows/pages.yml`).
 
-Technik: Listenlogik in `public/store.js` (Firebase- und lokaler Adapter), Oberfläche in `public/app.js`. Abhaken läuft als Transaktion, damit zwei gleichzeitige Klicks nur einen Punkt geben. Firebase puffert Aktionen offline und sendet sie nach.
-
-**VG-Nummern:** Die App lädt die VG-Stammdaten direkt vom VG-Server und erkennt Nummern (Eingabe oder Nr.-Feld an einem Artikel): Titel, Einheit, Hersteller und Land werden eingetragen, beim Tippen gibt es Vorschläge. **Import:** Teilen-Link aus der Original-VG-App im Knopf „📥 VG-App“ (oder im Eingabefeld) einfügen, die Artikel kommen offen in die Liste. Details und Endpunkte: [docs/vg-api.md](docs/vg-api.md).
-
-Nicht enthalten: Pfand.
+Technik, Datenmodell und Offline-Verhalten: [docs/architecture.md](docs/architecture.md). Die VG-Daten werden direkt vom VG-Server geladen, Endpunkte in [docs/vg-api.md](docs/vg-api.md).
 
 ## Lizenz
 
