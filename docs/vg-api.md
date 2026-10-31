@@ -18,7 +18,7 @@ Beispiele:
     getProductList.php   -> [{"id":1,"vgNum":7900,"unitID":2,"manufacturerID":158,"countryID":31,"title":"Fruchtwürfel- mischung","isRegional":0}, …]
     getChecksums.php     -> [{"table":"d02fcebe.countries","checksum":3053541427}, …]
 
-Rund ein Fünftel der Einträge (1904 von 9034, Stand 2026-10-31) sind keine echten Produkte, sondern unbenutzte Nummernplätze mit Titeln wie „unbesetzt …“ oder „RESERVIERT …“. Die App filtert sie in `public/vg.js` (`isPlaceholder`) aus Suche und Nummernerkennung.
+Rund ein Fünftel der Einträge (1904 von 9034, Stand 2026-10-31) sind keine echten Produkte, sondern unbenutzte Nummernplätze mit Titeln wie „unbesetzt …“ oder „RESERVIERT …“. Die App schlägt sie nie vor (`isPlaceholder` in `public/vg.js`, weder bei Namen noch bei Nummern). Eine vollständig getippte Nummer wird trotzdem angenommen, falls der Laden sie benutzt, obwohl die Datenbank „unbesetzt“ sagt; der Artikel heißt dann so wie der Eintrag (z. B. „unbesetzt Backwaren“).
 
 Verknüpfung: `product.unitID` → Units, `product.manufacturerID` → Manufacturers, `product.countryID` → Countries. Produkte haben **keine EAN**, nur die VG-Nummer.
 

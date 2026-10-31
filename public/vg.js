@@ -13,20 +13,26 @@ const getJson = async name => JSON.parse(await get(name));
 // "Voll- milchschokolade" -> "Vollmilchschokolade", "Schafmilch- Joghurt" -> "Schafmilch-Joghurt"
 export const cleanTitle = t => String(t).replace(/- (?=[A-ZÄÖÜ])/g, '-').replace(/- (?=[a-zäöüß])/g, '').replace(/\s+/g, ' ').trim();
 
-// About a fifth of the VG list are unused number slots ("unbesetzt …", "RESERVIERT …"): not real products
-export const isPlaceholder = title => /^(unbesetzt|reserviert)\b/i.test(String(title).trim());
+// About a fifth of the VG list are unused number slots ("unbesetzt …", "RESERVIERT …"): never suggested
+export const isPlaceholder = title => /\bunbesetzt/i.test(String(title)) || /^reserviert\b/i.test(String(title).trim());
 
 export function buildIndex(raw) {
   const { products, man, countries, units } = raw;
   const deposits = raw.deposits || [];
   const byNum = new Map();
-  const list = products.filter(p => !isPlaceholder(p[1])).map(([vgNum, title, unitID, manID, countryID, regional]) => {
+  const all = products.map(([vgNum, title, unitID, manID, countryID, regional]) => {
     const p = { vgNum, title: cleanTitle(title), unit: units[unitID] || '', manufacturer: man[manID] || '',
       country: countries[countryID] || '', regional: !!regional };
     p.key = p.title.toLowerCase();
-    if (!byNum.has(vgNum)) byNum.set(vgNum, p);
+    p.placeholder = isPlaceholder(p.title);
+    // A real product wins over a placeholder with the same number
+    const known = byNum.get(vgNum);
+    if (!known || (known.placeholder && !p.placeholder)) byNum.set(vgNum, p);
     return p;
   });
+  // Placeholders stay findable by their exact number (the shop may use a number the database calls "unbesetzt"),
+  // but they are never suggested: all searches below use the list without them.
+  const list = all.filter(p => !p.placeholder);
   return {
     size: list.length,
     deposits,

@@ -209,7 +209,7 @@ $('#addIn').oninput = () => {
   // Tappable list, tap = add the item: from three digits on for numbers, from two letters on for names (no duplicates)
   const nums = vg && isNum && q.length >= 3 ? vg.searchByNumber(q) : [];
   const names = vg && !isNum && q.length >= 2 ? vg.searchNames(q) : [];
-  const miss = vg && isNum && q.length >= 4 && !nums.length;
+  const miss = vg && isNum && q.length >= 4 && !nums.length && !vg.lookup(q); // an exact placeholder number is accepted silently
   box.classList.toggle('hide', !nums.length && !names.length && !miss);
   box.innerHTML = nums.map(p => `<button type="button" class="sug" data-sug="${esc(p.vgNum)}"><b>${esc(p.vgNum)}</b><span>${esc(p.title)}</span></button>`).join('')
     + names.map(p => `<button type="button" class="sug" data-sugname="${esc(p.title)}"><span>${esc(p.title)}</span></button>`).join('')

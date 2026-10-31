@@ -67,13 +67,18 @@ test('name suggestions collapse duplicate names; the number is only kept when th
   assert.equal(ix.searchNames('', 6).length, 0);
 });
 
-test('placeholder entries (unused number slots) are not offered as products', () => {
-  assert.ok(isPlaceholder('unbesetzt Backwaren') && isPlaceholder('RESERVIERT -NICHT VERWENDEN') && isPlaceholder('  Reserviert Bistro'));
-  assert.ok(!isPlaceholder('Reformationsbrot') && !isPlaceholder('Tee unbesetzt'));
-  const ix = buildIndex({ products: [[1300, 'unbesetzt Backwaren', 2, 1, 1, 0], [1301, 'RESERVIERT -NICHT VERWENDEN', 2, 1, 1, 0], [1302, 'Reformationsbrot', 2, 1, 1, 0]],
+test('placeholder entries (unused number slots) are never suggested but their exact number still resolves', () => {
+  assert.ok(isPlaceholder('unbesetzt Backwaren') && isPlaceholder('RESERVIERT -NICHT VERWENDEN') && isPlaceholder('  Reservierung Bistro'.replace('Reservierung', 'Reserviert')));
+  assert.ok(isPlaceholder('Trocken 19% Unbesetzt') && isPlaceholder('Hanfsemmel (unbesetzt?)'));   // the word anywhere in the title
+  assert.ok(!isPlaceholder('Reformationsbrot') && !isPlaceholder('Reservierungsgebühr Tee'));
+  const ix = buildIndex({ products: [[1300, 'unbesetzt Backwaren', 2, 1, 1, 0], [1301, 'RESERVIERT -NICHT VERWENDEN', 2, 1, 1, 0], [1302, 'Reformationsbrot', 2, 1, 1, 0],
+      [1400, 'unbesetzt', 2, 1, 1, 0], [1400, 'Echtes Brot', 2, 1, 1, 0]],
     man: { 1: 'Hof' }, countries: { 1: 'Deutschland' }, units: { 2: 'kg' } });
-  assert.equal(ix.lookup(1300), null);
-  assert.deepEqual(ix.searchByNumber('130').map(p => p.vgNum), [1302]);
-  assert.deepEqual(ix.searchNames('unbesetzt'), []);
-  assert.equal(ix.size, 1);
+  assert.equal(ix.lookup(1300).title, 'unbesetzt Backwaren');                       // typed number is still accepted
+  assert.equal(ix.lookup('1301').title, 'RESERVIERT -NICHT VERWENDEN');
+  assert.equal(ix.lookup(1400).title, 'Echtes Brot');                               // a real product wins over a placeholder
+  assert.deepEqual(ix.searchByNumber('130').map(p => p.vgNum), [1302]);              // not suggested by number ...
+  assert.deepEqual(ix.searchNames('unbesetzt'), []);                                // ... nor by name
+  assert.equal(ix.titleInfo('unbesetzt Backwaren'), null);
+  assert.equal(ix.size, 2);
 });
