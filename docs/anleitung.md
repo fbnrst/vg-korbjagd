@@ -1,35 +1,54 @@
 # Anleitung: Korbjagd
 
-Eine gemeinsame Einkaufsliste für die Familie. Alle sehen sofort, was auf der Liste steht und wer etwas in den Korb gelegt hat. Wer am meisten einpackt, steht in der Rangliste oben.
+Eine Einkaufsliste für die Familie. Du sammelst die Wünsche die Woche über auf deinem Handy, ganz ohne Anmeldung. Wenn es zum Einkaufen geht, teilst du die Liste: Dann sehen alle sofort, was auf der Liste steht und wer etwas in den Korb gelegt hat. Wer am meisten einpackt, steht in der Rangliste oben.
 
-## Liste starten
-1. Seite öffnen, deinen **Namen** eingeben und ein **Emoji** wählen.
-2. **Neue Liste starten** tippen. Fertig.
+## Die Woche über: Liste auf dem Handy
+Seite öffnen und loslegen: Die Liste liegt zunächst nur auf deinem Handy. Du brauchst weder Namen noch Emoji, und sie funktioniert auch ohne Netz. Oben steht der Korbzähler, z. B. „🛒 2/7“ (2 von 7 Artikeln im Korb). Eine Rangliste gibt es auf der lokalen Liste noch nicht.
 
-## Einer Liste beitreten
-- **Per QR-Code:** Auf dem ersten Handy oben auf **Teilen** tippen. Das zweite Handy scannt den Code mit der Kamera, gibt den Namen ein und ist drin.
-- **Per Code oder Link:** Im Teilen-Fenster steht auch der 6-stellige Code. Er wird beim Start unter „oder einer Liste beitreten“ eingegeben. „Link senden“ verschickt einen Link, der direkt zur Liste führt.
+## Zum Einkaufen: Liste teilen
+1. Oben auf **Teilen** tippen (Pfeil aus dem Kasten) und **Liste teilen** wählen.
+2. Beim ersten Mal fragt die App nach deinem **Namen** und einem **Emoji**.
+3. Die App lädt deine Liste hoch, entfernt die lokale Kopie und zeigt dir gleich QR-Code und Code zum Weitergeben. Für Artikel, die schon auf der Liste stehen oder abgehakt sind, gibt es keine Punkte; das Spiel beginnt mit dem Teilen.
 
-Wer den Code kennt, kann die Liste ansehen und ändern. Gib ihn nur Leuten, die mitmachen sollen.
+Die anderen treten so bei:
+- **Per QR-Code:** Das zweite Handy scannt den Code mit der Kamera, gibt den Namen ein und ist drin.
+- **Per Link:** **Link senden** verschickt einen Link, der direkt zur Liste führt.
+- **Per Code:** Auf einer noch lokalen Liste im Teilen-Fenster unter „oder einer Liste beitreten“ den 6-stelligen Code eintippen und **Los** drücken.
+
+Wer den Code kennt, kann die Liste ansehen, ändern und löschen. Gib ihn nur Leuten, die mitmachen sollen.
 
 ## Artikel hinzufügen
 - **Text:** Namen eintippen und **+** tippen. Beim Tippen schlägt die App Produkte der VG vor.
-- **VG-Nummer:** Nur die Zahl eintippen. Die App zeigt das Produkt darunter an. Mit dem Schalter **123** erscheint die Zahlentastatur.
+- **VG-Nummer:** Nur die Zahl eintippen. Ab drei Ziffern erscheint eine Liste passender Produkte; ein Tipp darauf legt das Produkt gleich auf die Liste. Mit dem Schalter **123** erscheint die Zahlentastatur.
 - **Barcode:** **📷** tippen und den Strichcode in den Rahmen halten (Kamera erlauben). Der Artikel landet gleich im Korb. Geht die Kamera nicht, kann man die Zahl unter dem Bild eintippen.
-- **Aus der VG-App:** In der VG-App die Liste teilen, den Link kopieren und hier mit **📥 VG-App** einfügen (oder direkt ins Eingabefeld). Die Artikel kommen offen auf die Liste; was schon darauf steht, wird übersprungen.
+- **Aus der VG-App:** In der VG-App die Liste teilen, den Link kopieren und hier einfügen, entweder ins Eingabefeld oder über **Zurücksetzen** (Kreispfeil oben) und **📥 Aus der VG-App importieren**. Die Artikel kommen offen auf die Liste; was schon darauf steht, wird übersprungen.
 - **Nummer nachtragen:** Artikel ohne Nummer haben ein kleines Feld „Nr.“. Nummer eingeben legt den Artikel auch in den Korb.
 
 ## Abhaken und Punkte
-Den Kreis links neben dem Artikel antippen: Der Artikel wandert nach unten zu „Im Korb“ und du bekommst **einen Punkt**. Nochmal antippen nimmt ihn zurück, dann geht der Punkt wieder ab. Nur Hinzufügen gibt keine Punkte. Mit **×** löschst du einen Artikel (mit Rückfrage). **Erledigte entfernen** räumt alles Abgehakte weg; die Punkte bleiben.
+Den Kreis links neben dem Artikel antippen: Der Artikel wandert nach unten zu „Im Korb“. Auf einer geteilten Liste bekommst du dafür **einen Punkt** und alle sehen, wer es war. Nochmal antippen nimmt ihn zurück, dann geht der Punkt wieder ab. Nur Hinzufügen gibt keine Punkte. Mit **×** löschst du einen Artikel (mit Rückfrage).
 
 ## Leergut
-Im Reiter **♻️ Leergut** bei der passenden Pfand-Sorte **+** tippen, für jede Flasche oder jedes Glas, das du mitbringst. Jedes Stück gibt einen Punkt. **−** zieht ein Stück wieder ab. **Leergut leeren** setzt die Liste zurück, die Punkte bleiben.
+Im Reiter **♻️ Leergut** bei der passenden Pfand-Sorte **+** tippen, für jede Flasche oder jedes Glas, das du mitbringst. Auf einer geteilten Liste gibt jedes Stück einen Punkt. **−** zieht ein Stück wieder ab.
 
 ## Kasse
-Im Reiter **🧾 Kasse** stehen die Artikel im Korb mit ihren VG-Nummern, damit du sie an der Kasse schnell eintippen kannst. Ein Tipp auf eine Zeile streicht sie durch (nur auf deinem Handy, nach dem Neuladen ist es weg). Der Bildschirm bleibt dort an.
+Im Reiter **🧾 Kasse** stehen die Artikel im Korb, die eine VG-Nummer haben, damit du sie an der Kasse schnell eintippen kannst; Backwaren (Nummern unter 1000) stehen in einer eigenen Gruppe, dazu das Leergut. Artikel ohne Nummer erscheinen hier nicht. Ein Tipp auf eine Zeile streicht sie durch (nur auf deinem Handy, nach dem Neuladen ist es weg). Der Bildschirm bleibt dort an.
 
-## Rangliste und „Neue Runde“
-Der Reiter **🏆 Rangliste** zeigt das Podest und alle Punkte. Bei gleich vielen Punkten teilt man sich den Platz. Für eine neue Runde erst **Erledigte entfernen** und **Leergut leeren**, dann **Neue Runde** tippen: Dann fangen alle bei null an. Macht man das nicht, zählen die noch vorhandenen abgehakten Artikel und das Leergut wieder mit.
+## Rangliste
+Den Reiter **🏆 Rangliste** gibt es nur auf geteilten Listen. Er zeigt das Podest und alle Punkte. Bei gleich vielen Punkten teilt man sich den Platz. Mit **Neue Runde** (mit Rückfrage) werden die Punkte neu gezählt: Alle starten bei null, und nur das, was noch im Korb liegt, zählt wieder.
+
+## Nach dem Einkauf: Zurücksetzen
+Oben auf **Zurücksetzen** tippen (Kreispfeil). Dort wählst du:
+- **Nur erledigte Artikel** (voreingestellt): räumt alles Abgehakte weg, offene Artikel bleiben.
+- **Alle Artikel:** leert die ganze Liste (mit Rückfrage).
+- **Auch Leergut leeren:** setzt die Leergut-Zähler zurück (voreingestellt an).
+
+Auf einer geteilten Liste gilt das für alle. Die Punkte bleiben immer erhalten. Hier gibt es auch **Diese Liste verlassen**: Du landest dann auf einer leeren lokalen Liste, die geteilte bleibt für die anderen bestehen.
+
+## Liste löschen
+Auf einer geteilten Liste im Teilen-Fenster **Liste für alle löschen** (mit Rückfrage): Die Liste ist dann für alle endgültig weg, auch Punkte und Leergut. Alle, die sie noch offen haben, landen automatisch wieder auf ihrer lokalen Liste. Ohne Zutun werden geteilte Listen nach 30 Tagen ohne Aktivität gelöscht.
+
+## Hilfe und Datenschutz
+Der Knopf **?** oben öffnet ein Menü mit der Hilfeseite und den Datenschutzhinweisen. Die App folgt der Sprache deines Handys (Deutsch oder Englisch).
 
 ## Auf den Startbildschirm legen
 - **iPhone (Safari):** Teilen-Symbol → **Zum Home-Bildschirm**.
@@ -38,4 +57,4 @@ Der Reiter **🏆 Rangliste** zeigt das Podest und alle Punkte. Bei gleich viele
 Dann öffnet sich die Liste wie eine normale App.
 
 ## Schlechtes Netz
-Der Punkt oben links zeigt die Verbindung: grün = verbunden, rot = keine. Ohne Verbindung sind deine Änderungen zunächst nur auf deinem Handy zu sehen und werden gesendet, sobald das Netz zurück ist. Bleib dafür in der App und lade sie nicht neu. Eine Liste neu zu starten oder ihr beizutreten, geht nur mit Netz; Produktnamen per Barcode und der Import aus der VG-App ebenfalls. Schon geladene VG-Daten (Vorschläge, Leergut-Sorten) stehen auch ohne Netz zur Verfügung.
+Die lokale Liste braucht kein Netz. Auf einer geteilten Liste zeigt der Punkt oben links die Verbindung: grün = verbunden, rot = keine. Ohne Verbindung sind deine Änderungen zunächst nur auf deinem Handy zu sehen und werden gesendet, sobald das Netz zurück ist. Bleib dafür in der App und lade sie nicht neu. Eine Liste zu teilen oder ihr beizutreten, geht nur mit Netz; Produktnamen per Barcode und der Import aus der VG-App ebenfalls. Schon geladene VG-Daten (Vorschläge, Leergut-Sorten) stehen auch ohne Netz zur Verfügung.
