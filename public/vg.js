@@ -186,8 +186,9 @@ export function nameSimilarity(a, b) {
 }
 // Below this the app asks "is that really the same product?"
 export const SIMILAR_ENOUGH = 0.75;
-// strictly above: a plural against a compound lands exactly on 0.75 (Tomaten ~ Tomatenmark) and is a different product
-export const similarNames = (a, b) => nameSimilarity(a, b) > SIMILAR_ENOUGH;
+// Usable beats perfect: the app should only ask when it is quite sure the number is wrong, so a few wrong accepts are fine
+// (Tomaten ~ Tomatenmark lands exactly on the threshold and passes)
+export const similarNames = (a, b) => nameSimilarity(a, b) >= SIMILAR_ENOUGH;
 
 /* ---------- Import lists from the original VG app ---------- */
 // Share link of the original app: https://app.vg-dresden.de/list?shareId=123#KEY
