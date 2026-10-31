@@ -47,11 +47,11 @@ function connect() {
 function itemHtml(i) {
   const by = i.checked && i.checkedBy ? `<span class="badge">${esc(i.checkedBy)}</span>` : '';
   const sub = i.vgNum ? `VG ${i.vgNum}` : '';
-  const vgIn = i.vgNum || i.checked ? '' : `<form data-vg="${i.id}"><input class="vg" type="number" inputmode="numeric" placeholder="Nr."></form>`;
+  const vgIn = i.vgNum || i.checked ? '' : `<form data-vg="${esc(i.id)}"><input class="vg" type="number" inputmode="numeric" placeholder="Nr."></form>`;
   return `<div class="item ${i.checked ? 'done' : ''}">
-      <button class="chk" data-chk="${i.id}" aria-label="${i.checked ? 'zurück auf die Liste' : 'abhaken'}">${i.checked ? '✓' : ''}</button>
-      <div class="t">${i.amount > 1 ? `${i.amount}${i.unit ? ' ' + esc(i.unit) : '×'} ` : ''}${esc(i.title)}<small>${esc(sub)}</small></div>${by}${vgIn}
-      <button class="x" data-del="${i.id}" aria-label="löschen">×</button></div>`;
+      <button class="chk" data-chk="${esc(i.id)}" aria-label="${i.checked ? 'zurück auf die Liste' : 'abhaken'}">${i.checked ? '✓' : ''}</button>
+      <div class="t">${i.amount > 1 ? `${esc(i.amount)}${i.unit ? ' ' + esc(i.unit) : '×'} ` : ''}${esc(i.title)}<small>${esc(sub)}</small></div>${by}${vgIn}
+      <button class="x" data-del="${esc(i.id)}" aria-label="löschen">×</button></div>`;
 }
 function render() {
   const all = Object.values(state.items).sort((a, b) => ((a.addedAt || 0) - (b.addedAt || 0)));
@@ -74,9 +74,9 @@ function render() {
   const podium = [...at(2), ...at(1), ...at(3)];
   $('#podium').innerHTML = podium.map(({ k, n, place }) => {
     const w = splitKey(k), h = 30 + 80 * n / max;
-    return `<div class="pod"><div class="e">${w.emoji}</div><div>${esc(w.name)}</div><div class="bar" style="height:${h}px">${MEDAL[place]} ${n}</div></div>`;
+    return `<div class="pod"><div class="e">${esc(w.emoji)}</div><div>${esc(w.name)}</div><div class="bar" style="height:${h}px">${MEDAL[place]} ${esc(n)}</div></div>`;
   }).join('') || '<span class="muted">Noch keine Punkte – ab in den Korb!</span>';
-  $('#ranks').innerHTML = placed.map(({ k, n, place }) => `<div class="rank"><span>${n > 0 && MEDAL[place] ? MEDAL[place] : place + '.'}</span><span>${esc(k)}</span><b>${n}</b></div>`).join('');
+  $('#ranks').innerHTML = placed.map(({ k, n, place }) => `<div class="rank"><span>${n > 0 && MEDAL[place] ? MEDAL[place] : place + '.'}</span><span>${esc(k)}</span><b>${esc(n)}</b></div>`).join('');
 }
 
 /* ---------- Kasse ---------- */
@@ -84,9 +84,9 @@ const kasseOff = new Set(); // lokal als erledigt markiert
 const byTitle = (a, b) => a.title.localeCompare(b.title, 'de');
 function kasseRow(key, title, amount, unit, no) {
   const weight = ['g', 'kg', 'Liter'].includes(unit) || amount === 1;
-  const mid = unit && amount ? `<small>[${weight ? amount + ' ' : ''}${esc(unit)}]</small>` : '';
-  const times = !weight && amount > 1 ? `<small>${amount} × </small>` : '';
-  return `<div class="kr${kasseOff.has(key) ? ' off' : ''}" data-kasse="${esc(key)}"><div class="nm">${esc(title)}${mid}</div><div class="no">${times}${no || '–'}</div></div>`;
+  const mid = unit && amount ? `<small>[${weight ? esc(amount) + ' ' : ''}${esc(unit)}]</small>` : '';
+  const times = !weight && amount > 1 ? `<small>${esc(amount)} × </small>` : '';
+  return `<div class="kr${kasseOff.has(key) ? ' off' : ''}" data-kasse="${esc(key)}"><div class="nm">${esc(title)}${mid}</div><div class="no">${times}${esc(no || '–')}</div></div>`;
 }
 function renderKasse() {
   const inBasket = Object.values(state.items).filter(i => i.checked).sort(byTitle);
@@ -108,12 +108,12 @@ async function setWake(on) {
 }
 
 /* ---------- Leergut ---------- */
-const depSum = id => Object.values(state.deposit[id] || {}).reduce((s, n) => s + n, 0);
+const depSum = id => Object.values(state.deposit[id] || {}).reduce((s, n) => s + (Number(n) || 0), 0);
 function renderDeposit() {
   const types = vg ? vg.deposits : null;
   $('#depItems').innerHTML = !types ? '<p class="muted" style="text-align:center">VG-Daten werden geladen …</p>'
-    : types.map(t => `<div class="dep"><div class="t">${esc(t.name)}<small>VG ${t.vgNum}</small></div>
-        <button data-dep-sub="${t.id}" aria-label="weniger">−</button><span class="n">${depSum(t.id)}</span><button class="add" data-dep-add="${t.id}" aria-label="mehr">+</button></div>`).join('');
+    : types.map(t => `<div class="dep"><div class="t">${esc(t.name)}<small>VG ${esc(t.vgNum)}</small></div>
+        <button data-dep-sub="${esc(t.id)}" aria-label="weniger">−</button><span class="n">${depSum(t.id)}</span><button class="add" data-dep-add="${esc(t.id)}" aria-label="mehr">+</button></div>`).join('');
   const total = types ? types.reduce((s, t) => s + depSum(t.id), 0) : 0;
   $('#depTotal').textContent = `${total} Stück`;
 }
