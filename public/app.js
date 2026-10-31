@@ -14,7 +14,7 @@ const LOCAL = 'LOCAL';
 let code = LOCAL;
 const isLocal = () => code === LOCAL;
 let state = { items: {}, scores: {}, deposit: {} };
-let store = null, localDb = null, localStore = null, remoteStore = null, pending = null;
+let store = null, localDb = null, localStore = null, remotePromise = null, pending = null;
 let unsub = null, first = true, vg = null;
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -425,8 +425,9 @@ function startLocal() {
   code = LOCAL; store = localStore;
   enterApp();
 }
-function startShared(c) {
-  code = c; store = remoteStore;
+async function startShared(c) {
+  const remote = await getRemote(); // throws when the SDK cannot be loaded (offline)
+  code = c; store = remote;
   LS.set('code', c); history.replaceState(null, '', `?list=${c}`);
   store.join(code, myKey());
   enterApp();
@@ -434,9 +435,9 @@ function startShared(c) {
 async function joinShared(c) {
   const go = async () => {
     try {
-      if (!(await remoteStore.exists(c))) { toast(t('noList')); return startLocal(); }
+      if (!(await (await getRemote()).exists(c))) { toast(t('noList')); return startLocal(); }
     } catch (e) { toast(t('noDb')); return startLocal(); }
-    startShared(c);
+    try { await startShared(c); } catch (e) { toast(t('noDb')); startLocal(); }
   };
   me.name ? go() : askIdentity(go);
 }
@@ -444,26 +445,30 @@ async function joinShared(c) {
 async function shareLocalList() {
   try {
     const data = { items: (await localDb.get(LOCAL, 'items')) || {}, deposit: (await localDb.get(LOCAL, 'deposit')) || {} };
-    const c = await remoteStore.create();
-    await remoteStore.importList(c, data, myKey());
+    const remote = await getRemote();
+    const c = await remote.create();
+    await remote.importList(c, data, myKey());
     await localDb.remove(LOCAL, '');
-    startShared(c);
+    await startShared(c);
     openShareDialog();
   } catch (e) { toast(t('noDb')); startLocal(); }
 }
+
+// The Firebase SDK is only loaded when a shared list is needed, so the local list starts without any network.
+const getRemote = () => remotePromise = remotePromise || (firebaseConfig
+  ? firebaseAdapter(firebaseConfig).then(createStore) : Promise.resolve(localStore)).catch(e => { remotePromise = null; throw e; });
 
 async function init() {
   applyStatic();
   buildEmojis();
   localDb = localAdapter(); localStore = createStore(localDb);
-  remoteStore = firebaseConfig ? createStore(await firebaseAdapter(firebaseConfig)) : localStore;
   if (!firebaseConfig) $('#demoBanner').classList.remove('hide');
   render();
   loadVg().then(v => { vg = v; render(); }).catch(() => {});
   const urlCode = (new URLSearchParams(location.search).get('list') || '').toUpperCase();
   const savedCode = LS.get('code', '');
   if (urlCode && urlCode !== savedCode) joinShared(urlCode);
-  else if (savedCode && me.name) startShared(savedCode);
+  else if (savedCode && me.name) startShared(savedCode).catch(() => { toast(t('noDb')); startLocal(); }); // offline: local list, saved code is kept
   else startLocal();
 }
 init();
