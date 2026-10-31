@@ -240,6 +240,7 @@ $('#addForm').onsubmit = e => {
   const v = $('#addIn').value.trim(); if (!v) return;
   const isNum = /^\d+$/.test(v);
   const p = vg && isNum ? vg.lookup(v) : null; // names are added as typed, without a number
+  if (isNum && v.length > 4) { toast(t('vgTooLong')); return; } // VG numbers have 3-4 digits; the typed number stays in the field
   if (p && p.placeholder && !numberFits(p, v, null)) return; // declined: the typed number stays in the field
   $('#addIn').value = ''; $('#addSuggest').classList.add('hide'); syncAddButton();
   if (parseShareLink(v)) return openImport(v); // a share link from the original app was pasted
