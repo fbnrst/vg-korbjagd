@@ -40,3 +40,14 @@ test('every key used in app.js and in the static text map exists', async () => {
   assert.ok(used.size > 40, 'expected to find the keys that are used');
   for (const k of used) assert.ok(k in STRINGS.en, `missing translation key: ${k}`);
 });
+
+test('static text selectors are exact: no generic .muted selectors, root ids exist exactly once', async () => {
+  const { STATIC } = await import('../public/i18n.js');
+  const fs = await import('node:fs');
+  const html = fs.readFileSync(new URL('../public/index.html', import.meta.url), 'utf8');
+  for (const [sel] of STATIC) {
+    assert.ok(!/\.muted/.test(sel), `selector ${sel} is too generic: it also matches other muted paragraphs (give the element an id)`);
+    const root = sel.match(/^#([\w-]+)/);
+    if (root) assert.equal(html.split(`id="${root[1]}"`).length - 1, 1, `id ${root[1]} must exist exactly once`);
+  }
+});
