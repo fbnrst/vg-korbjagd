@@ -26,6 +26,7 @@
 // Exit code 1 and a list of the violations when something fails.
 import { serve, launch, routeDemoOnly } from './lib/demo-env.mjs';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 
 const arg = n => (process.argv.find(a => a.startsWith(`--${n}=`)) || '').split('=')[1];
@@ -245,14 +246,24 @@ fs.mkdirSync(SHOTS || '.', { recursive: true });
 const { server, base } = await serve();
 const browser = await launch({ args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] });
 const violations = [];
+// The 16 combinations (viewport x language x scheme) are independent browser contexts: run several at once (default: the number of
+// CPUs, at most 4; `--jobs=1` for the old one-by-one run). Each finishes with one line.
+const JOBS = Math.max(1, Number((process.argv.find(a => a.startsWith('--jobs=')) || '').slice(7)) || Math.min(4, os.cpus().length));
+const combos = [];
+for (const vp of VIEWPORTS) for (const lang of LANGS) for (const scheme of SCHEMES) combos.push([vp, lang, scheme]);
 try {
-  for (const vp of VIEWPORTS) for (const lang of LANGS) for (const scheme of SCHEMES) {
-    process.stdout.write(`${vp.join('x')} ${lang} ${scheme} ... `);
-    const before = violations.length;
-    try { await runContext(browser, base, vp, lang, scheme, violations); }
-    catch (e) { violations.push(`[${vp.join('x')} ${lang} ${scheme}] script error: ${e.message.split('\n')[0]}`); }
-    console.log(violations.length === before ? 'ok' : `${violations.length - before} violation(s)`);
-  }
+  let next = 0;
+  const worker = async () => {
+    while (next < combos.length) {
+      const [vp, lang, scheme] = combos[next++];
+      const mine = [];
+      try { await runContext(browser, base, vp, lang, scheme, mine); }
+      catch (e) { mine.push(`[${vp.join('x')} ${lang} ${scheme}] script error: ${e.message.split('\n')[0]}`); }
+      violations.push(...mine);
+      console.log(`${vp.join('x')} ${lang} ${scheme} ... ${mine.length ? `${mine.length} violation(s)` : 'ok'}`);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(JOBS, combos.length) }, worker));
 } finally { await browser.close(); server.close(); }
 if (violations.length) {
   console.error(`\n${violations.length} violation(s):\n` + violations.map(v => '  ' + v).join('\n'));

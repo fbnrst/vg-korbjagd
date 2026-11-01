@@ -22,7 +22,7 @@ body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.4 system-ui,sans-
 /* App shell: header on top, the list scrolls in the middle, input bar and tabs at the bottom. While the keyboard is open
    the shell is only as high as the visible area (--app-h), so the list stays anchored at the top and shrinks from below. */
 #app{position:fixed;left:0;right:0;top:0;bottom:0;height:100vh;height:100dvh;height:var(--app-h,100dvh);display:flex;flex-direction:column;transform:translateY(var(--vvtop,0px))} /* compat-ok: bottom:0 above and the vh line make the shell fill the screen before Safari 15.4 */
-header{position:relative;flex:none;z-index:5;background:var(--hdr);color:var(--hdr-fg);padding:4px 12px;display:flex;align-items:center;gap:10px}
+header{position:relative;flex:none;z-index:7;background:var(--hdr);color:var(--hdr-fg);padding:4px 12px;display:flex;align-items:center;gap:10px}
 header h1{font-size:17px;margin:0;flex:1;display:flex;align-items:center;gap:8px}
 header .logo{flex:none;display:block}
 header button{position:relative;background:var(--hdr-btn);color:var(--hdr-fg);border:0;border-radius:8px;padding:6px 10px;font-size:14px}
