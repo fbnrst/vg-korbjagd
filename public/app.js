@@ -386,11 +386,10 @@ $('#shareBtn').onclick = openShareDialog;
 $('#shareClose').onclick = closeShareDialog;
 $('#shareDlg').onclick = e => { if (e.target.id === 'shareDlg') closeShareDialog(); };
 $('#shareStart').onclick = () => { closeShareDialog(); me.name ? shareLocalList() : askIdentity(shareLocalList); };
-// Join dialog (menu on the local list, or "or join a list" in the share dialog): type the code, or scan the QR code
+// Join dialog (menu on the local list): type the code, or scan the QR code
 const closeJoin = () => { $('#joinDlg').classList.add('hide'); $('#codeIn').value = ''; };
 function openJoin() { dismissKeyboard(); $('#joinDlg').classList.remove('hide'); }
 $('#menuJoin').onclick = openJoin;
-$('#orJoin').onclick = () => { closeShareDialog(); openJoin(); };
 $('#joinClose').onclick = closeJoin;
 $('#joinDlg').onclick = e => { if (e.target.id === 'joinDlg') closeJoin(); };
 $('#joinScan').onclick = () => { closeJoin(); scanTarget = null; openScanner(true); };
