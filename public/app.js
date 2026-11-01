@@ -178,7 +178,8 @@ function emptyHint() {
   return `<div class="empty"><p><span class="eic">+</span><span>${esc(t('emptyAdd'))}</span></p>
     <p><span class="eic">123</span><span>${esc(t('emptyShop'))}</span></p>
     <p><span class="eic">${share}</span><span>${esc(t('emptyShare'))}</span></p>
-    <div class="emptyLinks"><button type="button" class="linkbtn" id="emptyJoin">${esc(t('emptyJoin'))}</button><a href="docs/index.html" class="emptyHelp">${esc(t('emptyHelp'))}</a></div></div>`;
+    <button type="button" class="emptyJoinBox" id="emptyJoin">${esc(t('emptyJoin'))}</button>
+    <div class="emptyLinks"><a href="docs/index.html" class="emptyHelp">${esc(t('emptyHelp'))}</a></div></div>`;
 }
 function render() {
   state = isLocal() ? raw : outbox.overlayFor(raw, code); // changes waiting to be sent show at once; a live snapshot replaces `raw`
