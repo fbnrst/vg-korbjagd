@@ -214,6 +214,10 @@ export function createStore(db) {
       const items = (await db.get(code, 'items')) || {};
       await Promise.all(Object.values(items).filter(i => i.checked).map(i => db.remove(code, `items/${i.id}`)));
     },
+    async clearOpen(code) {
+      const items = (await db.get(code, 'items')) || {};
+      await Promise.all(Object.values(items).filter(i => !i.checked).map(i => db.remove(code, `items/${i.id}`)));
+    },
     // New round: every counter goes back to zero (the members stay). What already lies in the basket counts for nobody;
     // taking an old item out later cannot push a counter below zero.
     async resetScores(code) {
@@ -232,7 +236,7 @@ export function createStore(db) {
     touched[code] = now;
     return touch0(code);
   };
-  for (const name of ['join', 'add', 'check', 'setNum', 'setEan', 'remove', 'depositAdd', 'depositRemove', 'clearDeposit', 'clearChecked', 'clearAll', 'resetScores', 'importList', 'renameUser']) {
+  for (const name of ['join', 'add', 'check', 'setNum', 'setEan', 'remove', 'depositAdd', 'depositRemove', 'clearDeposit', 'clearChecked', 'clearOpen', 'clearAll', 'resetScores', 'importList', 'renameUser']) {
     const fn = store[name];
     store[name] = async (code, ...args) => { const r = await fn(code, ...args); touch(code); return r; };
   }

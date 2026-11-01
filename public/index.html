@@ -46,9 +46,8 @@ a{color:var(--green)}
 /* Options: an unselected one is a quiet hollow ring, the selected one carries the colour (the native look made the unselected radio the brightest thing in the dialog) */
 .opt input{appearance:none;-webkit-appearance:none;flex:none;width:22px;height:22px;margin:0;border:2px solid var(--mute);border-color:color-mix(in srgb,var(--mute) 55%,transparent);border-radius:50%;background:transparent}
 .opt input[type=checkbox]{border-radius:6px}
-.opt input[type=radio]:checked{border-color:var(--green);background:var(--green);box-shadow:inset 0 0 0 4px var(--card)}
 .opt input[type=checkbox]:checked{border-color:var(--fill);background:var(--fill) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7'/%3E%3C/svg%3E") center/15px no-repeat}
-.opt:has(input[type=radio]:not(:checked)) span{color:var(--mute)}
+.opt:has(input:not(:checked)) span{color:var(--mute)} /* what is not chosen fades */
 .btn svg{vertical-align:-4px;margin-right:6px}
 /* Dialogs close with a quiet X in the top right corner instead of a Cancel/Close button in the middle */
 #shareDlg>.card,#importDlg>.card,#resetDlg>.card{position:relative}
@@ -148,9 +147,9 @@ body.typing .tabs{display:none}
     <button class="dlg-x" id="resetCancel" type="button" aria-label="Close"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     <h2 id="resetTitle" style="margin:0 0 6px">Reset list</h2>
     <p id="resetShared" class="hide" style="margin:0 0 10px;font-weight:600">This applies to everyone on the shared list.</p>
-    <label class="opt"><input type="radio" name="resetWhat" value="done" checked> <span id="resetDoneLbl">Checked-off items only</span></label>
-    <label class="opt"><input type="radio" name="resetWhat" value="all"> <span id="resetAllLbl">All items</span></label>
-    <label class="opt"><input type="checkbox" id="resetEmpties" checked> <span id="resetEmptiesLbl">Also clear empties</span></label>
+    <label class="opt"><input type="checkbox" id="resetOpen"> <span id="resetOpenLbl">Open items</span></label>
+    <label class="opt"><input type="checkbox" id="resetDone" checked> <span id="resetDoneLbl">Checked-off items</span></label>
+    <label class="opt"><input type="checkbox" id="resetEmpties" checked> <span id="resetEmptiesLbl">Empties</span></label>
     <div style="margin-top:12px"><button class="btn" id="resetGo" type="button" style="width:100%">Reset</button></div>
   </div>
 </div>

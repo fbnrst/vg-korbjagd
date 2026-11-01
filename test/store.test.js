@@ -196,6 +196,15 @@ test('clearAll removes all items but keeps points and empties; clearChecked keep
   assert.equal(await db.get(c, 'deposit'), null);
 });
 
+test('clearOpen removes the open items and keeps the checked-off ones and the points', async () => {
+  const { s, db } = setup(); const c = await s.create();
+  await s.add(c, item('o1', 'Milk'), A); await s.add(c, item('o2', 'Bread'), A);
+  await s.check(c, 'o1', A, true);
+  await s.clearOpen(c);
+  assert.deepEqual(Object.keys(await db.get(c, 'items')), ['o1']);
+  assert.equal((await db.get(c, 'scores'))[A], 1);
+});
+
 test('the VG number of an item can be added, changed and removed without touching the basket state', async () => {
   const { s, db } = setup(); const c = await s.create();
   await s.add(c, item('n1', 'Cabbage'), A);

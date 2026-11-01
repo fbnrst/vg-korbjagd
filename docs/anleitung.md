@@ -38,10 +38,10 @@ Im Reiter **🧾 Kasse** stehen die Artikel im Korb, die eine VG-Nummer haben, d
 Den Reiter **🏆 Rangliste** gibt es nur auf geteilten Listen. Er zeigt das Podest und alle Punkte. Bei gleich vielen Punkten teilt man sich den Platz. Mit **Neue Runde** (mit Rückfrage) werden die Zähler einfach auf null gesetzt. Was schon im Korb liegt, zählt für niemanden.
 
 ## Nach dem Einkauf: Zurücksetzen
-Oben rechts das **⋯-Menü** öffnen und **Liste zurücksetzen** wählen. Dort wählst du:
-- **Nur erledigte Artikel** (voreingestellt): räumt alles Abgehakte weg, offene Artikel bleiben.
-- **Alle Artikel:** leert die ganze Liste (mit Rückfrage).
-- **Auch Leergut leeren:** setzt die Leergut-Zähler zurück (voreingestellt an).
+Oben rechts das **⋯-Menü** öffnen und **Liste zurücksetzen** wählen. Dort hakst du an, was weg soll:
+- **Offene Artikel:** was noch nicht im Korb ist (mit Rückfrage).
+- **Erledigte Artikel** (voreingestellt): alles Abgehakte.
+- **Leergut** (voreingestellt): setzt die Leergut-Zähler zurück.
 
 Auf einer geteilten Liste gilt das für alle. Die Punkte bleiben immer erhalten. Im selben Menü gibt es **Liste verlassen** (nur bei geteilten Listen): Du landest dann auf einer leeren lokalen Liste, die geteilte bleibt für die anderen unverändert. Mit Code oder Link kannst du wieder beitreten.
 

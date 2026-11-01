@@ -410,21 +410,26 @@ const forgetShared = () => { LS.set('code', ''); history.replaceState(null, '', 
   document.addEventListener('keydown', e => { if (e.key === 'Escape') setOpen(false); });
 }
 
-// Reset dialog (menu): choose what to clear (default: checked-off items and empties)
+// Reset dialog (menu): three check boxes for what to clear (default: checked-off items and empties)
 const closeReset = () => $('#resetDlg').classList.add('hide');
+const syncResetButton = () => { $('#resetGo').disabled = !['#resetOpen', '#resetDone', '#resetEmpties'].some(s => $(s).checked); };
 $('#menuReset').onclick = () => {
   dismissKeyboard();
-  document.querySelector('input[name=resetWhat][value=done]').checked = true; $('#resetEmpties').checked = true;
+  $('#resetOpen').checked = false; $('#resetDone').checked = true; $('#resetEmpties').checked = true; syncResetButton();
   $('#resetShared').classList.toggle('hide', isLocal());
   $('#resetDlg').classList.remove('hide');
 };
+$('#resetDlg').addEventListener('change', syncResetButton);
 $('#resetCancel').onclick = closeReset;
 $('#resetDlg').onclick = e => { if (e.target.id === 'resetDlg') closeReset(); };
 $('#resetGo').onclick = async () => {
-  const all = document.querySelector('input[name=resetWhat]:checked').value === 'all';
-  if (all && Object.keys(state.items).length && !confirm(t(isLocal() ? 'confirmClearAll' : 'confirmClearAllShared'))) return;
+  const open = $('#resetOpen').checked, done = $('#resetDone').checked;
+  // open items are still to be bought: removing them is asked once more
+  if (open && Object.values(state.items).some(i => !i.checked) && !confirm(t(isLocal() ? 'confirmClearOpen' : 'confirmClearOpenShared'))) return;
   closeReset();
-  await (all ? store.clearAll(code) : store.clearChecked(code));
+  if (open && done) await store.clearAll(code);
+  else if (open) await store.clearOpen(code);
+  else if (done) await store.clearChecked(code);
   if ($('#resetEmpties').checked) await store.clearDeposit(code);
 };
 $('#menuImport').onclick = () => openImport();
