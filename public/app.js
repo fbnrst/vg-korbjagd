@@ -19,8 +19,8 @@ const LS = { get(k, d) { try { return JSON.parse(localStorage.getItem(NS + k)) ?
              set(k, v) { try { localStorage.setItem(NS + k, JSON.stringify(v)); } catch (e) {} } };
 
 // Own item history for suggestions: one table for all lists on this phone (lists come and go, shopping habits stay); bounded, validated on load
-let history = sanitizeHistory(LS.get('history', null));
-const remember = (title, vgNum) => { history = recordHistory(history, HISTORY_KEY, title, vgNum); LS.set('history', history); };
+let itemHistory = sanitizeHistory(LS.get('history', null));
+const remember = (title, vgNum) => { itemHistory = recordHistory(itemHistory, HISTORY_KEY, title, vgNum); LS.set('history', itemHistory); };
 
 const me = LS.get('me', { name: '', emoji: EMOJIS[0] });
 // The list lives on this phone (code LOCAL) until it is shared; then it moves to the server under an 8-character code (6 for older lists).
@@ -622,7 +622,7 @@ $('#addIn').oninput = () => {
   const isNum = /^\d+$/.test(q);
   // Tappable list, tap = add the item: from three digits on for numbers, from two letters on for names (no duplicates)
   const nums = vg && isNum && q.length >= 3 ? vg.searchByNumber(q) : [];
-  const hist = !isNum && q.length >= 2 ? historyMatches(history[HISTORY_KEY], q) : []; // own past items come first
+  const hist = !isNum && q.length >= 2 ? historyMatches(itemHistory[HISTORY_KEY], q) : []; // own past items come first
   const names = vg && !isNum && q.length >= 2 && !hist.length ? vg.searchNames(q) : []; // one source at a time: VG names only when no own name matches
   const long = tooLongNumber(q); // more than 4 digits can never be a VG number: say so here instead of after the tap
   const miss = vg && isNum && !long && q.length >= 4 && !nums.length && !vg.lookup(q); // an exact placeholder number is accepted silently

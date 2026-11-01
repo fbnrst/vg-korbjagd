@@ -257,7 +257,7 @@ try {
       const [vp, lang, scheme] = combos[next++];
       const mine = [];
       try { await runContext(browser, base, vp, lang, scheme, mine); }
-      catch (e) { mine.push(`[${vp.join('x')} ${lang} ${scheme}] script error: ${e.message.split('\n')[0]}`); }
+      catch (e) { mine.push(`[${vp.join('x')} ${lang} ${scheme}] script error: ${e.message.split('\n').slice(0, 6).join(' | ')}`); }
       violations.push(...mine);
       console.log(`${vp.join('x')} ${lang} ${scheme} ... ${mine.length ? `${mine.length} violation(s)` : 'ok'}`);
     }
