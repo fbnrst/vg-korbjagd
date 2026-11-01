@@ -470,12 +470,19 @@ if (IS_DEV) {
     lines.push('url: ' + location.href);
     out.textContent = lines.join('\n');
   };
-  for (const box of ['#shareLocalBox', '#shareSharedBox']) {
-    const pre = document.createElement('pre');
-    pre.style.cssText = 'font-size:12px;white-space:pre-wrap;word-break:break-all;text-align:left;margin:8px 0 0';
-    devBtn(box, 'devDiag', () => diag(pre));
-    $(box).appendChild(pre);
-  }
+  // Entry in the "…" menu that opens the diagnostics in a small dialog (built here, so the release has no trace of it)
+  const dlg = document.createElement('div');
+  dlg.id = 'diagDlg'; dlg.className = 'hide';
+  const card = document.createElement('div'); card.className = 'card'; card.style.cssText = 'max-width:340px;width:100%';
+  const h = document.createElement('h2'); h.style.margin = '0 0 8px'; h.textContent = t('devDiag');
+  const pre = document.createElement('pre'); pre.style.cssText = 'font-size:12px;white-space:pre-wrap;word-break:break-all;text-align:left;margin:0 0 12px';
+  const close = document.createElement('button'); close.type = 'button'; close.className = 'btn sec'; close.textContent = t('close'); close.onclick = () => dlg.classList.add('hide');
+  card.append(h, pre, close); dlg.appendChild(card); document.body.appendChild(dlg);
+  dlg.onclick = e => { if (e.target === dlg) dlg.classList.add('hide'); };
+  const item = document.createElement('button');
+  item.type = 'button'; item.setAttribute('role', 'menuitem'); item.textContent = t('devDiag');
+  item.onclick = () => { dismissKeyboard(); pre.textContent = '…'; dlg.classList.remove('hide'); diag(pre); };
+  $('#menu').insertBefore(item, $('#helpLink'));
 }
 // Join dialog (menu on the local list): type the code, or scan the QR code
 const closeJoin = () => { $('#joinDlg').classList.add('hide'); $('#codeIn').value = ''; };
