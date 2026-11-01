@@ -1,6 +1,6 @@
 // Draws the app icon (a fox in a Kober, a woven basket, on the VG green) and renders it to the files the PWA needs:
 //
-//   npm run icons          # writes public/icon.svg, public/logo.svg (the fox alone, without tile) and public/icons/*.png
+//   npm run icons          # writes public/icon.svg, public/logo.svg (the motif without tile) and public/icons/*.png
 //
 // One drawing, four outputs: rounded for "any" (192, 512), full bleed for "maskable" (motif shrunk into the safe zone)
 // and for the iOS home screen (iOS rounds the corners itself). Needs Google Chrome (or CHROME_PATH), like the
@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PUBLIC = path.join(ROOT, 'public');
 
-// The fox: a flat fox face in a 512 x 512 box (alone it is the header logo)
+// The fox: a flat fox face in a 512 x 512 box
 const fox = `
     <path d="M92 92 L226 190 Q256 182 286 190 L420 92 Q444 224 392 330 Q336 440 256 450 Q176 440 120 330 Q68 224 92 92 Z" fill="#f08a24"/>
     <path d="M92 92 L168 150 L120 214 Q96 150 92 92 Z M420 92 L344 150 L392 214 Q416 150 420 92 Z" fill="#2b2f26" opacity=".85"/>
@@ -62,8 +62,8 @@ const outputs = [
 // Without trailing spaces and with a final newline, like the file checks want them
 const tidy = text => text.replace(/[ \t]+$/gm, '').trimEnd() + '\n';
 fs.writeFileSync(path.join(PUBLIC, 'icon.svg'), tidy(svg({ rounded: true, scale: 1 })));
-// The fox alone, without the green tile: for the header, where it sits on the green bar
-fs.writeFileSync(path.join(PUBLIC, 'logo.svg'), tidy(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="64 88 384 366">${fox}</svg>`));
+// The motif without the green tile: for the header, where it sits on the green bar
+fs.writeFileSync(path.join(PUBLIC, 'logo.svg'), tidy(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="62 66 388 424">${motif(1)}</svg>`));
 const browser = await launch();
 try {
   const page = await browser.newPage();
