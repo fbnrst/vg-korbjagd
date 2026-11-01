@@ -46,8 +46,13 @@ fs.writeFileSync(path.join(dev, 'index.html'), html);
 for (const f of ['index.html', 'privacy.html', 'docs/index.html']) {
   const file = path.join(dev, f);
   const page = read(file);
-  const out = page.replace(/(<meta name="theme-color" content=")[^"]*/, `$1${DEV_BLUE}`);
+  let out = page.replace(/(<meta name="theme-color" content=")[^"]*/, `$1${DEV_BLUE}`);
   if (out === page && !page.includes(DEV_BLUE)) throw new Error(`${f}: theme-color meta not found`);
+  // The dev class is on <body> from the first byte: if a script added it later, the first paint would be green (and the
+  // status bar of the phone takes its colour from that first paint)
+  const withClass = out.replace('<body>', '<body class="dev">');
+  if (withClass === out && !out.includes('<body class="dev">')) throw new Error(`${f}: <body> not found`);
+  out = withClass;
   fs.writeFileSync(file, out);
 }
 console.log(`site written to ${outDir} (release from ${releaseDir}, dev from ${devDir})`);
