@@ -13,8 +13,8 @@
 <meta name="apple-mobile-web-app-title" content="Kober">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <style>
-:root{--bg:#f1f4ea;--card:#fff;--fg:#2b2f26;--mute:#666;--green:#587f06;--fill:#587f06;--on-fill:#fff;--accent:#669c03;--green2:#e8edde;--line:#d4dac8;--red:#b3322a;--hdr:#8bad73;--hdr-fg:#17210f;--hdr-btn:rgba(0,0,0,.1);--orange:#f7a642;--tone-bg:#e8edde;--tone-bd:#8bad73;--tone-fg:#3f5c04}
-@media(prefers-color-scheme:dark){:root{--bg:#12170e;--card:#1b2216;--fg:#e8edde;--mute:#a3b09a;--green:#8bad73;--fill:#587f06;--on-fill:#fff;--accent:#8bad73;--green2:#2a3323;--line:#2e3828;--red:#e46a5c;--hdr:#232d1b;--hdr-fg:#e8edde;--hdr-btn:rgba(255,255,255,.12);--orange:#f7a642;--tone-bg:#2a3323;--tone-bd:#5f7a4c;--tone-fg:#b9d1a3}}
+:root{--bg:#f1f4ea;--card:#fff;--fg:#2b2f26;--mute:#666;--green:#587f06;--fill:#8bad73;--on-fill:#17210f;--accent:#669c03;--green2:#e8edde;--line:#d4dac8;--red:#b3322a;--hdr:#8bad73;--hdr-fg:#17210f;--hdr-btn:rgba(0,0,0,.1);--orange:#f7a642;--tone-bg:#e8edde;--tone-bd:#8bad73;--tone-fg:#3f5c04}
+@media(prefers-color-scheme:dark){:root{--bg:#12170e;--card:#1b2216;--fg:#e8edde;--mute:#a3b09a;--green:#8bad73;--fill:#8bad73;--on-fill:#17210f;--accent:#8bad73;--green2:#2a3323;--line:#2e3828;--red:#e46a5c;--hdr:#232d1b;--hdr-fg:#e8edde;--hdr-btn:rgba(255,255,255,.12);--orange:#f7a642;--tone-bg:#2a3323;--tone-bd:#5f7a4c;--tone-fg:#b9d1a3}}
 *{box-sizing:border-box;touch-action:manipulation} /* no double-tap zoom; pinch zoom stays available */
 html,body{height:100%;overflow:hidden;overscroll-behavior:none}
 body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.4 system-ui,sans-serif}
@@ -45,7 +45,7 @@ a{color:var(--green)}
 /* Options: an unselected one is a quiet hollow ring, the selected one carries the colour (the native look made the unselected radio the brightest thing in the dialog) */
 .opt input{appearance:none;-webkit-appearance:none;flex:none;width:22px;height:22px;margin:0;border:2px solid var(--mute);border-color:color-mix(in srgb,var(--mute) 55%,transparent);border-radius:50%;background:transparent}
 .opt input[type=checkbox]{border-radius:6px}
-.opt input[type=checkbox]:checked{border-color:var(--fill);background:var(--fill) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7'/%3E%3C/svg%3E") center/15px no-repeat}
+.opt input[type=checkbox]:checked{border-color:var(--fill);background:var(--fill) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2317210f' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7'/%3E%3C/svg%3E") center/15px no-repeat}
 .opt:has(input:not(:checked)) span{color:var(--mute)} /* what is not chosen fades */
 .btn svg{vertical-align:-4px;margin-right:6px}
 /* Dialogs close with a quiet X in the top right corner instead of a Cancel/Close button in the middle */
