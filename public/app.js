@@ -7,7 +7,7 @@ import { IS_DEV, NS } from './env.js';
 import { BUILD } from './version.js';
 import { loadVg, similarNames } from './vg.js';
 import { t, applyStatic } from './i18n.js';
-import { shouldShowAndroidInstall, shouldShowInstallHint, shouldShowBrowserHint, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, sanitizeHistory, recordHistory, pruneHistory, historyMatches, withoutHistory, createVgLoader, uploadLocalList, checkoutSections, rankPlaces, classifyScan } from './flows.js';
+import { shouldShowAndroidInstall, shouldShowInstallHint, shouldShowBrowserHint, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, sanitizeHistory, recordHistory, historyMatches, HISTORY_KEY, withoutHistory, createVgLoader, uploadLocalList, checkoutSections, rankPlaces, classifyScan } from './flows.js';
 import { initDialogs, shortName, menuIndex, visibleFocusables } from './a11y.js';
 
 const $ = s => document.querySelector(s);
@@ -16,10 +16,9 @@ const EMOJIS = ['🦊','🐼','🦖','🦈','🦄','🐙','🤖','👽','🧙','
 const LS = { get(k, d) { try { return JSON.parse(localStorage.getItem(NS + k)) ?? d; } catch (e) { return d; } },
              set(k, v) { try { localStorage.setItem(NS + k, JSON.stringify(v)); } catch (e) {} } };
 
-// Own item history for suggestions (per list code, bounded, validated on load; dropped for lists that were left)
-let history = pruneHistory(sanitizeHistory(LS.get('history', null)), ['LOCAL', LS.get('code', '')]);
-const remember = (title, vgNum) => { history = recordHistory(history, code, title, vgNum); LS.set('history', history); };
-const forgetHistory = c => { history = pruneHistory(history, Object.keys(history).filter(k => k !== c)); LS.set('history', history); };
+// Own item history for suggestions: one table for all lists on this phone (lists come and go, shopping habits stay); bounded, validated on load
+let history = sanitizeHistory(LS.get('history', null));
+const remember = (title, vgNum) => { history = recordHistory(history, HISTORY_KEY, title, vgNum); LS.set('history', history); };
 
 const me = LS.get('me', { name: '', emoji: EMOJIS[0] });
 // The list lives on this phone (code LOCAL) until it is shared; then it moves to the server under an 8-character code (6 for older lists).
@@ -490,7 +489,7 @@ $('#addIn').oninput = () => {
   const isNum = /^\d+$/.test(q);
   // Tappable list, tap = add the item: from three digits on for numbers, from two letters on for names (no duplicates)
   const nums = vg && isNum && q.length >= 3 ? vg.searchByNumber(q) : [];
-  const hist = !isNum && q.length >= 2 ? historyMatches(history[code], q) : []; // own past items come first
+  const hist = !isNum && q.length >= 2 ? historyMatches(history[HISTORY_KEY], q) : []; // own past items come first
   const names = vg && !isNum && q.length >= 2 ? withoutHistory(vg.searchNames(q), hist) : [];
   const long = tooLongNumber(q); // more than 4 digits can never be a VG number: say so here instead of after the tap
   const miss = vg && isNum && !long && q.length >= 4 && !nums.length && !vg.lookup(q); // an exact placeholder number is accepted silently
@@ -604,7 +603,7 @@ $('#joinForm').onsubmit = e => {
 };
 const forgetShared = () => {
   clearTimeout(cacheTimer); // a snapshot about to be saved must not bring the cache of this list back
-  const c = LS.get('code', ''); if (c) { forgetHistory(c); dropSnapshot(localStorage, c); outbox.dropList(c); } // nothing to show or send for a list we left
+  const c = LS.get('code', ''); if (c) { dropSnapshot(localStorage, c); outbox.dropList(c); } // nothing to show or send for a list we left
   LS.set('code', ''); history.replaceState(null, '', location.pathname); };
 // "..." menu in the header: reset, leave (shared lists only), help and privacy
 {

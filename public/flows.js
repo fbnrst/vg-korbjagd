@@ -157,18 +157,18 @@ export function addHintSeen(seen, code) {
 }
 
 /* ---------- Own item history (suggestions) ---------- */
-// Per list code: the names the person added or checked off, with a count and the last use. `{ CODE: [{ t, n, ts, v? }] }` in
-// localStorage (user-writable: everything is validated again). Bounded: HISTORY_LISTS lists, HISTORY_MAX names each.
-export const HISTORY_LISTS = 5;
+// For all lists together: the names the person added or checked off, with a count and the last use. `{ ALL: [{ t, n, ts, v? }] }` in
+// localStorage (user-writable: everything is validated again). Bounded: HISTORY_MAX names.
 export const HISTORY_MAX = 300;
 export const HISTORY_TITLE_MAX = 60;
-const historyCode = c => c === 'LOCAL' || isListCode(c);
+export const HISTORY_KEY = 'ALL'; // one table for every list on this phone
+const historyCode = c => c === HISTORY_KEY;
 const historyKey = title => String(title).trim().toLowerCase();
 const cleanTitle = s => typeof s === 'string' ? s.replace(/\s+/g, ' ').trim().slice(0, HISTORY_TITLE_MAX) : '';
 export function sanitizeHistory(raw, now = Date.now()) {
   const out = {};
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return out;
-  for (const code of Object.keys(raw).filter(historyCode).slice(-HISTORY_LISTS)) {
+  for (const code of Object.keys(raw).filter(historyCode)) {
     const seen = new Set(), list = [];
     for (const e of Array.isArray(raw[code]) ? raw[code] : []) {
       if (!e || typeof e !== 'object') continue;
@@ -191,15 +191,7 @@ export function recordHistory(table, code, title, vgNum, now = Date.now()) {
   else list.push({ t, n: 1, ts: now, ...(v ? { v } : {}) });
   list.sort((a, b) => b.ts - a.ts);
   const next = { ...table }; delete next[code]; next[code] = list.slice(0, HISTORY_MAX); // the newest list is last
-  const codes = Object.keys(next);
-  for (const c of codes.slice(0, Math.max(0, codes.length - HISTORY_LISTS))) delete next[c];
   return next;
-}
-// Tables of lists that are gone or left are dropped
-export function pruneHistory(table, keepCodes) {
-  const keep = new Set(keepCodes), out = {};
-  for (const c of Object.keys(table)) if (keep.has(c)) out[c] = table[c];
-  return out;
 }
 // Matching names for what is typed (every word is a prefix of a word or a part of the name), most used first, then most recent.
 // Names that equal the typed text exactly are left out (nothing to suggest).
