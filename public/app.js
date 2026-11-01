@@ -157,8 +157,6 @@ function renderDeposit() {
   $('#depItems').innerHTML = !types ? `<p class="muted" style="text-align:center">${t('loadingVg')}</p>`
     : types.map(d => `<div class="dep"><div class="t">${esc(d.name)}<small>${esc(d.vgNum)}</small></div>
         <button data-dep-sub="${esc(d.id)}" aria-label="${t('ariaLess')}">−</button><span class="n">${depSum(d.id)}</span><button class="add" data-dep-add="${esc(d.id)}" aria-label="${t('ariaMore')}">+</button></div>`).join('');
-  const total = types ? types.reduce((s, d) => s + depSum(d.id), 0) : 0;
-  $('#depTotal').textContent = t('pcs', { n: total });
 }
 
 /* ---------- Events ---------- */

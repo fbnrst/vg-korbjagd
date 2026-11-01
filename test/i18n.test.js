@@ -20,7 +20,6 @@ test('t() fills parameters and falls back to English, then to the key', () => {
   assert.equal(t('inBasketHead', { n: 3 }, 'en'), 'In the basket · 3');
   assert.equal(t('inBasketHead', { n: 3 }, 'de'), 'Im Korb · 3');
   assert.equal(t('noSuchKey', {}, 'de'), 'noSuchKey');
-  assert.equal(t('pcs', {}, 'en'), '{n} pcs');
 });
 
 test('German and English tables have exactly the same keys and placeholders', async () => {
