@@ -395,7 +395,7 @@ const closeShareDialog = () => $('#shareDlg').classList.add('hide');
 $('#shareBtn').onclick = openShareDialog;
 $('#shareClose').onclick = closeShareDialog;
 $('#shareDlg').onclick = e => { if (e.target.id === 'shareDlg') closeShareDialog(); };
-$('#shareStart').onclick = () => { closeShareDialog(); me.name ? shareLocalList() : askIdentity(shareLocalList); };
+$('#shareStart').onclick = () => { closeShareDialog(); me.name ? shareLocalList() : askIdentity(shareLocalList, backToList); };
 // Join dialog (menu on the local list): type the code, or scan the QR code
 const closeJoin = () => { $('#joinDlg').classList.add('hide'); $('#codeIn').value = ''; };
 function openJoin() { dismissKeyboard(); $('#joinDlg').classList.remove('hide'); }
@@ -628,8 +628,10 @@ function buildEmojis() {
   $('#emojis').onclick = ev => { const b = ev.target.closest('button'); if (!b) return; me.emoji = b.textContent; buildEmojis(); };
 }
 // Name and emoji are only needed once there are other people (sharing or joining).
+// Cancel puts back the name and emoji from before (the emoji buttons change `me` right away) and calls onCancel.
 function askIdentity(next, onCancel = null) {
-  pending = next; pendingCancel = onCancel;
+  const before = { ...me };
+  pending = next; pendingCancel = onCancel && (() => { me.name = before.name; me.emoji = before.emoji; buildEmojis(); onCancel(); });
   $('#nameCancel').classList.toggle('hide', !onCancel);
   $('#welcomeErr').textContent = ''; $('#nameIn').value = me.name;
   for (const v of ['vList', 'vDeposit', 'vCheckout', 'vScore']) $('#' + v).classList.add('hide');
@@ -644,13 +646,13 @@ $('#newList').onclick = () => {
 $('#nameCancel').onclick = () => { const back = pendingCancel; pending = pendingCancel = null; if (back) back(); };
 // Ranking tab: the one place where the name is visible, so this is where it can be changed. Points move along.
 $('#renameBtn').onclick = () => {
-  const before = { ...me }, oldKey = myKey();
+  const oldKey = myKey();
   const back = () => { $('#vWelcome').classList.add('hide'); $('#tabs').classList.remove('hide'); $('.tabs [data-t=vScore]').click(); };
   askIdentity(async () => {
     const newKey = myKey(); back();
     if (newKey === oldKey) return;
     try { await store.renameUser(code, oldKey, newKey); toast(t('toastRenamed', { who: newKey })); } catch (e) { toast(t('noDb')); }
-  }, () => { me.name = before.name; me.emoji = before.emoji; buildEmojis(); back(); });
+  }, back);
 };
 function enterApp() {
   $('#tabs').classList.remove('hide'); $('#shareBtn').classList.remove('hide');
@@ -677,8 +679,11 @@ async function joinShared(c) {
     } catch (e) { toast(t('noDb')); return startLocal(); }
     try { await startShared(c); } catch (e) { toast(t('noDb')); startLocal(); }
   };
-  me.name ? go() : askIdentity(go);
+  // cancel: back to the list on screen, or (a join link opened the app) to the local list
+  me.name ? go() : askIdentity(go, () => { history.replaceState(null, '', location.pathname); store ? backToList() : startLocal(); });
 }
+// Leave the name screen without changes
+function backToList() { $('#tabs').classList.remove('hide'); show('vList'); }
 // Upload the local list, then continue on the shared one. The local copy is removed only after the upload succeeded.
 async function shareLocalList() {
   try {
