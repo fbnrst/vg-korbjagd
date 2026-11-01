@@ -3,7 +3,7 @@
 [![Checks](https://github.com/fbnrst/kober/actions/workflows/autofix.yml/badge.svg)](https://github.com/fbnrst/kober/actions/workflows/autofix.yml)
 [![Deploy](https://github.com/fbnrst/kober/actions/workflows/pages.yml/badge.svg)](https://github.com/fbnrst/kober/actions/workflows/pages.yml)
 
-### [Open the app →](https://fbnrst.github.io/kober/) · [Help](https://fbnrst.github.io/kober/docs/)
+**[Open the app](https://fbnrst.github.io/kober/)** · **[Help](https://fbnrst.github.io/kober/docs/)**
 
 An independent, unofficial shopping list app. The list lives on your phone first; once you share it, phones sync live and a leaderboard ("who puts the most in the basket") starts. Idea and product data: the [VG app](https://gitlab.com/pyfox/vg-app) of VG Dresden. This project is not affiliated with VG Dresden.
 
