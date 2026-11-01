@@ -4,7 +4,7 @@
 //   npm run docs:screenshots          # writes public/docs/img/<lang>-<scene>.jpg
 //   npm run docs:screenshots -- /tmp/out   # another output folder
 //
-// The README picture `readme-phones.png` comes from the same run: the English list and ranking screens side by side in rounded phone frames like the ones
+// The README picture `readme-phones-2.png` comes from the same run: the English list and ranking screens side by side in rounded phone frames like the ones
 // on the help page (transparent corners, so it also works on GitHub's dark theme).
 //
 // Needs Google Chrome (or set CHROME_PATH, or run `npx playwright install chromium`).
@@ -78,7 +78,8 @@ async function scenes(browser, base, lang) {
   await page.waitForSelector('#qr svg'); await shot('share');
   await page.click('#shareClose');
   // the menu on a shared list (this is where "Leave this list" lives)
-  await page.click('#menuBtn'); await shot('menu'); await page.keyboard.press('Escape');
+  // the build line ("Kober dev") is hidden: it would be wrong on the release and stale after every release
+  await page.click('#menuBtn'); await page.addStyleTag({ content: '#menuVersion{display:none!important}' }); await shot('menu'); await page.keyboard.press('Escape');
   // 7) ranking: Mia collects points, then Ben joins the same list and collects some too
   for (const t of ['Haferdrink', 'Vollkornbrot']) { await row('#items', t).locator('[data-chk]').click(); await page.waitForTimeout(150); }
   await tab('vDeposit'); for (let i = 0; i < 3; i++) { await page.click('[data-dep-add="1"]'); await page.waitForTimeout(80); }   // Mia: 2 items + 3 pieces = 5
@@ -101,9 +102,9 @@ async function phoneFrame(browser) {
   const page = await browser.newPage({ viewport: { width: 1500, height: 1500 } });
   await page.setContent(`<style>body{margin:0;background:transparent;font-family:-apple-system,'Segoe UI',Roboto,sans-serif}#row{display:inline-flex;gap:40px;padding:2px}figure{margin:0;text-align:center}figcaption{margin-top:18px;font-size:34px;color:#7a8290}
 .f{background:#111;padding:8px;border-radius:30px;box-shadow:0 0 0 1px rgba(255,255,255,.12)}.f img{display:block;width:600px;border-radius:22px}</style><body><div id="row">${phones}</div></body>`);
-  await page.locator('#row').screenshot({ path: path.join(OUT, 'readme-phones.png'), omitBackground: true });
+  await page.locator('#row').screenshot({ path: path.join(OUT, 'readme-phones-2.png'), omitBackground: true });
   await page.close();
-  console.log('  readme-phones.png');
+  console.log('  readme-phones-2.png');
 }
 
 fs.mkdirSync(OUT, { recursive: true });
