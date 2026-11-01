@@ -6,6 +6,7 @@ import { saveSnapshot, loadSnapshot, dropSnapshot } from './cache.js';
 import { IS_DEV, NS } from './env.js';
 import { loadVg, parseShareLink, fetchSharedList, vgNumFromCode, similarNames } from './vg.js';
 import { t, applyStatic } from './i18n.js';
+import { initDialogs, shortName, menuIndex, visibleFocusables } from './a11y.js';
 
 const $ = s => document.querySelector(s);
 // Player emojis: single code points only (no skin tones or joined sequences, those render differently across phones)
@@ -41,8 +42,10 @@ function dismissKeyboard() {
 // A toast is click-through. With an action ({label, aria, run}) it gets one button (the undo offer) and stays 5 s;
 // every new toast replaces the previous one, so there is only ever one offer. Texts go in as text, never as HTML.
 function toast(msg, action) {
-  const el = $('#toast'); el.textContent = msg;
+  const el = $('#toast');
   el.classList.toggle('act', !!action); el.classList.add('show');
+  void el.offsetHeight; // the region is rendered (not visibility:hidden) before its text changes, so screen readers announce it
+  el.textContent = msg;
   if (action) {
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'toastAct'; b.textContent = action.label; b.setAttribute('aria-label', action.aria || action.label);
@@ -152,15 +155,16 @@ function itemHtml(i) {
   // shows a small button to change or add the number
   const editing = editingId === i.id;
   const chip = i.vgNum ? esc(i.vgNum) : i.checked ? `＋ ${t('noShort')}` : '';
-  const sub = chip && !editing ? `<button type="button" class="numedit" data-editnum="${id}" aria-label="${t('ariaEditNum')}">${chip}</button>` : '';
+  const nm = esc(shortName(i.title)); // item name for the button labels (escaped: it goes into an attribute)
+  const sub = chip && !editing ? `<button type="button" class="numedit" data-editnum="${id}" aria-label="${t('ariaEditNumItem', { name: nm })}">${chip}</button>` : '';
   // iPhones have no Return key on the number pad: every number field has a confirm button, plus a scan button
-  const buttons = checkToo => `<button class="rowbtn ok" type="submit" aria-label="${t('ariaConfirm')}">✓</button><button class="rowbtn" type="button" data-scanrow="${id}" data-checktoo="${checkToo}" aria-label="${t('scanBarcode')}"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M8 7v10"/><path d="M12 7v10"/><path d="M16 7v10"/></svg></button>`;
+  const buttons = checkToo => `<button class="rowbtn ok" type="submit" aria-label="${t('ariaConfirmItem', { name: nm })}">✓</button><button class="rowbtn" type="button" data-scanrow="${id}" data-checktoo="${checkToo}" aria-label="${t('ariaScanItem', { name: nm })}"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M8 7v10"/><path d="M12 7v10"/><path d="M16 7v10"/></svg></button>`;
   const vgIn = editing ? `<form data-vgedit="${id}"><input class="vg" type="number" inputmode="numeric" enterkeyhint="done" value="${esc(i.vgNum || '')}" placeholder="${t('noShort')}">${buttons(0)}</form>`
     : i.vgNum || i.checked ? '' : `<form data-vg="${id}" class="quick"><input class="vg" type="number" inputmode="numeric" enterkeyhint="done" placeholder="${t('noShort')}">${buttons(1)}</form>`;
   return `<div class="item ${i.checked ? 'done' : ''}">
-      <button class="chk" data-chk="${esc(i.id)}" aria-label="${t(i.checked ? 'ariaBack' : 'ariaCheck')}"></button>
+      <button class="chk" data-chk="${esc(i.id)}" aria-label="${t(i.checked ? 'ariaBackItem' : 'ariaCheckItem', { name: nm })}"></button>
       <div class="t">${i.amount > 1 ? `${esc(i.amount)}${i.unit ? ' ' + esc(i.unit) : '×'} ` : ''}${esc(i.title)}<small>${sub}</small></div>${by}${vgIn}
-      <button class="x" data-del="${esc(i.id)}" aria-label="${t('ariaDelete')}">×</button></div>`;
+      <button class="x" data-del="${esc(i.id)}" aria-label="${t('ariaDeleteItem', { name: nm })}">×</button></div>`;
 }
 // The start hint: shown only while the list has no item at all (open or checked off)
 function emptyHint() {
@@ -243,7 +247,7 @@ function renderDeposit() {
   const types = vg ? vg.deposits : null;
   $('#depItems').innerHTML = !types ? `<p class="muted" style="text-align:center">${t('loadingVg')}</p>`
     : types.map(d => `<div class="dep"><div class="t">${esc(d.name)}<small>${esc(d.vgNum)}</small></div>
-        <button data-dep-sub="${esc(d.id)}" aria-label="${t('ariaLess')}">−</button><span class="n">${depSum(d.id)}</span><button class="add" data-dep-add="${esc(d.id)}" aria-label="${t('ariaMore')}">+</button></div>`).join('');
+        <button data-dep-sub="${esc(d.id)}" aria-label="${t('ariaLessItem', { name: esc(shortName(d.name)) })}">−</button><span class="n">${depSum(d.id)}</span><button class="add" data-dep-add="${esc(d.id)}" aria-label="${t('ariaMoreItem', { name: esc(shortName(d.name)) })}">+</button></div>`).join('');
 }
 
 /* ---------- Events ---------- */
@@ -528,7 +532,7 @@ if (IS_DEV) {
   const card = document.createElement('div'); card.className = 'card'; card.style.cssText = 'max-width:340px;width:100%';
   const h = document.createElement('h2'); h.style.margin = '0 0 8px'; h.textContent = t('devDiag');
   const pre = document.createElement('pre'); pre.style.cssText = 'font-size:12px;white-space:pre-wrap;word-break:break-all;text-align:left;margin:0 0 12px';
-  const close = document.createElement('button'); close.type = 'button'; close.className = 'btn sec'; close.textContent = t('close'); close.onclick = () => dlg.classList.add('hide');
+  const close = document.createElement('button'); close.type = 'button'; close.className = 'btn sec'; close.setAttribute('data-dialog-close', ''); close.textContent = t('close'); close.onclick = () => dlg.classList.add('hide');
   const copy = document.createElement('button'); copy.type = 'button'; copy.className = 'btn sec'; copy.textContent = t('devDiagCopy'); copy.style.marginRight = '8px';
   copy.onclick = async () => {
     try { await navigator.clipboard.writeText(pre.textContent); toast(t('devDiagCopied')); }
@@ -560,12 +564,28 @@ const forgetShared = () => {
 // "..." menu in the header: reset, VG import, leave (shared lists only), help and privacy
 {
   const menu = $('#menu'), btn = $('#menuBtn');
-  const setOpen = open => { menu.classList.toggle('hide', !open); btn.setAttribute('aria-expanded', String(open)); };
+  const items = () => visibleFocusables(menu);
+  const setOpen = open => {
+    const was = !menu.classList.contains('hide');
+    menu.classList.toggle('hide', !open); btn.setAttribute('aria-expanded', String(open));
+    if (open && !was) { const first = items()[0]; if (first) first.focus(); } // keyboard users land on the first entry
+  };
   btn.onclick = e => { e.stopPropagation(); dismissKeyboard(); setOpen(menu.classList.contains('hide')); };
   document.addEventListener('click', e => { if (!e.target.closest('#menu')) setOpen(false); });
   menu.addEventListener('click', e => { if (e.target.closest('button')) setOpen(false); });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') setOpen(false); });
+  menu.addEventListener('keydown', e => {
+    const list = items(), i = menuIndex(e.key, list.indexOf(document.activeElement), list.length);
+    if (i >= 0) { e.preventDefault(); list[i].focus(); }
+    else if (e.key === 'Tab') setOpen(false); // leaving the menu with Tab closes it
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape' || menu.classList.contains('hide')) return;
+    setOpen(false); btn.focus(); e.preventDefault();
+  });
 }
+// Dialogs (share, import, reset, join, diagnostics, scanner and any dialog added later): one generic helper gives them
+// role, label, focus handling, a focus trap and Escape (a11y.js). From the menu, focus goes back to the menu button.
+initDialogs(document, undefined, { fallbackFocus: el => (el.closest('#menu') ? $('#menuBtn') : null) });
 
 // Reset dialog (menu): three check boxes for what to clear (default: checked-off items and empties)
 const closeReset = () => $('#resetDlg').classList.add('hide');

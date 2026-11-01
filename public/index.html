@@ -36,19 +36,25 @@ main{padding-top:calc(8px + var(--conn-h,0px))} /* room below the connection bar
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:8px}
 #items,#doneCard{padding:2px 12px}#items:empty{padding:0}
 input,button{font:inherit}
-input[type=text],input[type=number]{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg)}
+input[type=text],input[type=number]{width:100%;padding:10px 12px;border:1px solid var(--ctl-bd);border-radius:10px;background:var(--bg);color:var(--fg)}
 .btn{background:var(--fill);color:var(--on-fill);border:0;border-radius:10px;padding:10px 14px;font-weight:600}
 .btn.sec{background:var(--green2);color:var(--fg)}
 .btn:disabled{background:var(--green2);color:var(--mute);cursor:default} /* the accent colour means: can be executed now */
 .btn.sec.on{background:transparent;color:var(--green);box-shadow:inset 0 0 0 2px var(--green)} /* a switched-on toggle is outlined; filled is reserved for actions */
 a{color:var(--green)}
+/* Keyboard focus: a visible ring, but only where the browser says keyboard focus is meant (:focus:not(:focus-visible) hides it after a tap or click), so the touch look stays as it was. */
+:focus{outline:2px solid var(--focus);outline-offset:2px}
+:focus:not(:focus-visible){outline:none} /* compat-ok: Safari < 15.4 drops this rule and keeps the ring on every focus, which only shows after a tab key press there */
+header :focus{outline-color:var(--hdr-fg)}
+#scanner :focus{outline-color:var(--scanner-fg)}
+.menu :focus,.tabs :focus,.dep button:focus{outline-offset:-3px}
+[role=dialog]:focus{outline:none} /* the dialog container only takes focus so that screen readers announce it */
 .btn.danger{color:var(--red)}
 .btn.ibtn2{display:grid;place-items:center;padding:10px 12px}
 .opt{display:flex;gap:10px;align-items:center;padding:10px 0;cursor:pointer}
-/* Options: an unselected one is a quiet hollow ring, the selected one carries the colour (the native look made the unselected radio the brightest thing in the dialog) */
-.opt input{appearance:none;-webkit-appearance:none;flex:none;width:22px;height:22px;margin:0;border:2px solid var(--mute);border-radius:50%;background:transparent}
+/* Options: an unselected one is a hollow ring (--ctl-bd, 3:1 against the card), the selected one carries the colour (the native look made the unselected radio the brightest thing in the dialog) */
+.opt input{appearance:none;-webkit-appearance:none;flex:none;width:22px;height:22px;margin:0;border:2px solid var(--ctl-bd);border-radius:50%;background:transparent}
 .opt input[type=checkbox]{border-radius:6px}
-@supports (color:color-mix(in srgb,red,blue)){.opt input{border-color:color-mix(in srgb,var(--mute) 55%,transparent)}} /* without it (Safari < 16.2) the ring stays in the full text colour; inside var() the unknown function would otherwise turn the border black */ /* compat-ok: in @supports, the full-colour ring above is the fallback */
 .opt input[type=checkbox]:checked{border-color:var(--tone-bd);background-color:var(--tone-bg);background-image:var(--tick);background-position:center;background-size:15px;background-repeat:no-repeat}
 .opt:has(input:not(:checked)) span{color:var(--mute)} /* what is not chosen fades */ /* compat-ok: Safari < 15.4 does not fade the unchosen options, nothing else changes */
 .btn svg{vertical-align:-4px;margin-right:6px}
@@ -60,16 +66,17 @@ a{color:var(--green)}
 .dlg-x:active{background:var(--green2)}
 .row{display:flex;gap:8px;align-items:center}
 /* Input bar and tab bar are the bottom rows of the app shell; while typing the tab bar is hidden */
-:root{--tabs:46px}
+:root{--tabs:54px}
 #addBar{position:relative;flex:none;z-index:6;background:var(--bg);border-top:1px solid var(--line);padding:8px 12px}
 #addBar>form{max-width:640px;margin-left:auto;margin-right:auto}
 #addBar form{margin:0}
 body.local .tabs [data-t=vScore],body.local #connBanner,body.local #menuLeave,body:not(.local) #menuJoin{display:none}
 body.typing .tabs{display:none}
 .tabs{flex:none;display:flex;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
-.tabs button{flex:1;height:var(--tabs);padding:0 2px;border:0;background:none;color:var(--mute);font-size:13px;white-space:nowrap} /* never wrap: a wider system font would otherwise push "Rangliste" onto two lines */
+.tabs button{flex:1;min-width:0;min-height:var(--tabs);padding:5px 2px 4px;border:0;background:none;color:var(--mute);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;line-height:1.15;text-align:center}
+.tabs button span{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:clamp(12px,min(.875rem,4.4vw),18px)} /* 14px; follows a larger root font size (browser text size) as far as the label still fits its quarter of the width, ellipsis only as a last resort */
 .tabs button.on{color:var(--green);font-weight:700}
-.tabs svg{width:16px;height:16px;margin-right:5px;vertical-align:-2px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round} /* line icons in the text colour: quiet, and green on the active tab */
+.tabs svg{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round} /* line icons in the text colour: quiet, and green on the active tab; the icon sits above the label so four tabs fit at 320px */
 .item{display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px;min-height:42px;padding:5px 2px;border-bottom:1px solid var(--line);line-height:1.25}
 .item:last-child{border:0}
 .chk{position:relative;width:24px;height:24px;border-radius:50%;border:1.5px solid var(--tone-bd);background:none;flex:none;color:var(--tone-fg);font-size:14px;line-height:1} /* quiet tonal style for small repeated controls (--tone-*), the filled --fill stays for primary actions */
@@ -89,8 +96,8 @@ body.typing .tabs{display:none}
 .menu a,.menu a.privacyLink,header .menu button{display:block;width:100%;padding:12px 16px;border:0;border-radius:0;background:none;color:var(--fg);font:inherit;text-align:left;text-decoration:none}
 .menu>*+*{border-top:1px solid var(--line)}
 .menu.hide{display:none}
-.numedit{position:relative;background:none;border:0;padding:0 2px;font:inherit;font-size:12px;color:var(--mute);text-decoration:underline dotted;cursor:pointer}
-.t small{display:inline;margin-left:6px;color:var(--mute);font-size:12px;white-space:nowrap}
+.numedit{position:relative;background:none;border:0;padding:0 2px;font:inherit;font-size:14px;color:var(--mute);text-decoration:underline dotted;cursor:pointer}
+.t small{display:inline;margin-left:6px;color:var(--mute);font-size:14px;white-space:nowrap}
 .item input.vg{width:56px;height:40px;padding:4px 6px;font-size:16px} /* below 16px iOS zooms into the page when a field gets focus */.item form{flex:none;display:flex;gap:10px;align-items:center}
 /* the quick number field has a fixed width: while the confirm button is hidden the field takes its space, so nothing else moves */
 .item form.quick{width:128px}.item form.quick input.vg{flex:1;min-width:0;width:auto}
@@ -102,7 +109,6 @@ body.typing .tabs{display:none}
 @media(max-width:369px){ /* iPhone SE (320px) and other narrow phones: the row's number field does not fit beside the title and gets its own line below it; the input bar and tabs get tighter */
 .item>form{order:1;flex-basis:100%;padding-left:32px}
 .item input.vg{width:96px}
-.tabs button{font-size:12px}.tabs svg{margin-right:3px}
 #addForm{gap:6px}#addBar .btn{flex:none;padding-left:9px;padding-right:9px}#addGo{min-width:40px}#addIn{min-width:0}#addIn::placeholder{font-size:13px} /* the field itself stays 16px (iOS zooms in below that) */
 }
 .badge{flex:0 1 auto;max-width:100%;overflow:hidden;text-overflow:ellipsis;background:var(--green2);border-radius:999px;padding:2px 8px;font-size:12px;white-space:nowrap}
@@ -197,10 +203,10 @@ body.typing .tabs{display:none}
 <div id="scanner" class="hide">
   <video id="cam" playsinline muted></video>
   <div id="scanFrame"></div>
-  <p id="scanMsg">Hold the barcode inside the frame</p>
+  <p id="scanMsg" data-dialog-title>Hold the barcode inside the frame</p>
   <div id="scanSuggest" class="hide"></div>
   <form id="eanForm" class="row"><input type="number" id="eanIn" inputmode="numeric" placeholder="Enter code manually"><button class="btn">OK</button></form>
-  <button class="btn sec" id="scanClose" type="button">Close</button>
+  <button class="btn sec" id="scanClose" type="button" data-dialog-close>Close</button>
 </div>
 <div id="app">
 <header>
