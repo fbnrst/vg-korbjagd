@@ -12,7 +12,9 @@
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans-serif}
-header{background:var(--hdr);color:var(--hdr-fg);padding:12px 16px}
+header{position:sticky;top:0;z-index:10;background:var(--hdr);color:var(--hdr-fg);padding:12px 16px;transition:transform .2s}
+header.away{transform:translateY(-100%)} /* scrolling down hides the header, a little scrolling up brings it back */
+.sec{scroll-margin-top:56px}
 header a{color:var(--hdr-fg);text-decoration:none;font-weight:600}
 .devtag{margin-left:10px;background:#12163f;color:#d8defe;border-radius:999px;padding:1px 9px;font-size:12px;font-weight:800;letter-spacing:.5px}
 main{max-width:1000px;margin:0 auto;padding:16px 16px 8px;overflow-wrap:anywhere}
@@ -195,6 +197,16 @@ import { IS_DEV } from '../env.js';
 document.documentElement.lang = lang;
 document.title = lang === 'de' ? 'Hilfe' : 'Help';
 document.getElementById('back').textContent = lang === 'de' ? '← Einkaufsliste' : '← Shopping list';
+{
+  const head = document.querySelector('header');
+  let last = scrollY;
+  addEventListener('scroll', () => {
+    const y = scrollY;
+    if (Math.abs(y - last) < 6) return; // ignore jitter
+    head.classList.toggle('away', y > last && y > head.offsetHeight);
+    last = y;
+  }, { passive: true });
+}
 // the install instructions all start folded: open the one for your device
 const appUrl = new URL('../', location.href).href;
 if (matchMedia('(min-width: 820px)').matches) {
