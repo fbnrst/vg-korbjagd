@@ -6,7 +6,7 @@
 <img src="public/docs/img/en-readme.png" alt="Kober shopping list on a phone" width="240" align="right">
 
 ### 👉 [Open Kober on your phone](https://fbnrst.github.io/kober/)
-No account, no app store. First time? [Add it to your home screen](https://fbnrst.github.io/kober/docs/#en-install) (takes a minute)
+No account, no app store. First time? [Add it to your home screen](https://fbnrst.github.io/kober/docs/#en-install)
 
 [Help](https://fbnrst.github.io/kober/docs/) · [Privacy](https://fbnrst.github.io/kober/privacy.html)
 
