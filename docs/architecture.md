@@ -30,7 +30,7 @@ The Firebase SDK (10.14.1) is loaded from `gstatic.com` only when needed; the sc
 
 ## Data model
 
-Everything lives under `lists/<CODE>` (6 characters from `ABCDEFGHJKLMNPQRSTUVWXYZ23456789`; the rules allow `^[A-Z0-9]{6}$`). The local list has the same shape in `localStorage` (key `NS + 'kober-local-db'`), but without scores.
+Everything lives under `lists/<CODE>` (8 characters from `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` for new lists, 6 for lists created before; the rules allow `^[A-Z0-9]{6,8}$`). The local list has the same shape in `localStorage` (key `NS + 'kober-local-db'`), but without scores.
 
 ```
 lists/<CODE>/
@@ -54,7 +54,7 @@ lists/<CODE>/
 - `firebaseAdapter` for shared lists; `localAdapter` (`localStorage`, other tabs through the `storage` event) for the local list, in demo mode (`firebase-config.js` is `null`) also for shared lists, and in the tests with a storage object of their own.
 - Points (`scores`) are changed only by a second transaction (`bump`/`point`) after the item transaction, and only if that changed something. The rules for this (who gets and who loses the point, undo, new round) are in AGENTS.md under "Points".
 - Resetting: `clearOpen`, `clearChecked`, `clearAll`, `clearDeposit`, `resetScores`; which of them run is decided by `resetPlan` in `flows.js`.
-- Activity: the writing methods stamp `activity` (not on a bad connection). `deleteList` removes the whole list. `.github/workflows/cleanup.yml` runs `scripts/cleanup-lists.mjs` weekly (lists without activity for 30 days, service account secret `FIREBASE_SERVICE_ACCOUNT`).
+- Activity: the writing methods stamp `activity` (not on a bad connection). `deleteList` removes the whole list. `.github/workflows/cleanup.yml` runs `scripts/cleanup-lists.mjs` weekly (lists without activity for 30 days; secrets `FIREBASE_SERVICE_ACCOUNT` for the release database and `FIREBASE_SERVICE_ACCOUNT_DEV` for the dev database).
 - `renameUser` moves points, empties and "by" marks to a new user key.
 
 ## Flows (`app.js`)
@@ -70,7 +70,7 @@ lists/<CODE>/
 
 - **Local list:** `localStorage` only, works without a network; the Firebase SDK is never loaded for it.
 - **VG data (`loadVg`):** first `getChecksums.php`; if the checksums match the cache (`NS + 'kober-vg-v2'`) or the network is gone, the cache is used, otherwise all five lists are reloaded and stored. Timeout 20 s per request. `createVgLoader` (`flows.js`) turns this into the states `loading`, `ready`, `unreachable` for the Empties tab. Endpoint details: [vg-api.md](vg-api.md).
-- **Service worker:** puts the files from `FILES` into the cache on install (`kober-v<VERSION>`, on dev `kober-dev-v…`); same origin, GET: network first, cache on failure. Firebase, VG and other hosts bypass it. When files change, bump `VERSION` in `sw.js`.
+- **Service worker:** puts the files from `FILES` into the cache on install (`kober-v<VERSION>`, on dev `kober-dev-v…`); same origin, GET: network first with a 3 s limit, then the cache; pages are cached without their query (no list codes in the cache). Firebase, VG and other hosts bypass it. `scripts/build-site.mjs` stamps `VERSION` per site with a hash of its files, so there is nothing to bump by hand.
 - **Connection (`conn.js`):** `degraded` after 3 s without a connection, on flapping or write timeouts; `busy` after 15 s without ever having connected or on "connected and immediately disconnected" (connection limit). Back to `ok` only after 5 s of stability. On `busy` the app disconnects itself and retries with backoff and jitter (up to 120 s). `guardAdapter` aborts hanging writes after 8 s (`PendingError`, the operation stays queued).
 - **Outbox (`outbox.js`):** item and empties operations are noted as an intent (`{id, code, op, args, ts}`) under `NS + 'kober-outbox'` before they are sent, and struck out once they are through. While `degraded`/`busy` everything waits; on `ok` and at start `store.flush(code)` replays the entries of the open list. At most 200 entries, at most 24 h old, every entry is validated again on load. Deliberately accepted edge cases are in AGENTS.md.
 - **Cache (`cache.js`):** last live snapshot per list under `NS + 'kober-cache:' + code` (3 lists, at most 200 KB each, at most 30 days old); shown read-only on the first load until live data arrives.
@@ -90,7 +90,7 @@ Only needed if someone runs the app under their own address (forks are not an in
 1. In the [Firebase console](https://console.firebase.google.com) create a project and a **Realtime Database** (region Europe).
 2. *Realtime Database → Rules*: paste the content of `database.rules.json` and publish ([security.md](security.md#publishing-the-rules)).
 3. *Project settings → General → Your apps → Add app (Web)*: enter the configuration in `public/firebase-config.js` (public identifiers, no secrets). Dev uses `public/firebase-config.dev.js`.
-4. For the deletion after 30 days, set up the cleanup job (secret `FIREBASE_SERVICE_ACCOUNT`, [retention.md](retention.md)).
+4. For the deletion after 30 days, set up the cleanup job (secret `FIREBASE_SERVICE_ACCOUNT`, optionally `FIREBASE_SERVICE_ACCOUNT_DEV` for the dev database, [retention.md](retention.md)).
 5. GitHub: *Settings → Pages → Source: GitHub Actions*. Every push to `main` tests and publishes `public/` (`pages.yml`).
 
 ## Where things live

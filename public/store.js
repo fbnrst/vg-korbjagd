@@ -13,12 +13,14 @@ export const userKey = (emoji, name) => {
   return `${e} ${n}`;
 };
 export const isUserKey = k => typeof k === 'string' && k.length <= 60 && /^[^ <>&"'`]{1,20} [^<>&"'`]{1,30}$/.test(k);
+// List codes: 8 characters for new lists, 6 for lists created before (both stay valid; database.rules.json allows the same)
+export const isListCode = c => /^[A-Z0-9]{6,8}$/.test(String(c));
 // A list code typed by hand, or the link / QR content of a shared list ("...?list=CODE"): the code or null
 export function parseListCode(text) {
   let s = String(text || '').trim();
   try { const c = new URL(s).searchParams.get('list'); if (c) s = c; } catch (e) { /* not a link: plain code */ }
   s = s.toUpperCase();
-  return /^[A-Z0-9]{6}$/.test(s) ? s : null;
+  return isListCode(s) ? s : null;
 }
 export const isId = k => typeof k === 'string' && /^[A-Za-z0-9_-]{1,40}$/.test(k);
 const toNum = v => { const n = Math.round(Number(v)); return Number.isFinite(n) && n >= 1 && n <= 9999999 ? n : null; };
@@ -133,7 +135,8 @@ export function guardAdapter(db, { timeoutMs = 8000, setTimeout: st = (f, ms) =>
 
 export function createStore(rawDb, guardOpts = {}) {
   const db = guardAdapter(rawDb, guardOpts), conn = guardOpts.conn, journal = guardOpts.journal;
-  const bumpOnce = (code, key, d) => db.update(code, `scores/${key}`, n => Math.min(100000, Math.max(0, (n || 0) + d)));
+  // Taking a point from a player who is not on the board (renamed meanwhile) changes nothing: no phantom player with 0 points
+  const bumpOnce = (code, key, d) => db.update(code, `scores/${key}`, n => (n == null && d < 0 ? undefined : Math.min(100000, Math.max(0, (n || 0) + d))));
   // One retry for a failure that is not a timeout: the item is already changed, a lost point would never be corrected
   const bump = (code, key, d) => isUserKey(key) ? bumpOnce(code, key, d).catch(e => { if (isPending(e)) throw e; return bumpOnce(code, key, d); }) : null;
   // The point after an item change. With a journal (the outbox) it is written down before it is sent and struck out when it
@@ -147,7 +150,8 @@ export function createStore(rawDb, guardOpts = {}) {
   };
   const CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   // The code is the only secret of a list: crypto randomness, not Math.random. 32 characters divide 256, so `% 32` has no bias.
-  const randCode = () => Array.from(crypto.getRandomValues(new Uint8Array(6)), b => CHARS[b % CHARS.length]).join('');
+  // 8 characters = 40 bits (lists created before have 6 and stay valid)
+  const randCode = () => Array.from(crypto.getRandomValues(new Uint8Array(8)), b => CHARS[b % CHARS.length]).join('');
   // The point (bump) is a second transaction after the one that changed the item. If the first one timed out it is still
   // queued and may commit later, and then the point must follow it, otherwise it is lost.
   const followUp = async (txn, next) => {
@@ -155,6 +159,8 @@ export function createStore(rawDb, guardOpts = {}) {
     try { r = await txn; } catch (e) { if (isPending(e)) e.late.then(next).catch(() => {}); throw e; }
     return next(r);
   };
+  // A step that timed out is still queued in the SDK: wait for its real outcome instead of giving up halfway
+  const settled = p => p.catch(e => (isPending(e) ? e.late : Promise.reject(e)));
   const store = {
     mode: rawDb.mode,
     subscribe: (code, cb, onStatus) => rawDb.subscribe(code, cb, onStatus),
@@ -163,24 +169,26 @@ export function createStore(rawDb, guardOpts = {}) {
     async create() {
       let code;
       do { code = randCode(); } while (await db.get(code, 'meta'));
-      await db.set(code, 'meta', { created: Date.now() });
+      // a timeout says which code it was: the write is still queued, so a retry can check whether the list came up
+      try { await db.set(code, 'meta', { created: Date.now() }); } catch (e) { if (isPending(e)) e.listCode = code; throw e; }
       return code;
     },
     async exists(code) { return !!(await db.get(code, 'meta')); },
     // Change name or emoji on a list: points, empties and the "by <name>" marks move to the new key, so the old
     // name does not stay behind in the ranking as a second player. Points and empties move in one transaction each, so a
-    // point that lands on the old name meanwhile is not lost.
+    // point that lands on the old name meanwhile is not lost. A step that times out is waited for, never skipped: the rename
+    // finishes when the connection is back instead of stopping halfway (the caller awaits the whole thing).
     async renameUser(code, from, to) {
       if (!isUserKey(from) || !isUserKey(to) || from === to) return;
       const move = group => { const next = { ...group, [to]: Math.min(100000, (group[to] || 0) + (group[from] || 0)) }; delete next[from]; return next; };
-      await db.update(code, 'scores', s => (s && s[from] != null) || !(s && s[to] != null) ? move(s || {}) : undefined);
-      await db.update(code, 'deposit', d => {
+      await settled(db.update(code, 'scores', s => (s && s[from] != null) || !(s && s[to] != null) ? move(s || {}) : undefined));
+      await settled(db.update(code, 'deposit', d => {
         if (!d || !Object.values(d).some(users => users && users[from] != null)) return undefined;
         return Object.fromEntries(Object.entries(d).map(([typ, users]) => [typ, users && users[from] != null ? move(users) : users]));
-      });
-      for (const [id, it] of Object.entries((await db.get(code, 'items')) || {})) {
+      }));
+      for (const [id, it] of Object.entries((await settled(db.get(code, 'items'))) || {})) {
         if (!it || !isId(id) || (it.checkedBy !== from && it.addedBy !== from)) continue;
-        await db.update(code, `items/${id}`, old => old ? { ...old, ...(old.checkedBy === from ? { checkedBy: to } : {}), ...(old.addedBy === from ? { addedBy: to } : {}) } : undefined);
+        await settled(db.update(code, `items/${id}`, old => old ? { ...old, ...(old.checkedBy === from ? { checkedBy: to } : {}), ...(old.addedBy === from ? { addedBy: to } : {}) } : undefined));
       }
     },
     // Replay of a journaled point (outbox.js): the plain counter change, not journaled again

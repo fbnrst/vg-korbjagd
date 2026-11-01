@@ -13,7 +13,8 @@ function snap(v) {
   return {
     val: () => v, isString: () => typeof v === 'string', isNumber: () => typeof v === 'number',
     isBoolean: () => typeof v === 'boolean',
-    hasChildren: ks => v && typeof v === 'object' && ks.every(k => v[k] != null),
+    // hasChildren() without keys: any child at all (a primitive has none)
+    hasChildren: ks => !!v && typeof v === 'object' && (ks ? ks.every(k => v[k] != null) : Object.keys(v).length > 0),
   };
 }
 const test_ = (expr, vars, v) => {
@@ -23,7 +24,8 @@ const test_ = (expr, vars, v) => {
 
 // Checks value v at a node with rule branch r; children are checked recursively. Returns the error path or null.
 function check(r, v, vars, path = '') {
-  if (v == null) return null;
+  // Deleting is not validated; RTDB stores an empty object as nothing (a delete)
+  if (v == null || (typeof v === 'object' && !Object.keys(v).length)) return null;
   if (r['.validate'] !== undefined) {
     const ok = typeof r['.validate'] === 'boolean' ? r['.validate'] : test_(r['.validate'], vars, v);
     if (!ok) return path || '/';
@@ -54,11 +56,19 @@ test('Rules: structure - read open, root closed, no writes at list level', () =>
   for (const k of ['items', 'scores', 'deposit', 'activity']) assert.equal(L[k]['.write'], true);
 });
 
+test('Rules: container nodes only take objects (a primitive would bypass the wildcard checks)', () => {
+  for (const k of ['items', 'scores', 'deposit']) assert.match(L[k]['.validate'], /newData\.hasChildren\(\)/, k);
+  assert.match(L.deposit.$typ['.validate'], /^\$typ\.matches\(.*\) && newData\.hasChildren\(\)$/, 'deposit/$typ checks its key and takes objects only');
+  assert.match(L.meta.created['.validate'], /newData\.val\(\) <= now \+ \d+/, 'meta.created is bounded (a far future value would dodge the cleanup)');
+});
+
 test('Rules: valid documents from store.js are accepted', () => {
   assert.equal(list(withItem(goodItem())), null);
   assert.equal(list(withItem(goodItem({ unit: 'kg', amount: 3, info: 'Bio', vgNum: 4711, ean: '4012345678901', checked: true, checkedBy: U, checkedAt: 5 }))), null);
   assert.equal(list({ meta: { created: 1 }, scores: { [U]: 0 }, deposit: { 12: { [U]: 3 } } }), null);
   assert.equal(list({ meta: { created: 1 }, activity: Date.now() }), null);
+  assert.equal(list({ meta: { created: Date.now() } }), null);
+  assert.equal(list({ meta: { created: 1 }, scores: {}, items: {}, deposit: {} }), null, 'emptied nodes are deletions');
 });
 
 test('Rules: garbage is rejected', () => {
@@ -90,10 +100,21 @@ test('Rules: garbage is rejected', () => {
     [{ meta: { created: 1 }, activity: 'gestern' }, 'activity as string'],
     [{ meta: { created: 1 }, activity: -5 }, 'negative activity'],
     [{ meta: { created: 1 }, activity: Date.now() + 3 * 86400000 }, 'activity far in the future (would keep a list alive forever)'],
+    [{ meta: { created: 9e15 } }, 'created far in the future (would keep a list alive forever)'],
+    [{ meta: { created: Date.now() + 3 * 86400000 } }, 'created 3 days ahead'],
+    [{ meta: { created: 1 }, items: 'x'.repeat(1000) }, 'items as a string'],
+    [{ meta: { created: 1 }, items: 5 }, 'items as a number'],
+    [{ meta: { created: 1 }, scores: 'x' }, 'scores as a string'],
+    [{ meta: { created: 1 }, deposit: true }, 'deposit as a boolean'],
+    [{ meta: { created: 1 }, deposit: { 12: 'x' } }, 'deposit type as a string'],
+    [{ meta: { created: 1 }, deposit: { 12: 3 } }, 'deposit type as a number'],
+    [{ meta: { created: 1 }, deposit: { ['x'.repeat(21)]: { [U]: 1 } } }, 'deposit type too long'],
   ];
   for (const [data, why] of bad) assert.notEqual(list(data), null, why);
   assert.notEqual(list(withItem(goodItem()), 'abc234'), null, 'code must be uppercase');
   assert.notEqual(list(withItem(goodItem()), 'ABC23'), null, 'code with 5 characters');
+  assert.notEqual(list(withItem(goodItem()), 'ABCD23456'), null, 'code with 9 characters');
+  for (const code of ['ABC234', 'ABC2345', 'ABCD2345']) assert.equal(list(withItem(goodItem()), code), null, `code ${code}: old 6 and new 8 characters`);
 });
 
 // store.js only writes what the rules allow: run the complete flow against the local adapter.

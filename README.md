@@ -18,7 +18,7 @@ An independent, unofficial shopping list app. The list lives on your phone first
 
 **Features**
 
-- A shared shopping list: everyone with the code (QR code, link or 6 characters) sees changes live and who put what in the basket
+- A shared shopping list: everyone with the code (QR code, link or an 8-character code) sees changes live and who put what in the basket
 - A leaderboard on top: points for checking off items and returning empties, so shopping becomes a little game
 - Works without account or server first: the list stays on your phone until you share it
 

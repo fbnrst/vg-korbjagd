@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert';
 import fs from 'node:fs';
-import { SYNONYM_GROUPS, vgNumFromCode, similarNames, nameSimilarity, buildIndex, isPlaceholder, cleanTitle, infoText } from '../public/vg.js';
+import { SYNONYM_GROUPS, vgNumFromCode, similarNames, nameSimilarity, buildIndex, isPlaceholder, cleanTitle } from '../public/vg.js';
 
 const raw = {
   products: [[7900, 'Fruchtwürfel- mischung', 2, 158, 31, 0], [1181, 'Schafmilch- Joghurt Natur', 3, 748, 5, 1], [1076, 'Vollmilchpulver 1kg', 2, 1, 1, 0]],
@@ -14,15 +14,12 @@ test('titles are cleaned of hyphenation breaks in the VG data', () => {
   assert.equal(cleanTitle('Schafmilch- Joghurt Natur'), 'Schafmilch-Joghurt Natur');
 });
 
-test('index: number, title, search and info text', () => {
+test('index: number, title and search', () => {
   const ix = buildIndex(raw);
   assert.equal(ix.lookup(7900).title, 'Fruchtwürfelmischung');
   assert.equal(ix.lookup('1181').unit, 'Stück');
   assert.equal(ix.lookup(999), null);
-  assert.equal(ix.byTitle('schafmilch-joghurt natur').vgNum, 1181);
   assert.deepEqual(ix.search('joghurt natur').map(p => p.vgNum), [1181]);
-  assert.equal(infoText(ix.lookup(1181)), 'Stück · Hof Muster · Österreich · regional');
-  assert.equal(infoText(ix.lookup(1076)), 'kg');
 });
 
 test('deposit types are in the index', () => {

@@ -96,6 +96,14 @@ export function initDialogs(doc = document, selector = DIALOG_SELECTOR, opts = {
     }
   });
 
+  // A tap on the scrim around a dialog marked data-backdrop-close closes it the way its close button does
+  doc.addEventListener('click', e => {
+    const dlg = e.target;
+    if (!dlg || !dlg.matches || !dlg.matches(selector) || !dlg.hasAttribute('data-backdrop-close')) return;
+    const btn = dlg.querySelector('.dlg-x,[data-dialog-close]');
+    if (btn) btn.click(); else dlg.classList.add('hide');
+  });
+
   const MO = win && win.MutationObserver;
   if (MO) {
     new MO(records => {

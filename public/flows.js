@@ -1,4 +1,6 @@
 // Pure logic behind a few flows of app.js (no DOM, no storage access), so Node tests can cover it.
+import { parseListCode, isListCode } from './store.js';
+import { vgNumFromCode } from './vg.js';
 
 /* ---------- Input bar ---------- */
 // VG numbers have 3 to 4 digits: a longer run of digits can never be a VG number (the "+" stays muted and the
@@ -36,6 +38,48 @@ export function sanitizeTicks(raw, code, now) {
 // Ticks of rows that do not exist any more are dropped
 export const pruneTicks = (keys, live) => [...keys].filter(k => live.has(k));
 
+/* ---------- Checkout rows ---------- */
+// The checkout tab: items with a number of 1000 and up, bakery (numbers below 1000) and empties, each sorted by title; rows
+// already typed in at the till leave their block and go into one block at the end. `deposits`: [{id, name, vgNum, n}] with
+// n > 0, `ticks`: the set of ticked row keys. Weighed goods (g, kg, Liter) and single pieces show the amount beside the
+// unit, counted pieces as "3 ×" before the number.
+export function checkoutSections(items, deposits, ticks) {
+  const byTitle = (a, b) => a.title.localeCompare(b.title, 'de');
+  const row = (key, title, amount, unit, no) => {
+    const weight = ['g', 'kg', 'Liter'].includes(unit) || amount === 1;
+    return { key, title, amount, unit: unit || '', no: no || null, weight, done: ticks.has(key) };
+  };
+  const inBasket = items.filter(i => i.checked).sort(byTitle);
+  const item = i => row(i.id, i.title, i.amount, i.unit, i.vgNum);
+  const big = inBasket.filter(i => i.vgNum >= 1000).map(item), bakery = inBasket.filter(i => i.vgNum && i.vgNum < 1000).map(item);
+  const empties = deposits.map(d => row('d' + d.id, d.name, d.n, '', d.vgNum));
+  const open = rows => rows.filter(r => !r.done);
+  return { items: open(big), bakery: open(bakery), empties: open(empties), done: [...big, ...bakery, ...empties].filter(r => r.done) };
+}
+
+/* ---------- Ranking ---------- */
+// Ties are sorted by name, so the order never jumps between updates; same points = same place (1, 1, 3, …). The podium shows
+// the first three places in the classic order 2-1-3 (no medal without points), then everybody without points.
+export function rankPlaces(scores) {
+  const rank = Object.entries(scores || {}).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  const placed = rank.map(([k, n]) => ({ k, n, place: 1 + rank.findIndex(r => r[1] === n) }));
+  const at = p => placed.filter(x => x.place === p && x.n > 0);
+  return { placed, podium: [...at(2), ...at(1), ...at(3), ...placed.filter(x => x.n === 0)], max: Math.max(1, placed[0] ? placed[0].n : 1) };
+}
+
+/* ---------- Scanning ---------- */
+// What a scanned (or typed) code means. While joining only a list code or join link counts. A VG shelf label carries the
+// VG number (vgNumFromCode), whether or not the VG data has loaded; any other run of 8-14 digits is a product barcode;
+// anything else (a QR code with a URL, some text) is unknown.
+export function classifyScan(text, { join = false } = {}) {
+  const s = String(text ?? '').trim();
+  if (join) { const code = parseListCode(s); return code ? { kind: 'list', code } : { kind: 'unknown' }; }
+  const n = vgNumFromCode(s);
+  if (n) return { kind: 'vg', n };
+  if (/^\d{8,14}$/.test(s)) return { kind: 'ean', ean: s };
+  return { kind: 'unknown' };
+}
+
 /* ---------- VG data loading ---------- */
 // State of the VG data for the Empties tab: 'loading' -> 'ready', or 'unreachable' (the load failed, or took longer than
 // slowMs; a late success still turns it 'ready'). start() is a retry: while a load is still running it only shows
@@ -66,11 +110,15 @@ export function createVgLoader({ load, onChange = () => {}, slowMs = 10000, setT
 
 /* ---------- Sharing the local list ---------- */
 // Upload the local list into a new shared list and return its code. Touches nothing local: when it throws, the local list
-// is exactly as before and the whole thing can simply be tried again.
-export async function uploadLocalList(remote, data, user) {
-  const code = await remote.create();
-  await remote.importList(code, data, user);
-  return code;
+// is exactly as before and the whole thing can simply be tried again. `made` carries the code of a list an earlier attempt
+// created (keep the same object across retries): a retry fills that list instead of leaving a half-filled one behind.
+export async function uploadLocalList(remote, data, user, made = {}) {
+  if (made.code && !(await remote.exists(made.code))) made.code = null; // the earlier attempt never got the list up
+  if (!made.code) {
+    try { made.code = await remote.create(); } catch (e) { if (e && isListCode(e.listCode)) made.code = e.listCode; throw e; }
+  }
+  await remote.importList(made.code, data, user);
+  return made.code;
 }
 
 /* ---------- Browser hint (iOS) ---------- */
@@ -87,7 +135,7 @@ export function isStandalone(nav, mm) {
 }
 // `seen` is the array of list codes the hint was already shown for
 export function shouldShowBrowserHint(nav, mm, code, seen) {
-  return isIosLike(nav) && !isStandalone(nav, mm) && /^[A-Z0-9]{6}$/.test(String(code)) && !(Array.isArray(seen) && seen.includes(code));
+  return isIosLike(nav) && !isStandalone(nav, mm) && isListCode(code) && !(Array.isArray(seen) && seen.includes(code));
 }
 // iPhone/iPad browser tab, not the installed app: suggest adding Kober to the home screen (once the person closed it, never again)
 export function shouldShowInstallHint(nav, mm, dismissed) {
@@ -102,7 +150,7 @@ export function shouldShowAndroidInstall(nav, mm, dismissed) {
 // Stored list of codes (localStorage is user-writable): only valid codes, at most 20, newest last
 export function sanitizeHintSeen(raw) {
   if (!Array.isArray(raw)) return [];
-  return raw.filter(c => typeof c === 'string' && /^[A-Z0-9]{6}$/.test(c)).slice(-20);
+  return raw.filter(c => typeof c === 'string' && isListCode(c)).slice(-20);
 }
 export function addHintSeen(seen, code) {
   return seen.includes(code) ? seen : [...seen, code].slice(-20);

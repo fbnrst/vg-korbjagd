@@ -1,7 +1,7 @@
 // VG Dresden master data (products, manufacturers, countries, units) straight from the VG server, cached in the browser.
 // The endpoints answer with CORS "*", so no proxy is needed (see docs/vg-api.md).
 const BASE = 'https://app.vg-dresden.de/php/';
-import { NS } from './env.js';
+import { NS, IS_DEV } from './env.js';
 const CACHE_KEY = NS + 'kober-vg-v2';
 
 // AbortSignal.timeout() is missing before Safari 16: without it every VG request would fail on iOS 15
@@ -61,7 +61,6 @@ export function buildIndex(raw) {
       }
       return out;
     },
-    byTitle: t => list.find(p => p.key === String(t).trim().toLowerCase()) || null,
     search(q, limit = 8) {
       const words = String(q).toLowerCase().split(/\s+/).filter(Boolean);
       if (!words.length) return [];
@@ -72,11 +71,10 @@ export function buildIndex(raw) {
   };
 }
 
-export const infoText = p => [p.unit && p.unit !== '---' ? p.unit : '', p.manufacturer && p.manufacturer !== 'Hersteller unbekannt' ? p.manufacturer : '',
-  p.country && p.country !== 'siehe Etikett' ? p.country : '', p.regional ? 'regional' : ''].filter(Boolean).join(' · ');
-
 const fromLs = () => { try { return JSON.parse(localStorage.getItem(CACHE_KEY)); } catch (e) { return null; } };
-const toLs = v => { try { localStorage.setItem(CACHE_KEY, JSON.stringify(v)); } catch (e) { /* storage full: reload next time */ } };
+// Storage full (release and /dev/ share one origin and its quota): the list is downloaded again on the next start; the dev
+// build says so in the console, so a quota problem does not go unnoticed
+const toLs = v => { try { localStorage.setItem(CACHE_KEY, JSON.stringify(v)); } catch (e) { if (IS_DEV) console.warn('VG cache not saved:', e && e.name); } };
 
 // Loads the data (from the cache if the checksums still match). Returns null if nothing is available.
 export async function loadVg() {

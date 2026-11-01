@@ -10,7 +10,7 @@ const item = (id, title, extra = {}) => ({ id, title, ...extra });
 test('create list, existence check', async () => {
   const { s } = setup();
   const code = await s.create();
-  assert.match(code, /^[A-Z0-9]{6}$/);
+  assert.match(code, /^[A-Z0-9]{8}$/, 'new lists get 8 characters');
   assert.equal(await s.exists(code), true);
   assert.equal(await s.exists('ZZZZZZ'), false);
 });
@@ -253,7 +253,9 @@ test('parseListCode takes a typed code or the link of a shared list and nothing 
   assert.equal(parseListCode('k7m2qx'), 'K7M2QX');
   assert.equal(parseListCode('  K7M2QX '), 'K7M2QX');
   assert.equal(parseListCode('https://fbnrst.github.io/kober/?list=ab12cd'), 'AB12CD');
-  for (const bad of ['', 'K7M2Q', 'K7M2QXX', 'K7 M2Q', 'https://example.com/', 'VG 4455', '4455', null, undefined]) assert.equal(parseListCode(bad), null, String(bad));
+  assert.equal(parseListCode('k7m2qxab'), 'K7M2QXAB', 'new 8-character codes');
+  assert.equal(parseListCode('https://x.github.io/kober/?list=K7M2QXAB'), 'K7M2QXAB');
+  for (const bad of ['', 'K7M2Q', 'K7M2QXABC', 'K7 M2Q', 'https://example.com/', 'VG 4455', '4455', null, undefined]) assert.equal(parseListCode(bad), null, String(bad));
 });
 
 test('renameUser moves points, empties and marks to the new name and leaves others alone', async () => {
@@ -322,4 +324,45 @@ test('start hint shows only while the list has no item at all', async () => {
   assert.equal(isEmptyList(undefined), true);
   assert.equal(isEmptyList({}), true);
   assert.equal(isEmptyList({ a: { id: 'a', checked: true } }), false);
+});
+
+test('renameUser finishes after a step timed out instead of stopping halfway', async () => {
+  const db = localAdapter(mem(), false);
+  const seed = createStore(db);
+  await seed.add('CODE', item('a', 'Milch'), A); await seed.check('CODE', 'a', A, true); await seed.depositAdd('CODE', 'x', A);
+  let release, timers = [];
+  const slow = { ...db, update(code, path, fn) { if (path !== 'scores') return db.update(code, path, fn); return new Promise(r => { release = () => r(db.update(code, path, fn)); }); } };
+  const s = createStore(slow, { timeoutMs: 1, setTimeout: f => timers.push(f), clearTimeout() {} });
+  let done = false, failed = null;
+  s.renameUser('CODE', A, B).then(() => { done = true; }, e => { failed = e; });
+  for (let i = 0; i < 5; i++) await Promise.resolve();
+  timers.splice(0).forEach(f => f()); // the scores step times out
+  for (let i = 0; i < 5; i++) await Promise.resolve();
+  assert.equal(failed, null, 'a timeout is not a failure: the rename waits');
+  assert.equal(done, false);
+  release();
+  for (let i = 0; i < 50 && !done; i++) { await new Promise(r => setImmediate(r)); timers.splice(0); }
+  assert.ok(done);
+  assert.deepEqual(await db.get('CODE', 'scores'), { [B]: 2 }, 'one point for the item, one for the empties piece');
+  assert.deepEqual(await db.get('CODE', 'deposit'), { x: { [B]: 1 } }, 'the empties moved too');
+  assert.equal((await db.get('CODE', 'items/a')).checkedBy, B);
+});
+
+test('taking a point from a player who is not on the board creates no phantom player', async () => {
+  const { db, s } = setup();
+  await s.add('CODE', item('a', 'Milch'), A); await s.check('CODE', 'a', A, true);
+  await db.set('CODE', 'scores', { [B]: 2 }); // A was renamed meanwhile
+  await s.check('CODE', 'a', B, false);
+  assert.deepEqual(await db.get('CODE', 'scores'), { [B]: 2 });
+});
+
+test('a timed-out create says which code it was', async () => {
+  const db = localAdapter(mem(), false), timers = [];
+  const slow = { ...db, set: (code, path, v) => (path === 'meta' ? new Promise(() => {}) : db.set(code, path, v)) };
+  const s = createStore(slow, { timeoutMs: 1, setTimeout: f => { timers.push(f); }, clearTimeout() {} });
+  const p = s.create().catch(x => x);
+  for (let i = 0; i < 10; i++) { await new Promise(r => setImmediate(r)); timers.splice(0).forEach(f => f()); }
+  const e = await p;
+  assert.ok(e.pending);
+  assert.match(e.listCode, /^[A-Z0-9]{8}$/);
 });

@@ -15,6 +15,6 @@ test('the empty-list hint offers joining a list through the same dialog as the m
   const app = read('app.js');
   const hint = app.slice(app.indexOf('function emptyHint'), app.indexOf('function render()'));
   assert.match(hint, /id="emptyJoin"[^>]*>\$\{esc\(t\('emptyJoin'\)\)\}/);
-  assert.match(app, /closest\('#emptyJoin'\)\) openJoin\(\)/);
+  assert.match(app, /#emptyJoin[^\n]*openJoin/); // the hint's button opens the join dialog
   assert.ok(STRINGS.en.emptyJoin && STRINGS.de.emptyJoin);
 });

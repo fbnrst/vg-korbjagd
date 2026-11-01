@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { isIosLike, isStandalone, shouldShowBrowserHint, shouldShowInstallHint, shouldShowAndroidInstall, isAndroid, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, createVgLoader, uploadLocalList, TICK_TTL, TICK_MAX } from '../public/flows.js';
+import { isIosLike, isStandalone, shouldShowBrowserHint, shouldShowInstallHint, shouldShowAndroidInstall, isAndroid, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, createVgLoader, uploadLocalList, checkoutSections, rankPlaces, classifyScan, TICK_TTL, TICK_MAX } from '../public/flows.js';
 import { createStore, localAdapter, userKey } from '../public/store.js';
 import { createSim, createClock } from '../public/sim.js';
 import { STRINGS } from '../public/i18n.js';
@@ -112,7 +112,7 @@ test('first share: a failed upload leaves the local list untouched and a retry g
 
   sim.setMode('ok'); await clock.advance(0);
   const code = await uploadLocalList(store, data, A);
-  assert.match(code, /^[A-Z0-9]{6}$/);
+  assert.match(code, /^[A-Z0-9]{8}$/);
   assert.equal(Object.values((await sim.get(code, 'items')) || {})[0].title, 'Milch');
   assert.deepEqual(await local.get('LOCAL', 'items'), data.items, 'removing the local copy is the caller\'s job, after startShared');
 });
@@ -190,4 +190,59 @@ test('android install dialog: Android browser tab only, never in the installed a
   assert.equal(shouldShowAndroidInstall(android, mm(false), true), false);
   assert.equal(shouldShowAndroidInstall({ userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_8 like Mac OS X)' }, mm(false), false), false);
   assert.equal(shouldShowAndroidInstall({ userAgent: 'Mozilla/5.0 (X11; Linux x86_64)' }, mm(false), false), false);
+});
+
+test('a retried first share fills the list the first attempt created instead of leaving it half-filled', async () => {
+  const A = userKey('🦊', 'Mia');
+  const db = localAdapter(mem(), false), store = createStore(db);
+  let fail = true, creates = 0;
+  const remote = { ...store, create: async () => { creates++; return store.create(); }, importList: async (...a) => { if (fail) throw new Error('offline'); return store.importList(...a); } };
+  const made = {}, data = { items: { m: { id: 'm', title: 'Milch' } }, deposit: {} };
+  await assert.rejects(uploadLocalList(remote, data, A, made));
+  assert.match(made.code, /^[A-Z0-9]{8}$/);
+  fail = false;
+  assert.equal(await uploadLocalList(remote, data, A, made), made.code);
+  assert.equal(creates, 1, 'no second list');
+  // a code whose list never came up (the create timed out and was lost) is replaced by a new one
+  const lost = { code: 'ZZZZZZZZ' };
+  const c = await uploadLocalList(remote, data, A, lost);
+  assert.notEqual(c, 'ZZZZZZZZ'); assert.equal(creates, 2);
+  // a timed-out create hands over its code
+  const late = {}, pending = Object.assign(new Error('pending'), { pending: true, listCode: 'K7M2QXAB' });
+  await assert.rejects(uploadLocalList({ ...remote, create: async () => { throw pending; } }, data, A, late));
+  assert.equal(late.code, 'K7M2QXAB');
+});
+
+test('ranking: same points share a place, ties by name, podium 2-1-3 then players without points', () => {
+  const r = rankPlaces({ '🐼 Ben': 3, '🦊 Mia': 5, '🦈 Ada': 3, '🤖 Zoe': 0 });
+  assert.deepEqual(r.placed.map(x => [x.k, x.place]), [['🦊 Mia', 1], ['🐼 Ben', 2], ['🦈 Ada', 2], ['🤖 Zoe', 4]]); // ties by key (emoji first)
+  assert.deepEqual(r.podium.map(x => x.k), ['🐼 Ben', '🦈 Ada', '🦊 Mia', '🤖 Zoe']);
+  assert.equal(r.max, 5);
+  assert.deepEqual(rankPlaces({}), { placed: [], podium: [], max: 1 });
+});
+
+test('checkout rows: items, bakery and empties by title; typed rows move into one block at the end', () => {
+  const items = [
+    { id: 'b', title: 'Brot', checked: true, vgNum: 120, amount: 1 },
+    { id: 'm', title: 'Milch', checked: true, vgNum: 1234, amount: 2, unit: 'Stück' },
+    { id: 'a', title: 'Äpfel', checked: true, vgNum: 2001, amount: 500, unit: 'g' },
+    { id: 'o', title: 'Offen', checked: false, vgNum: 1111 },
+    { id: 'n', title: 'Ohne Nummer', checked: true },
+  ];
+  const s = checkoutSections(items, [{ id: 3, name: 'Flasche', vgNum: 9003, n: 2 }], new Set(['m']));
+  assert.deepEqual(s.items.map(r => r.key), ['a']);
+  assert.deepEqual(s.bakery.map(r => r.key), ['b']);
+  assert.deepEqual(s.empties.map(r => [r.key, r.amount, r.no]), [['d3', 2, 9003]]);
+  assert.deepEqual(s.done.map(r => r.key), ['m']);
+  assert.equal(s.items[0].weight, true, 'grams show beside the unit');
+  assert.equal(s.done[0].weight, false, 'counted pieces show as "2 ×"');
+});
+
+test('scanned codes: VG labels with or without VG data, barcodes, list codes only while joining', () => {
+  assert.deepEqual(classifyScan('02073448'), { kind: 'vg', n: 7344 }, 'a shelf label is a VG number even before the VG data loaded');
+  assert.deepEqual(classifyScan('VG 123 Äpfel'), { kind: 'vg', n: 123 });
+  assert.deepEqual(classifyScan(' 4006040123458 '), { kind: 'ean', ean: '4006040123458' });
+  assert.deepEqual(classifyScan('https://example.com/'), { kind: 'unknown' });
+  assert.deepEqual(classifyScan('https://x/?list=K7M2QXAB', { join: true }), { kind: 'list', code: 'K7M2QXAB' });
+  assert.deepEqual(classifyScan('4006040123458', { join: true }), { kind: 'unknown' });
 });

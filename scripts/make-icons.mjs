@@ -4,7 +4,7 @@
 //
 // One drawing, four outputs: rounded for "any" (192, 512), full bleed for "maskable" (motif shrunk into the safe zone)
 // and for the iOS home screen (iOS rounds the corners itself). Needs Google Chrome (or CHROME_PATH), like the
-// screenshot script. Bump VERSION in public/sw.js afterwards so the new icons are picked up.
+// screenshot script. The deploy stamps a new service worker VERSION when the icons change (scripts/build-site.mjs).
 import { chromium } from 'playwright-core';
 import fs from 'node:fs';
 import path from 'node:path';

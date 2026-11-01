@@ -6,11 +6,11 @@
       "$code": {
         ".read": true,
         ".write": "!newData.exists()",
-        ".validate": "$code.matches(/^[A-Z0-9]{6}$/) && newData.hasChildren(['meta'])",
+        ".validate": "$code.matches(/^[A-Z0-9]{6,8}$/) && newData.hasChildren(['meta'])",
         "meta": {
           ".write": "!data.exists()",
           ".validate": "newData.hasChildren(['created'])",
-          "created": { ".validate": "newData.isNumber() && newData.val() > 0" },
+          "created": { ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() <= now + 86400000" },
           "$other": { ".validate": false }
         },
         "activity": {
@@ -19,6 +19,7 @@
         },
         "items": {
           ".write": true,
+          ".validate": "newData.hasChildren()",
           "$id": {
             ".validate": "$id.matches(/^[A-Za-z0-9_-]{1,40}$/) && newData.hasChildren(['id', 'title', 'amount', 'checked', 'addedBy', 'addedAt'])",
             "id": { ".validate": "newData.isString() && newData.val() === $id" },
@@ -38,15 +39,18 @@
         },
         "scores": {
           ".write": true,
+          ".validate": "newData.hasChildren()",
           "$user": {
             ".validate": "$user.length <= 60 && $user.matches(/^[^ <>&\"'`]{1,20} [^<>&\"'`]{1,30}$/) && newData.isNumber() && newData.val() >= 0 && newData.val() <= 100000 && newData.val() % 1 === 0"
           }
         },
         "deposit": {
           ".write": true,
+          ".validate": "newData.hasChildren()",
           "$typ": {
+            ".validate": "$typ.matches(/^[A-Za-z0-9_-]{1,20}$/) && newData.hasChildren()",
             "$user": {
-              ".validate": "$typ.matches(/^[A-Za-z0-9_-]{1,20}$/) && $user.length <= 60 && $user.matches(/^[^ <>&\"'`]{1,20} [^<>&\"'`]{1,30}$/) && newData.isNumber() && newData.val() >= 1 && newData.val() <= 100000 && newData.val() % 1 === 0"
+              ".validate": "$user.length <= 60 && $user.matches(/^[^ <>&\"'`]{1,20} [^<>&\"'`]{1,30}$/) && newData.isNumber() && newData.val() >= 1 && newData.val() <= 100000 && newData.val() % 1 === 0"
             }
           }
         },

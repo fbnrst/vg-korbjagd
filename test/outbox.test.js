@@ -5,7 +5,7 @@ import { createConn } from '../public/conn.js';
 import { createStore, localAdapter, userKey } from '../public/store.js';
 import { createSim, createClock, applyScenario } from '../public/sim.js';
 import { createOutbox, validEntry, overlay, MAX_ENTRIES, MAX_AGE } from '../public/outbox.js';
-import { saveSnapshot, loadSnapshot, sanitize, KEEP, MAX_BYTES } from '../public/cache.js';
+import { saveSnapshot, loadSnapshot, sanitize, KEEP, MAX_BYTES, MAX_ITEMS } from '../public/cache.js';
 import { STRINGS } from '../public/i18n.js';
 
 const SEC = 1000, CODE = 'ABCDEF';
@@ -286,14 +286,22 @@ test('cache: only the last-used lists are kept, and a huge list is not cached', 
   assert.equal(saveSnapshot({ setItem() { throw new Error('quota'); }, removeItem() {}, length: 0, key: () => null }, CODE, {}, 1), false);
 });
 
-test('NS prefix on both new storage keys, and the sim scenario `cut`', () => {
+test('NS prefix on both new storage keys, and the sim scenario `cut`', t => {
   const o = fs.readFileSync(new URL('../public/outbox.js', import.meta.url), 'utf8');
   const c = fs.readFileSync(new URL('../public/cache.js', import.meta.url), 'utf8');
   assert.ok(/NS \+ 'kober-outbox'/.test(o));
   assert.ok(/NS \+ 'kober-cache:'/.test(c));
   assert.ok(!/localStorage\.|sessionStorage|indexedDB/.test(o + c), 'storage is injected, never reached for globally');
+  // applyScenario uses the global timers (it is meant for the app): mock them so the test does not wait 5 + 10 s
+  t.mock.timers.enable({ apis: ['setTimeout'] });
   const sim = createSim(localAdapter(mem(), false));
+  const modes = [];
+  const setMode = sim.setMode; sim.setMode = m => { modes.push(m); setMode(m); };
   assert.equal(applyScenario(sim, 'cut:5:10'), true);
+  t.mock.timers.tick(5 * SEC);
+  assert.deepEqual(modes, ['drop'], 'the connection dies after 5 s');
+  t.mock.timers.tick(10 * SEC);
+  assert.deepEqual(modes, ['drop', 'ok'], 'and is back 10 s later');
   assert.equal(applyScenario(sim, 'nonsense'), false);
 });
 
@@ -313,4 +321,27 @@ test('a restore entry is validated and shows at once in the optimistic view', as
   const view = overlay({ items: {}, scores: {}, deposit: {} }, [e]);
   assert.equal(view.items.a.checked, true);
   assert.equal(view.items.a.title, 'Milch');
+});
+
+test('outbox: a rename rewrites the player key of the entries still waiting, never those already sent', () => {
+  const storage = mem();
+  const ob = createOutbox({ storage, now: () => 1000 });
+  const wrapped = ob.wrap({ add: () => new Promise(() => {}), check: async () => {}, depositAdd: async () => {}, restore: async () => {} }, { state: () => 'degraded' });
+  wrapped.add('K7M2QXAB', { id: 'a', title: 'Milch' }, A);
+  wrapped.depositAdd('K7M2QXAB', 'x', A);
+  wrapped.restore('K7M2QXAB', { id: 'b', title: 'Brot', checked: true, checkedBy: A, addedBy: A }, A);
+  wrapped.check('OTHER1', 'a', A, true);
+  ob.renameKey('K7M2QXAB', A, B);
+  const e = ob.entries();
+  assert.equal(e[0].args[1], B); assert.equal(e[1].args[1], B);
+  assert.equal(e[2].args[0].checkedBy, B); assert.equal(e[2].args[0].addedBy, B); assert.equal(e[2].args[1], B);
+  assert.equal(e[3].args[1], A, 'another list is left alone');
+  assert.equal(JSON.parse(storage.getItem(ob.key))[0].args[1], B, 'stored as well');
+});
+
+test('cache: a primitive where an object belongs is dropped, and at most MAX_ITEMS items are kept', () => {
+  assert.deepEqual(sanitize({ items: 'x'.repeat(1000), scores: 'y', deposit: 5 }), { items: {}, scores: {}, deposit: {} });
+  const items = {};
+  for (let i = 0; i < MAX_ITEMS + 50; i++) items['i' + i] = { title: 'Item ' + i };
+  assert.equal(Object.keys(sanitize({ items }).items).length, MAX_ITEMS);
 });

@@ -15,7 +15,7 @@
     "matching:off": "node scripts/check-off-synonyms.mjs"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20.11"
   },
   "devDependencies": {
     "firebase": "10.14.1",

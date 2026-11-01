@@ -15,7 +15,7 @@
 // would both replay. Everything read from localStorage is untrusted (the user can edit it): every entry is validated
 // again with the same rules as store.js, invalid ones are dropped.
 import { NS } from './env.js';
-import { isId, isUserKey, isPending, restoredItem } from './store.js';
+import { isId, isUserKey, isPending, restoredItem, isListCode } from './store.js';
 
 export const MAX_ENTRIES = 200, MAX_AGE = 24 * 3600e3, MAX_TRIES = 3;
 const TYPE = /^[A-Za-z0-9_-]{1,20}$/;
@@ -53,7 +53,7 @@ export const QUEUEABLE = Object.keys(VALID).filter(op => op !== 'bump');
 
 // A stored or new entry in its clean form, or null
 export function validEntry(e, now = Date.now()) {
-  if (!e || typeof e !== 'object' || !VALID[e.op] || !/^[A-Z0-9]{6}$/.test(String(e.code)) || !Array.isArray(e.args)) return null;
+  if (!e || typeof e !== 'object' || !VALID[e.op] || !isListCode(e.code) || !Array.isArray(e.args)) return null;
   const args = VALID[e.op](e.args);
   const ts = Number(e.ts);
   if (!args || !Number.isFinite(ts) || ts <= 0) return null;
@@ -144,6 +144,20 @@ export function createOutbox({ storage = globalThis.localStorage, now = () => Da
     // those by itself, and a counter step would count twice); setting a state again is harmless, so those show until struck out
     overlayFor: (state, code) => overlay(state, entries.filter(e => e.code === code && e.op !== 'bump' && (!live.has(e.id) || !/^deposit/.test(e.op)))),
     dropList(code) { entries.filter(e => e.code === code).forEach(e => drop(e.id)); },
+    // The person changed name or emoji on a list: the entries still waiting there carry the old key and would put points,
+    // empties and "by" marks back on it. Entries already handed to the store keep theirs (the rename moves what they did).
+    renameKey(code, from, to) {
+      if (!isUserKey(from) || !isUserKey(to) || from === to) return;
+      const sw = v => (v === from ? to : v);
+      let changed = false;
+      entries = entries.map(e => {
+        if (e.code !== code || live.has(e.id)) return e;
+        const args = e.args.map(a => (a && typeof a === 'object' ? { ...a, ...('addedBy' in a ? { addedBy: sw(a.addedBy) } : {}), ...('checkedBy' in a ? { checkedBy: sw(a.checkedBy) } : {}) } : sw(a)));
+        if (args.every((a, i) => a === e.args[i] || (a && typeof a === 'object' && JSON.stringify(a) === JSON.stringify(e.args[i])))) return e;
+        changed = true; return { ...e, args };
+      });
+      if (changed) { save(); notify(); }
+    },
     // Journal for store.js: the point after an item change is written down before it is sent
     journal: {
       begin(code, k, d) {

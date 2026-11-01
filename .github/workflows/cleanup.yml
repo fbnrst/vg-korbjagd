@@ -1,5 +1,6 @@
 name: Cleanup old lists
-# Deletes shared lists that had no activity for 30 days (see docs/retention.md). Needs the secret FIREBASE_SERVICE_ACCOUNT.
+# Deletes shared lists that had no activity for 30 days (see docs/retention.md), in the production database and in the dev
+# database. Needs the secret FIREBASE_SERVICE_ACCOUNT (production, required) and optionally FIREBASE_SERVICE_ACCOUNT_DEV.
 on:
   schedule:
     - cron: '17 3 * * 1'
@@ -13,10 +14,25 @@ permissions:
   contents: read
 jobs:
   cleanup:
+    name: cleanup (${{ matrix.site }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # The production cleanup is required: the privacy notice promises deletion after 30 days
+          - site: production
+            database_url: https://vg-korbjagd-default-rtdb.europe-west1.firebasedatabase.app
+            secret: FIREBASE_SERVICE_ACCOUNT
+            required: true
+          # Dev (public/firebase-config.dev.js): skipped while its secret is not set
+          - site: dev
+            database_url: https://vg-korbjagd-dev-default-rtdb.europe-west1.firebasedatabase.app
+            secret: FIREBASE_SERVICE_ACCOUNT_DEV
+            required: false
     # The service account key bypasses the database rules: only the two steps below get it, not the third-party actions
     env:
-      DATABASE_URL: https://vg-korbjagd-default-rtdb.europe-west1.firebasedatabase.app
+      DATABASE_URL: ${{ matrix.database_url }}
       MAX_AGE_DAYS: '30'
       DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
     steps:
@@ -26,16 +42,24 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
-      # Fail loudly: the privacy notice promises deletion after 30 days
+      # Production fails loudly without its secret; dev only notes it and skips
       - name: Check secret
+        id: secret
         env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets[matrix.secret] }}
+          SECRET_NAME: ${{ matrix.secret }}
+          REQUIRED: ${{ matrix.required }}
         run: |
-          if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then
-            echo "::error::Secret FIREBASE_SERVICE_ACCOUNT is missing, the cleanup is not running. See docs/retention.md"
+          if [ -n "$FIREBASE_SERVICE_ACCOUNT" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          elif [ "$REQUIRED" = "true" ]; then
+            echo "::error::Secret $SECRET_NAME is missing, the cleanup is not running. See docs/retention.md"
             exit 1
+          else
+            echo "::notice::Secret $SECRET_NAME is not set, skipping this database. See docs/retention.md"
           fi
       - name: Delete inactive lists
+        if: steps.secret.outputs.present == 'true'
         env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets[matrix.secret] }}
         run: node scripts/cleanup-lists.mjs
