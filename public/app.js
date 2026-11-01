@@ -6,7 +6,7 @@ import { saveSnapshot, loadSnapshot, dropSnapshot } from './cache.js';
 import { IS_DEV, NS } from './env.js';
 import { loadVg, parseShareLink, fetchSharedList, vgNumFromCode, similarNames } from './vg.js';
 import { t, applyStatic } from './i18n.js';
-import { shouldShowInstallHint, shouldShowBrowserHint, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, createVgLoader, uploadLocalList } from './flows.js';
+import { shouldShowAndroidInstall, shouldShowInstallHint, shouldShowBrowserHint, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, createVgLoader, uploadLocalList } from './flows.js';
 import { initDialogs, shortName, menuIndex, visibleFocusables } from './a11y.js';
 
 const $ = s => document.querySelector(s);
@@ -855,14 +855,30 @@ const hintSeenRead = () => { try { return sanitizeHintSeen(JSON.parse(sessionSto
 const browserHintDue = c => shouldShowBrowserHint(navigator, q => matchMedia(q), c, hintSeenRead());
 function browserHintDone(c) { try { sessionStorage.setItem(NS + 'hintSeen', JSON.stringify(addHintSeen(hintSeenRead(), c))); } catch (e) { /* private mode: shown again next time */ } }
 let gateCode = null;
-function showGate(c, proceed) {
+let installPrompt = null; // Android: the browser's own install prompt, kept for the button
+function showGate(c, proceed, kind = 'ios') {
   gateCode = c;
+  const android = kind === 'android';
+  $('#gateTitle').textContent = t(android ? 'gateTitleAndroid' : 'gateTitle');
   const steps = $('#gateSteps'); steps.textContent = '';
-  for (const text of [t('gateStep1'), t('gateStep2'), ...(c ? [t('gateStepJoin', { code: c })] : [])]) { const li = document.createElement('li'); li.textContent = text; steps.appendChild(li); }
-  $('#gateCopy').classList.toggle('hide', !c);
+  const texts = android ? [t('gateStepAndroid')] : [t('gateStep1'), t('gateStep2'), ...(c ? [t('gateStepJoin', { code: c })] : [])];
+  for (const text of texts) { const li = document.createElement('li'); li.textContent = text; steps.appendChild(li); }
+  $('#gateCopy').classList.toggle('hide', !c || android);
+  $('#gateInstall').classList.toggle('hide', !android);
   $('#gateGo').onclick = () => { $('#gateDlg').classList.add('hide'); if (c) browserHintDone(c); else LS.set('installHintOff', true); proceed(); };
   $('#gateDlg').classList.remove('hide');
 }
+$('#gateInstall').onclick = async () => {
+  const p = installPrompt; installPrompt = null;
+  $('#gateDlg').classList.add('hide'); LS.set('installHintOff', true);
+  if (p) { try { p.prompt(); await p.userChoice; } catch (e) { /* the browser decided */ } }
+};
+// Android Chrome: when the browser says "installable", offer it once in front of the app (never inside the installed app)
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault(); installPrompt = e;
+  if (shouldShowAndroidInstall(navigator, q => matchMedia(q), LS.get('installHintOff', false))) showGate(null, () => {}, 'android');
+});
+window.addEventListener('appinstalled', () => { installPrompt = null; $('#gateDlg').classList.add('hide'); LS.set('installHintOff', true); });
 $('#gateCopy').onclick = async () => {
   try { await navigator.clipboard.writeText(gateCode); toast(t('codeCopied')); } catch (e) { toast(t('codeSelected')); }
 };

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { isIosLike, isStandalone, shouldShowBrowserHint, shouldShowInstallHint, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, createVgLoader, uploadLocalList, TICK_TTL, TICK_MAX } from '../public/flows.js';
+import { isIosLike, isStandalone, shouldShowBrowserHint, shouldShowInstallHint, shouldShowAndroidInstall, isAndroid, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, createVgLoader, uploadLocalList, TICK_TTL, TICK_MAX } from '../public/flows.js';
 import { createStore, localAdapter, userKey } from '../public/store.js';
 import { createSim, createClock } from '../public/sim.js';
 import { STRINGS } from '../public/i18n.js';
@@ -179,4 +179,15 @@ test('install hint: only in an iPhone/iPad browser tab, never in the installed a
   assert.equal(shouldShowInstallHint({ ...iphone, standalone: true }, mm(false), false), false);
   assert.equal(shouldShowInstallHint(iphone, mm(false), true), false);
   assert.equal(shouldShowInstallHint({ userAgent: 'Mozilla/5.0 (X11; Linux x86_64)' }, mm(false), false), false);
+});
+
+test('android install dialog: Android browser tab only, never in the installed app, never after it was closed', () => {
+  const android = { userAgent: 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36' };
+  const mm = standalone => () => ({ matches: standalone });
+  assert.equal(isAndroid(android), true);
+  assert.equal(shouldShowAndroidInstall(android, mm(false), false), true);
+  assert.equal(shouldShowAndroidInstall(android, mm(true), false), false);
+  assert.equal(shouldShowAndroidInstall(android, mm(false), true), false);
+  assert.equal(shouldShowAndroidInstall({ userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_8 like Mac OS X)' }, mm(false), false), false);
+  assert.equal(shouldShowAndroidInstall({ userAgent: 'Mozilla/5.0 (X11; Linux x86_64)' }, mm(false), false), false);
 });

@@ -93,6 +93,12 @@ export function shouldShowBrowserHint(nav, mm, code, seen) {
 export function shouldShowInstallHint(nav, mm, dismissed) {
   return isIosLike(nav) && !isStandalone(nav, mm) && dismissed !== true;
 }
+// Android browser tab (Chrome fires `beforeinstallprompt`): offer the real install button; closing the dialog once means never again.
+// There is no storage split on Android (an installed web app shares it with the browser and can take over links), so no join advice.
+export function isAndroid(nav) { return !!nav && /Android/.test(String(nav.userAgent || '')); }
+export function shouldShowAndroidInstall(nav, mm, dismissed) {
+  return isAndroid(nav) && !isStandalone(nav, mm) && dismissed !== true;
+}
 // Stored list of codes (localStorage is user-writable): only valid codes, at most 20, newest last
 export function sanitizeHintSeen(raw) {
   if (!Array.isArray(raw)) return [];
