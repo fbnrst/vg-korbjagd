@@ -399,45 +399,6 @@ test('New round is one transaction: a player who joins between read and write is
   assert.equal(await db.get(c2, 'scores'), null);
 });
 
-test('claim: take, release, take over; checking off or deleting clears it; a checked item cannot be claimed; no points', async () => {
-  const { s, db } = setup(); const c = await s.create();
-  await s.add(c, item('a', 'Milch'), A);
-  await s.claim(c, 'a', B, true);
-  assert.equal((await db.get(c, 'items/a')).claimedBy, B);
-  await s.claim(c, 'a', A, false);                       // releasing somebody else's claim does nothing
-  assert.equal((await db.get(c, 'items/a')).claimedBy, B);
-  await s.claim(c, 'a', A, true);                        // an explicit tap takes it over
-  assert.equal((await db.get(c, 'items/a')).claimedBy, A);
-  const again = await s.claim(c, 'a', A, true);          // a replay changes nothing
-  assert.equal(again, undefined);
-  await s.claim(c, 'a', A, false);
-  assert.equal((await db.get(c, 'items/a')).claimedBy ?? null, null);
-  await s.claim(c, 'a', B, true);
-  await s.check(c, 'a', A, true);
-  assert.equal((await db.get(c, 'items/a')).claimedBy ?? null, null, 'checking off clears the claim');
-  await s.claim(c, 'a', B, true);
-  assert.equal((await db.get(c, 'items/a')).claimedBy ?? null, null, 'a checked item cannot be claimed');
-  assert.equal((await db.get(c, 'scores'))[B] ?? 0, 0, 'claiming gives no points');
-  await s.claim(c, 'nope', B, true); await s.claim(c, 'bad id', B, true); await s.claim(c, 'a', 'bad', true); // ignored
-});
-
-test('claim: setNum/setEan with checkToo clear it, restore keeps it, rename moves it', async () => {
-  const { s, db } = setup(); const c = await s.create();
-  await s.add(c, item('a', 'Milch'), A); await s.add(c, item('b', 'Brot'), A);
-  await s.claim(c, 'a', B, true); await s.claim(c, 'b', B, true);
-  await s.setNum(c, 'a', A, 4711, true);
-  assert.equal((await db.get(c, 'items/a')).claimedBy ?? null, null);
-  await s.setEan(c, 'b', A, '4012345678901', false);
-  assert.equal((await db.get(c, 'items/b')).claimedBy, B, 'only checking off clears it');
-  const before = await db.get(c, 'items/b');
-  await s.remove(c, 'b');
-  await s.restore(c, before, A);
-  assert.equal((await db.get(c, 'items/b')).claimedBy, B, 'undo of a delete keeps the claim');
-  const B2 = userKey('🐯', 'Ben');
-  await s.renameUser(c, B, B2);
-  assert.equal((await db.get(c, 'items/b')).claimedBy, B2);
-});
-
 test('shared validators: intIn, strMax, isTypeId, isPlaceholderTitle', () => {
   for (const v of [null, '', undefined, NaN, Infinity, 'x', {}, '1e99']) assert.equal(intIn(v, 1, 999), null, String(v));
   assert.equal(intIn(0, 0, 5), 0); assert.equal(intIn(5, 0, 5), 5, 'bounds are inclusive'); assert.equal(intIn(6, 0, 5), null); assert.equal(intIn(-1, 0, 5), null);

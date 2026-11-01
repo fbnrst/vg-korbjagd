@@ -24,7 +24,7 @@ export function sanitize(s) {
     out.items[id] = { id, title: i.title.trim().slice(0, 120), amount: int(i.amount, 1, 999) || 1, unit: str(i.unit, 20), info: str(i.info, 200),
       vgNum: int(i.vgNum, 1, 9999999), ean: /^\d{8,14}$/.test(i.ean) ? i.ean : null, checked: i.checked === true,
       checkedBy: i.checked === true ? key(i.checkedBy) : null, checkedAt: i.checked === true ? int(i.checkedAt, 0, 1e14) : null,
-      claimedBy: i.checked === true ? null : key(i.claimedBy), pos: toPos(i.pos), addedBy: key(i.addedBy), addedAt: int(i.addedAt, 0, 1e14) || 0 };
+      pos: toPos(i.pos), addedBy: key(i.addedBy), addedAt: int(i.addedAt, 0, 1e14) || 0 };
     n++;
   }
   for (const [k, n] of Object.entries(s.scores && typeof s.scores === 'object' ? s.scores : {})) if (isUserKey(k) && int(n, 0, 100000) !== null) out.scores[k] = int(n, 0, 100000);

@@ -32,7 +32,6 @@
             "checked": { ".validate": "newData.isBoolean()" },
             "checkedBy": { ".validate": "newData.isString() && newData.val().length <= 60 && newData.val().matches(/^[^ <>&\"'`]{1,20} [^<>&\"'`]{1,30}$/)" },
             "checkedAt": { ".validate": "newData.isNumber() && newData.val() > 0" },
-            "claimedBy": { ".validate": "newData.isString() && newData.val().length <= 60 && newData.val().matches(/^[^ <>&\"'`]{1,20} [^<>&\"'`]{1,30}$/)" },
             "pos": { ".validate": "newData.isNumber() && newData.val() >= -1000000000 && newData.val() <= 10000000000000" },
             "addedBy": { ".validate": "newData.isString() && newData.val().length <= 60 && newData.val().matches(/^[^ <>&\"'`]{1,20} [^<>&\"'`]{1,30}$/)" },
             "addedAt": { ".validate": "newData.isNumber() && newData.val() > 0" },
