@@ -11,7 +11,7 @@ test('build-site: release at the root, dev under /dev/ with its own config, name
   const root = path.resolve(import.meta.dirname, '..');
   const out = fs.mkdtempSync(path.join(os.tmpdir(), 'kober-site-'));
   try {
-    execFileSync('node', [path.join(root, 'scripts/build-site.mjs'), path.join(root, 'public'), path.join(root, 'public'), out], { stdio: 'pipe' });
+    execFileSync('node', [path.join(root, 'scripts/build-site.mjs'), path.join(root, 'public'), path.join(root, 'public'), out], { stdio: 'pipe', env: { ...process.env, RELEASE_LABEL: 'v9.9.9', DEV_LABEL: 'dev abc1234' } });
     const rel = f => fs.readFileSync(path.join(out, f), 'utf8');
     assert.equal(JSON.parse(rel('manifest.json')).name, 'Kober');
     assert.ok(rel('index.html').includes('icons/apple-touch-icon.png'));
@@ -23,6 +23,7 @@ test('build-site: release at the root, dev under /dev/ with its own config, name
     assert.ok(rel('dev/index.html').includes('content="Kober DEV"'));
     assert.notEqual(rel('dev/firebase-config.js'), rel('firebase-config.js'), 'dev must not use the production database');
     assert.ok(!fs.existsSync(path.join(out, 'firebase-config.dev.js')) && !fs.existsSync(path.join(out, 'dev/firebase-config.dev.js')));
+    assert.ok(rel('version.js').includes('"v9.9.9"') && rel('dev/version.js').includes('"dev abc1234"'), 'the menu shows which build this is');
     for (const f of ['dev/sw.js', 'dev/env.js', 'dev/icons/dev-icon-192.png']) assert.ok(fs.existsSync(path.join(out, f)), f);
   } finally { fs.rmSync(out, { recursive: true, force: true }); }
 });

@@ -98,6 +98,7 @@ body.typing .tabs{display:none}
 .privacyLink{color:var(--green)}
 .menu{position:absolute;right:12px;top:100%;margin-top:4px;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:0 6px 20px var(--shadow-menu);min-width:180px;z-index:7;overflow:hidden}
 .menu a,.menu a.privacyLink,header .menu button{display:block;width:100%;padding:12px 16px;border:0;border-radius:0;background:none;color:var(--fg);font:inherit;text-align:left;text-decoration:none}
+.menuVersion{padding:8px 16px;font-size:14px;color:var(--mute)}
 .menu>*+*{border-top:1px solid var(--line)}
 .menu.hide{display:none}
 .numedit{position:relative;background:none;border:0;padding:0 2px;font:inherit;font-size:14px;color:var(--mute);text-decoration:underline dotted;cursor:pointer}
@@ -238,6 +239,7 @@ body.typing .tabs{display:none}
     <button id="menuLeave" class="hide" type="button" role="menuitem">Leave list</button>
     <button id="menuInstall" class="hide" type="button" role="menuitem">Install on another phone</button>
     <a href="docs/index.html" id="helpLink" role="menuitem">Help</a><a href="privacy.html" class="privacyLink" role="menuitem">Privacy</a>
+    <div id="menuVersion" class="menuVersion"></div>
   </div>
   <div id="connBanner" class="hide" role="status" aria-live="polite"></div>
 </header>

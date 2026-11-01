@@ -37,7 +37,10 @@ jobs:
           echo "ref=$tag" >> "$GITHUB_OUTPUT"
           echo "Release: $tag"
       - run: git worktree add --detach ../release "${{ steps.release.outputs.ref }}"
-      - run: node scripts/build-site.mjs ../release/public public _site
+      - name: Build the site
+        run: |
+          RELEASE_LABEL="${{ steps.release.outputs.ref }}" DEV_LABEL="dev $(git rev-parse --short=7 HEAD)" \
+            node scripts/build-site.mjs ../release/public public _site
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: _site

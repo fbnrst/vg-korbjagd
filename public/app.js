@@ -4,6 +4,7 @@ import { createConn, shouldForgetList } from './conn.js';
 import { createOutbox } from './outbox.js';
 import { saveSnapshot, loadSnapshot, dropSnapshot } from './cache.js';
 import { IS_DEV, NS } from './env.js';
+import { BUILD } from './version.js';
 import { loadVg, vgNumFromCode, similarNames } from './vg.js';
 import { t, applyStatic } from './i18n.js';
 import { shouldShowAndroidInstall, shouldShowInstallHint, shouldShowBrowserHint, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, createVgLoader, uploadLocalList } from './flows.js';
@@ -538,6 +539,7 @@ if (IS_DEV) {
   item.onclick = () => { dismissKeyboard(); pre.textContent = '…'; dlg.classList.remove('hide'); diag(pre); };
   $('#menu').appendChild(item); // last entry
 }
+$('#menuVersion').textContent = t('version', { v: BUILD });
 // Join dialog (menu on the local list): type the code, or scan the QR code
 const closeJoin = () => { $('#joinDlg').classList.add('hide'); $('#codeIn').value = ''; };
 function openJoin() { dismissKeyboard(); $('#joinDlg').classList.remove('hide'); }

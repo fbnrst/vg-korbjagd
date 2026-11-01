@@ -41,4 +41,9 @@ swap('icons/apple-touch-icon.png', 'icons/dev-apple-touch-icon.png');
 html = html.replace(/(<meta name="apple-mobile-web-app-title" content=")[^"]*/, '$1Kober DEV');
 fs.writeFileSync(path.join(dev, 'index.html'), html);
 
+// Which build is this: shown at the bottom of the "…" menu (public/version.js). RELEASE_LABEL is the tag, DEV_LABEL "dev <commit>".
+const stamp = (dir, label) => fs.writeFileSync(path.join(dir, 'version.js'), `// Written by scripts/build-site.mjs\nexport const BUILD = ${JSON.stringify(label)};\n`);
+stamp(outDir, process.env.RELEASE_LABEL || 'dev');
+stamp(dev, process.env.DEV_LABEL || 'dev');
+
 console.log(`site written to ${outDir} (release from ${releaseDir}, dev from ${devDir})`);
