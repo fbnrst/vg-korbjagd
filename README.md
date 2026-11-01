@@ -7,6 +7,8 @@
 
 An independent, unofficial shopping list app. The list lives on your phone first; once you share it, phones sync live and a leaderboard ("who puts the most in the basket") starts. Idea and product data: the [VG app](https://gitlab.com/pyfox/vg-app) of VG Dresden. This project is not affiliated with VG Dresden.
 
+<p align="center"><img src="public/docs/img/en-ranking.jpg" alt="The ranking tab with two players" width="260"></p>
+
 ## Features
 - A shared shopping list: everyone with the code (QR code, link or 6 characters) sees changes live and who put what in the basket
 - A leaderboard on top: points for checking off items and returning empties, so shopping becomes a little game
@@ -16,7 +18,7 @@ An independent, unofficial shopping list app. The list lives on your phone first
 - [Help page](https://fbnrst.github.io/kober/docs/) (for users) and [privacy notice](public/privacy.html)
 - For maintainers (German, not deployed): [architecture, build, release and Firebase setup](docs/architecture.md), [retention and deletion](docs/retention.md), [security](docs/security.md), [VG endpoints](docs/vg-api.md)
 
-The site has two versions: the [root](https://fbnrst.github.io/kober/) is the latest release, [`/dev/`](https://fbnrst.github.io/kober/dev/) is the current `main`.
+The app has two versions: the [release](https://fbnrst.github.io/kober/) (latest tag) and [`/dev/`](https://fbnrst.github.io/kober/dev/) (current `main`).
 
 ## Development
     npm start      # http://localhost:3000, demo mode without Firebase
