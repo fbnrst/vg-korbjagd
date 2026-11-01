@@ -1,204 +1,91 @@
 # Architektur
 
-Stand: Beschreibung des Codes in `public/`, `database.rules.json`, `scripts/`, `.github/workflows/` und `test/`. Was sich aus dem Code nicht sicher ableiten lässt, ist mit **(unsicher)** markiert.
+Orientierung für Entwickler: wo was liegt und wie die Teile zusammenspielen. Verhaltensregeln im Detail (Punkte, Namensprüfung, Layout, Barrierefreiheit, Overload-Verhalten) stehen in [AGENTS.md](../AGENTS.md), die Bedienung auf der Hilfeseite `public/docs/index.html`.
 
-## Überblick
+Kober ist eine statische Seite ohne Server und ohne Build-Schritt (ES-Module, GitHub Pages). Die Liste liegt zuerst nur im `localStorage` (Code `LOCAL`). Erst beim Teilen zieht sie in die Firebase Realtime Database um; alle Geräte abonnieren dann dieselbe Liste. VG-Server, Open Food Facts und Firebase werden direkt aus dem Browser angesprochen.
 
-Kober ist eine statische Seite ohne eigenen Server und ohne Build-Schritt: ES-Module, die der Browser direkt lädt. Die Liste liegt zuerst nur lokal im `localStorage` des Handys (Code `LOCAL`, ohne Namen, auch offline). Erst beim Teilen zieht sie in die Firebase Realtime Database um; dann abonnieren alle Geräte dieselbe Liste und sehen Änderungen sofort.
-
-```mermaid
-flowchart LR
-  subgraph Browser["Browser / PWA (public/)"]
-    APP["app.js<br/>Oberfläche"]
-    STORE["store.js<br/>Listenlogik + Adapter"]
-    VG["vg.js<br/>VG-Daten, Import"]
-    SW["sw.js<br/>Service Worker"]
-    I18N["i18n.js<br/>Texte de/en"]
-    LS[("localStorage<br/>lokale Liste, Name, Code, VG-Cache")]
-  end
-  GH["GitHub Pages<br/>statische Dateien"]
-  CLEAN["GitHub Actions (wöchentlich)<br/>scripts/cleanup-lists.mjs"]
-  FB[("Firebase Realtime Database<br/>lists/&lt;CODE&gt;")]
-  VGS["VG-Server<br/>app.vg-dresden.de/php/"]
-  OFF["Open Food Facts<br/>world.openfoodfacts.org"]
-  CDN["gstatic.com (Firebase SDK)<br/>jsDelivr (zxing, nur Safari)"]
-
-  GH -- "HTML, JS, Icons" --> Browser
-  CLEAN -- "löscht Listen nach 30 Tagen ohne Aktivität" --> FB
-  APP --> STORE
-  APP --> VG
-  APP --> I18N
-  STORE <-- "lesen, schreiben, Live-Sync" --> FB
-  VG -- "Stammdaten, geteilte Listen" --> VGS
-  APP -- "Barcode → Produktname" --> OFF
-  Browser -- "SDK / Scanner-Bibliothek nachladen" --> CDN
-  VG --- LS
-  APP --- LS
-```
-
-Alle Aufrufe an VG-Server, Open Food Facts und Firebase gehen direkt aus dem Browser. Die VG-Endpunkte erlauben das per CORS (siehe [vg-api.md](vg-api.md)). Das Projekt ist von der VG Dresden unabhängig.
-
-Dateien in `public/`:
+## Modulübersicht (`public/`)
 
 | Datei | Aufgabe |
 |---|---|
-| `index.html` | Gerüst und Styles (CSS-Variablen mit der VG-Dresden-Farbpalette, hell und dunkel), alle Ansichten (Namensabfrage, Liste, Leergut, Kasse, Rangliste) und Dialoge (Teilen, Zurücksetzen, Import, Scanner) |
-| `app.js` | Oberfläche, Ereignisse, Scanner, Dialoge, Teilen und Beitreten |
-| `store.js` | Datenschicht: Adapter (Firebase/lokal), Listenlogik, Aktivitätsstempel |
-| `i18n.js` | alle sichtbaren Texte (Deutsch und Englisch), Spracherkennung, `t()` und `applyStatic()` |
-| `legal-config.js` | Kontaktangabe für die Datenschutzseite |
-| `privacy.html`, `docs/index.html` | Datenschutzhinweise und Hilfeseite, beide zweisprachig |
-| `vg.js` | VG-Stammdaten laden und zwischenspeichern, Teilen-Links der Original-App entschlüsseln |
-| `firebase-config.js` | Firebase-Webkonfiguration (öffentliche Kennungen); `null` = Demo-Modus |
-| `sw.js`, `manifest.json`, `icon.svg`, `logo.svg`, `icons/` | PWA: Service Worker, Manifest, Icons |
-| `vendor/qrcode.js`, `vendor/crypto-js.js` | eingebundene Fremdbibliotheken (QR-Code, AES) |
+| `index.html`, `theme.css` | Gerüst, Ansichten und Dialoge; `theme.css` ist die einzige Stelle für Farben (hell/dunkel) |
+| `app.js` | Oberfläche, Ereignisse, Scanner, Dialoge, Start (`init`), Teilen/Beitreten/Verlassen/Löschen |
+| `flows.js` | reine Logik hinter Abläufen von `app.js` (Zurücksetzen-Plan, zu lange Nummern, Kassen-Haken, VG-Lader, erster Upload) |
+| `store.js` | Datenschicht: Adapter (Firebase, lokal), Listenlogik, Punkte, Aktivitätsstempel, Schreib-Zeitlimit (`guardAdapter`) |
+| `conn.js` | Verbindungszustand einer geteilten Liste (`ok`, `connecting`, `degraded`, `busy`), Backoff |
+| `outbox.js` | Journal wartender Änderungen im `localStorage` |
+| `cache.js` | letzter Live-Datensatz je geteilter Liste im `localStorage` |
+| `sim.js` | simulierter Server mit Fehlerinjektion (`?sim=…`) und manuelle Uhr für Tests |
+| `vg.js` | VG-Stammdaten laden und cachen, Index und Suche, Namensprüfung, Scan-Codes, Import von VG-App-Links |
+| `i18n.js` | alle sichtbaren Texte (`STRINGS.en`, `STRINGS.de`), `t()`, `applyStatic()` |
+| `a11y.js` | Dialog-Semantik, Fokusfalle, Menü-Tastatur, `shortName()` |
+| `env.js` | `IS_DEV` (Pfad `/dev/`) und `NS`, das Präfix für jeden Storage-Schlüssel und Cache-Namen |
+| `sw.js` | Service Worker: Dateiliste vorab im Cache, danach Netz zuerst (`no-cache`), bei Fehler Cache |
+| `firebase-config.js`, `firebase-config.dev.js` | Firebase-Webkonfiguration (öffentlich); `null` = Demo-Modus |
+| `privacy.html`, `docs/index.html`, `legal-config.js` | Datenschutzseite, Hilfeseite (beide zweisprachig), Kontaktangabe |
+| `manifest.json`, `icon.svg`, `logo.svg`, `icons/` | PWA-Metadaten und Icons (`npm run icons`) |
+| `vendor/` | Fremdbibliotheken (QR-Code, CryptoJS), von den Prüfungen ausgenommen |
 
-## Datenmodell in Firebase
+Der Firebase-SDK (10.14.1) wird erst bei Bedarf von `gstatic.com` geladen, der Scanner auf iOS/Safari lädt zxing von jsDelivr (`@zxing/library@0.21.3`); Chrome/Android nutzt den eingebauten `BarcodeDetector`. Unbekannte EANs werden bei Open Food Facts nachgeschlagen.
 
-Alles liegt unter `lists/<CODE>`. Die lokale Liste hat dieselbe Form, liegt aber im `localStorage` unter dem Code `LOCAL` (ohne `meta`, `scores` und `activity`). Der Code besteht aus 6 Zeichen aus `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` (ohne I, O, 0, 1). `create()` würfelt so lange, bis `meta` noch nicht existiert.
+## Datenmodell
 
-```json
-{
-  "lists": {
-    "K7M2QX": {
-      "meta": { "created": 1761900000000 },
-      "activity": 1761900300000,
-      "items": {
-        "k3j9x2ab": {
-          "id": "k3j9x2ab",
-          "title": "Vollmilchschokolade",
-          "amount": 2,
-          "unit": null,
-          "info": null,
-          "vgNum": 1234,
-          "ean": null,
-          "checked": true,
-          "checkedBy": "🦊 Mia",
-          "checkedAt": 1761900300000,
-          "addedBy": "🐼 Paul",
-          "addedAt": 1761900100000
-        }
-      },
-      "scores": { "🦊 Mia": 3, "🐼 Paul": 0 },
-      "deposit": {
-        "7": { "🦊 Mia": 2, "🐼 Paul": 1 }
-      }
-    }
-  }
-}
+Alles liegt unter `lists/<CODE>` (6 Zeichen aus `ABCDEFGHJKLMNPQRSTUVWXYZ23456789`; die Regeln lassen `^[A-Z0-9]{6}$` zu). Die lokale Liste hat dieselbe Form im `localStorage` (Schlüssel `NS + 'kober-local-db'`), aber ohne Spielstände.
+
+```
+lists/<CODE>/
+  meta/created            Zeitstempel, nur einmal schreibbar
+  activity                Zeitstempel (ms), höchstens stündlich gestempelt
+  items/<id>              id, title, amount, checked, addedBy, addedAt  (Pflicht)
+                          unit, info, vgNum, ean, checkedBy, checkedAt  (optional)
+  scores/<Nutzerschlüssel>          Punkte, ganze Zahl 0 bis 100000
+  deposit/<Pfand-Typ-ID>/<Nutzerschlüssel>   Leergut-Stücke, 1 bis 100000
 ```
 
-(Beispielwerte erfunden.) Erläuterung:
+- **Nutzerschlüssel:** `"<Emoji> <Name>"` (`userKey` in `store.js`, Muster wie in den Regeln, höchstens 60 Zeichen). Es gibt keine Anmeldung: derselbe Schlüssel ist dieselbe Person.
+- **Grenzen in den Regeln:** `title` 1-120 Zeichen, `amount` 1-999, `unit` bis 20, `info` bis 200, `vgNum` 1-9999999, `ean` 8-14 Ziffern, keine fremden Felder in `items`, `meta` und auf Listenebene.
+- **Regeln** (`database.rules.json`, von Hand in der Firebase-Konsole veröffentlicht): außerhalb von `lists/<CODE>` alles gesperrt, Lesen mit Code offen, Schreiben auf Listenebene nur zum Löschen (`!newData.exists()`). `store.js` muss dazu passen, `test/rules.test.js` wertet die Regeln aus. Siehe [security.md](security.md) und [retention.md](retention.md).
+- Die Namen der Pfand-Typen kommen aus den VG-Daten, nicht aus Firebase.
 
-- **Nutzerschlüssel:** `"<Emoji> <Name>"`, Zeichen `. $ # [ ] /` werden durch `_` ersetzt (`userKey`), weil Firebase sie in Schlüsseln verbietet. Es gibt keine Anmeldung: Wer denselben Emoji-Namen wählt, ist für die App dieselbe Person.
-- **`items/<id>`:** `id` wird im Browser gewürfelt. Titel max. 120 Zeichen, `amount` 1–999, `unit` max. 20, `info` max. 200, `ean` nur 8–14 Ziffern, sonst `null`. Nicht abgehakt: `checked: false`, `checkedBy`/`checkedAt` `null`.
-- **`scores/<Nutzerschlüssel>`:** Punktestand, nie unter 0. Eintrag wird beim Beitritt mit 0 angelegt (`join`).
-- **`deposit/<Pfand-Typ-ID>/<Nutzerschlüssel>`:** Anzahl Leergut-Stücke, die diese Person eingetragen hat. Die Typ-ID (`id` aus `getDepositsList.php`) ist hier als Zeichenkette Schlüssel; die Namen der Typen kommen nicht aus Firebase, sondern aus den VG-Daten.
-- **`activity`:** Zeitstempel (ms) der letzten Aktivität, wird von `store.js` geschrieben (siehe unten) und vom Aufräum-Job gelesen.
-- **Regeln** (`database.rules.json`): Außerhalb von `lists/<CODE>` ist alles gesperrt; `$code` muss auf `^[A-Z0-9]{6}$` passen und ein `meta` enthalten. Lesen ist unter dem Code offen, wer ihn kennt, kann lesen. Schreiben auf Listenebene ist nur zum **Löschen** erlaubt (`!newData.exists()`), Anlegen und Ändern geht nur unterhalb: `meta` einmalig, `activity`, `items`, `scores` und `deposit` mit Feldprüfungen (Typen, Längen, Nutzerschlüssel-Muster, Zahlenbereiche, keine fremden Felder in `items` und `meta`). Die Prüfungen in `store.js` müssen dazu passen (`test/rules.test.js`). Sicherheitsfragen: siehe [security.md](security.md), Aufbewahrung: [retention.md](retention.md).
+## Datenschicht (`store.js`)
 
-## `store.js`
+`createStore(adapter)` ist einmal geschrieben und läuft gegen einen Adapter (`subscribe`, `get`, `update` als Transaktion, `set`, `remove`; Firebase zusätzlich `connect`/`disconnect`). `update`: Rückgabe `undefined` bricht ab, `null` löscht. Die Store-Methoden brechen ab, wenn der Zielzustand schon erreicht ist; deshalb sind sie wiederholbar (Grundlage der Outbox).
 
-### Adapter
+- `firebaseAdapter` für geteilte Listen; `localAdapter` (`localStorage`, andere Tabs über das `storage`-Ereignis) für die lokale Liste, im Demo-Modus (`firebase-config.js` ist `null`) auch für geteilte Listen, und in den Tests mit eigenem Storage-Objekt.
+- Punkte (`scores`) ändert nur eine zweite Transaktion (`bump`/`point`) nach der Artikel-Transaktion, und nur wenn diese etwas geändert hat. Die Regeln dazu (wer bekommt, wer verliert den Punkt, Rückgängig, Neue Runde) stehen in AGENTS.md unter „Points“.
+- Zurücksetzen: `clearOpen`, `clearChecked`, `clearAll`, `clearDeposit`, `resetScores`; welche davon laufen, bestimmt `resetPlan` in `flows.js`.
+- Aktivität: die schreibenden Methoden stempeln `activity` (nicht bei schlechter Verbindung). `deleteList` entfernt die ganze Liste. `.github/workflows/cleanup.yml` führt wöchentlich `scripts/cleanup-lists.mjs` aus (Listen ohne Aktivität seit 30 Tagen, Dienstkonto-Secret `FIREBASE_SERVICE_ACCOUNT`).
+- `renameUser` verschiebt Punkte, Leergut und „von“-Marken auf einen neuen Nutzerschlüssel.
 
-Die Listenlogik (`createStore`) ist einmal geschrieben und läuft gegen einen Adapter mit fünf Funktionen: `subscribe`, `get`, `update` (Transaktion), `set`, `remove`.
+## Abläufe (`app.js`)
 
-- **`firebaseAdapter(cfg)`** lädt das Firebase-SDK (Version 10.14.1) zur Laufzeit von `gstatic.com`. `subscribe` meldet den Listenstand und über `.info/connected` den Verbindungsstatus (Chip „Offline“ in der Kopfzeile, nur bei geteilter Liste ohne Verbindung). `update` ist `runTransaction`.
-- **`localAdapter(storage)`** speichert alles als JSON in `localStorage` (Schlüssel `kober-local-db`) und benachrichtigt andere Tabs über das `storage`-Ereignis. Er trägt die lokale Liste (`LOCAL`), die immer so läuft. Exportiert `firebase-config.js` `null`, dient er zusätzlich als Ersatz für Firebase (Demo-Modus mit Hinweisbanner; geteilte Listen liegen dann ebenfalls im Browser), und in den Tests läuft er mit eigenem Storage-Objekt. Leere Knoten werden wie bei Firebase entfernt.
+- **Start (`init`):** `?list=<CODE>` (anders als der gespeicherte Code) tritt bei (`joinShared`), gespeicherter Code plus Name startet die geteilte Liste (`startShared`), sonst die lokale (`startLocal`). Scheitert der Start der geteilten Liste (offline), bleibt der Code gespeichert und die lokale Liste läuft. `LS` (`app.js`) speichert `me`, `code`, `numMode`, `checkoutTicks` unter `NS`.
+- **Teilen:** `shareLocalList` fragt bei Bedarf Name und Emoji, legt über `uploadLocalList` (`flows.js`) eine neue Liste an und lädt Artikel und Leergut per `importList` hoch (keine Punkte); erst danach wird die lokale Kopie entfernt. Bei einem Fehler bleibt sie unverändert.
+- **Beitreten:** per Link, QR-Code (Scanner im Modus `join`) oder Code (`parseListCode`); `joinShared` prüft `exists`, sonst Hinweis und zurück auf die lokale Liste.
+- **Verlassen:** vergisst den Code und startet die lokale Liste; die geteilte Liste bleibt für die anderen.
+- **Löschen:** `deleteList` für alle. Verschwindet eine geteilte Liste (gelöscht oder vom Aufräum-Job), meldet das `onSnapshot` (kein `meta` mehr, nur bei gesunder Verbindung, `shouldForgetList`) und die App fällt auf die lokale Liste zurück.
+- **Rendern:** `state` wird bei jedem Adapter-Ereignis ersetzt und neu gerendert; wartende Outbox-Einträge liegen darüber (`outbox.overlayFor`). Tabs: Liste, Leergut, Kasse, Rangliste (nur geteilt).
 
-`update(code, path, fn)`: `fn` bekommt den alten Wert; Rückgabe `undefined` bricht ab (`committed: false`), `null` löscht, sonst wird der Wert geschrieben. Mehrere Geräte, die gleichzeitig dasselbe tun, erzeugen so nur eine Änderung.
+## Offline und Überlast
 
-### Punktelogik
+- **Lokale Liste:** nur `localStorage`, funktioniert ohne Netz; der Firebase-SDK wird dafür nie geladen.
+- **VG-Daten (`loadVg`):** erst `getChecksums.php`; stimmen die Prüfsummen mit dem Cache (`NS + 'kober-vg-v2'`) überein oder ist das Netz weg, gilt der Cache, sonst werden alle fünf Listen neu geladen und gespeichert. Zeitlimit je Anfrage 20 s. `createVgLoader` (`flows.js`) macht daraus die Zustände `loading`, `ready`, `unreachable` für den Leergut-Reiter. Details der Endpunkte: [vg-api.md](vg-api.md).
+- **Service Worker:** legt die Dateien aus `FILES` beim Installieren in den Cache (`kober-v<VERSION>`, auf dev `kober-dev-v…`); gleiche Herkunft, GET: Netz zuerst, bei Fehler Cache. Firebase, VG und andere Hosts gehen daran vorbei. Bei geänderten Dateien `VERSION` in `sw.js` erhöhen.
+- **Verbindung (`conn.js`):** `degraded` nach 3 s ohne Verbindung, bei Flattern oder Schreib-Timeouts; `busy` nach 15 s ohne je verbunden zu sein oder bei „verbunden und sofort getrennt“ (Verbindungslimit). Zurück auf `ok` erst nach 5 s Stabilität. Bei `busy` trennt die App selbst und versucht es mit Backoff mit Jitter erneut (bis 120 s). `guardAdapter` bricht hängende Schreibvorgänge nach 8 s ab (`PendingError`, die Operation bleibt in der Warteschlange).
+- **Outbox (`outbox.js`):** Artikel- und Leergut-Operationen werden als Absicht (`{id, code, op, args, ts}`) unter `NS + 'kober-outbox'` notiert, bevor sie gesendet werden, und gestrichen, sobald sie durch sind. Bei `degraded`/`busy` wartet alles, bei `ok` und beim Start läuft `store.flush(code)` die Einträge der offenen Liste ab. Höchstens 200 Einträge, höchstens 24 h alt, jeder Eintrag wird beim Laden neu geprüft. Bewusst akzeptierte Grenzfälle stehen in AGENTS.md.
+- **Cache (`cache.js`):** letzter Live-Datensatz je Liste unter `NS + 'kober-cache:' + Code` (3 Listen, je höchstens 200 KB, höchstens 30 Tage alt); wird beim ersten Laden schreibgeschützt gezeigt, bis Live-Daten kommen.
+- **Testen:** `?sim=overload|slow|flap|recover:<s>|cut:<s>[:<zurück>]` (nur Demo-Modus oder dev); `test/overload.test.js` und `test/outbox.test.js` nutzen dieselbe Simulation mit manueller Uhr.
 
-Punkte werden in `scores` mitgeführt und bei jeder Aktion über `bump` angepasst (`Math.max(0, alt + Änderung)`, ebenfalls als Transaktion). Der Zähler wird nur erhöht, wenn die Haupt-Transaktion tatsächlich etwas geändert hat (`committed`). Deshalb gibt doppeltes Abhaken nur einen Punkt.
+## Bauen und Veröffentlichen
 
-| Aktion | Wirkung auf Punkte |
-|---|---|
-| `add` | keine (gibt es schon eine Artikel-`id`, passiert nichts) |
-| `check(…, true)` | +1 für den Abhaker |
-| `check(…, false)` | −1 für den **ursprünglichen** Abhaker (`checkedBy`), nicht für den, der zurücknimmt |
-| `setNum(…, checkToo)` | VG-Nummer nachtragen; wird der Artikel dadurch erstmals abgehakt, +1 für den Eintragenden. Der Titel wird nur ersetzt, wenn er noch der Platzhalter `VG-Nr. <Zahl>` ist |
-| `remove` | war der Artikel abgehakt, −1 für den ursprünglichen Abhaker |
-| `depositAdd` | +1 Stück für den Eintragenden, +1 Punkt |
-| `depositRemove` | zieht erst ein eigenes Stück ab, hat die Person keins, eins vom größten Beitragenden; der Punkt geht bei dem ab, dessen Stück entfernt wurde |
-| `clearChecked` | löscht abgehakte Artikel **ohne** Punktänderung |
-| `clearOpen` | löscht offene Artikel **ohne** Punktänderung |
-| `clearAll` | löscht alle Artikel **ohne** Punktänderung |
-| `clearDeposit` | löscht `deposit`, Punkte bleiben |
-| `importList` | übernimmt Artikel (mit Abhak-Status) und Leergut der lokalen Liste in eine neue geteilte Liste, **ohne** Punkte; das Leergut wird je Pfand-Typ summiert und dem Teilenden zugeschrieben |
-| `resetScores` | setzt alle Zähler auf 0 („Neue Runde“ im Rangliste-Reiter, mit Rückfrage) |
+- Kein Build für die App selbst: `public/` ist die Seite. Lokal `npm start` (Port 3000) oder `python3 -m http.server --directory public`; ohne Firebase-Konfiguration läuft der Demo-Modus.
+- `.github/workflows/pages.yml` (Push auf `main`, manuell): `node --test`, dann `scripts/build-site.mjs` baut eine Site aus zwei Ständen: die Wurzel ist das neueste Release (Tag `v*`, bis es einen gibt `main`), `/dev/` ist `main` mit eigener Firebase-Konfiguration, eigenem Manifest-Namen und eigenen Icons. Ablauf eines Releases: AGENTS.md, „Release and dev site“.
+- `.github/workflows/autofix.yml` führt dieselben Prüfungen wie lokal aus (`prek.toml`); `cleanup.yml` ist der Aufräum-Job.
+- Die Datenbankregeln werden nicht mitveröffentlicht, sondern von Hand eingespielt (zuerst dev).
 
-Das Zurücksetzen in der Oberfläche (Menü) ändert nie Punkte: Es ruft `clearChecked`, `clearOpen` oder (beides gewählt) `clearAll` und optional `clearDeposit` auf. Punkte ändert nur die Schaltfläche „Neue Runde“ im Reiter Rangliste: `resetScores` setzt alle Zähler auf 0 und rechnet nichts aus dem Korb oder dem Leergut zu. Nimmt später jemand einen alten Artikel wieder heraus, bleibt der Zähler bei 0 (er geht nie unter null).
+## Wo liegt was
 
-### Aktivität, Löschen, Aufbewahrung
-
-- **`activity`:** Die Funktionen `join`, `add`, `check`, `setNum`, `remove`, `depositAdd`, `depositRemove`, `clearDeposit`, `clearChecked`, `clearOpen`, `clearAll`, `resetScores`, `importList` sowie `create` schreiben `lists/<CODE>/activity`, höchstens einmal pro Stunde und Liste. Schlägt das Schreiben fehl (alte Regeln, offline), bleibt das folgenlos.
-- **`deleteList`:** entfernt die ganze Liste für alle (`db.remove(code, '')`; die Regeln erlauben Schreiben auf Listenebene nur dafür).
-- **Aufräum-Job:** `.github/workflows/cleanup.yml` läuft wöchentlich (montags 03:17 UTC) und manuell (mit Trockenlauf); `scripts/cleanup-lists.mjs` löscht per Dienstkonto Listen, deren letzte Aktivität (oder Erstellung) älter als 30 Tage ist. Fehlt das Secret `FIREBASE_SERVICE_ACCOUNT`, schlägt der Workflow absichtlich fehl. Einzelheiten: [retention.md](retention.md).
-- Verschwindet eine geteilte Liste (gelöscht von jemandem oder vom Job), merkt das der Abonnent in `onSnapshot` (kein `meta` mehr), zeigt einen Hinweis und fällt auf die lokale Liste zurück.
-
-### Gleichstand
-
-Die Rangliste (`render` in `app.js`; Reiter nur auf geteilten Listen) sortiert nach Punkten absteigend. Der Platz ist `1 + Index des ersten Eintrags mit gleicher Punktzahl`, also 1, 1, 3, … bei Gleichstand. Medaillen 🥇🥈🥉 gibt es nur für Plätze 1–3 und nur mit mehr als 0 Punkten; das Podest zeigt Platz 2, 1, 3 in dieser Reihenfolge, auch mehrere Personen pro Platz.
-
-## `vg.js`
-
-- **Quelle:** `https://app.vg-dresden.de/php/`, Endpunkte siehe [vg-api.md](vg-api.md). Jede Anfrage hat 20 s Zeitlimit.
-- **Cache mit Prüfsummen (`loadVg`):** Zuerst `getChecksums.php`. Stimmen die Prüfsummen mit dem Cache (`localStorage`, Schlüssel `kober-vg-v2`) überein oder ist das Netz weg, wird der Cache benutzt. Sonst werden Produkte, Hersteller, Länder, Einheiten und Pfand-Typen komplett neu geladen und gespeichert (alles oder nichts, nicht je Tabelle). Schlägt das Laden fehl, bleibt der alte Cache; ohne Cache und ohne Netz ist das Ergebnis `null`, und die App läuft ohne VG-Hilfen weiter.
-- **Index (`buildIndex`):** Suche nach Nummer (`lookup`), Nummernanfang (`searchByNumber`, bis 6 Treffer, genaue Nummer zuerst, sonst aufsteigend), exaktem Titel (`byTitle`) und Wörtern im Titel (`search`, bis 8 Treffer). Titel werden von Trennstrichen der Quelldaten bereinigt (`cleanTitle`: „Voll- milchschokolade“ → „Vollmilchschokolade“). `infoText` bildet aus Einheit, Hersteller, Land und „regional“ eine Infozeile. Außerdem enthält der Index die Pfand-Typen (`deposits`).
-- **Import aus der VG-App:** `parseShareLink` erkennt `…shareId=<ID>#<SCHLÜSSEL>`. `fetchSharedList` holt per POST den verschlüsselten Text, `decryptShared` entschlüsselt ihn mit CryptoJS-AES (Passphrase = Schlüssel aus dem Link, der den Browser nie verlässt) und liefert Titel, VG-Nummer, Menge, Einheit und Abhak-Status. `app.js` lädt `vendor/crypto-js.js` erst beim ersten Import nach. Importiert wird nur, was nicht schon (gleicher Titel, Groß-/Kleinschreibung egal) auf der Liste steht; alle Artikel kommen **nicht abgehakt** hinein, der Abhak-Status aus der VG-App wird ignoriert. Der Import-Dialog öffnet sich über das Menü oder durch Einfügen eines Teilen-Links ins Eingabefeld.
-
-## `app.js`
-
-Zustand: `state = { items, scores, deposit }`, bei jedem Ereignis des Adapters komplett ersetzt und neu gerendert. `code` ist zunächst `LOCAL`; `store` zeigt dann auf den lokalen Store (`localStore`), nach dem Teilen oder Beitreten auf den Firebase-Store (`remoteStore`). Im `localStorage` liegen `me` (Name, Emoji), `code` (zuletzt benutzte geteilte Liste), `numMode` und die lokale Liste selbst. Der Code einer geteilten Liste kann auch per `?list=<CODE>` in der URL kommen. Alle Texte kommen aus `i18n.js` (`t('schlüssel')`); die Sprache folgt dem System (Deutsch, sonst Englisch, `?lang=de|en` überschreibt).
-
-- **Start (`init`):** Es gibt keinen Willkommensbildschirm. Mit `?list=<CODE>` (anders als der gespeicherte Code) wird beigetreten (`joinShared`); mit gespeichertem Code und Namen startet direkt die geteilte Liste (`startShared`); sonst startet die lokale Liste (`startLocal`). Name und Emoji werden erst beim Teilen oder Beitreten abgefragt (`askIdentity`, Ansicht „Dein Name für die Rangliste“, mit Abbrechen).
-- **Kopfzeile:** Kein Titel, sondern links der Fuchs ohne Kachel (`logo.svg`, kein Zähler), daneben bei geteilter Liste und fehlender Verbindung das orange Chip „Offline“ (erst nach 3 Sekunden, sonst blitzt es bei jedem Start kurz auf). Icon-Knöpfe: Teilen und „⋯“ (Menü mit Liste zurücksetzen, Liste importieren, Liste beitreten (nur lokal), Liste verlassen (nur geteilt), Hilfe und Datenschutz).
-- **Teilen (Dialog auf der lokalen Liste):** „Liste teilen“ (`shareLocalList`): fragt bei Bedarf Name und Emoji, legt eine neue Liste an (`create`), lädt Artikel und Leergut per `importList` hoch (keine Punkte für vorhandene Artikel), löscht erst danach die lokale Kopie, wechselt auf die geteilte Liste und öffnet deren Teilen-Dialog. Schlägt das fehl, bleibt die lokale Liste unverändert. Im selben Dialog führt „oder einer Liste beitreten“ zum Beitreten-Dialog (siehe unten).
-- **Teilen (Dialog auf einer geteilten Liste):** QR-Code (`vendor/qrcode.js`) mit `?list=<CODE>`, der Code, „Link senden“ (Web-Share, sonst Zwischenablage) und „Liste für alle löschen“ (`deleteList`, mit Rückfrage; danach zurück auf die lokale Liste).
-- **Zurücksetzen (Dialog):** drei Häkchen „Offene Artikel“, „Erledigte Artikel“ (Standard an) und „Leergut“ (Standard an); nicht gewählte Einträge sind blass, ohne Häkchen ist „Zurücksetzen“ gesperrt. Offene Artikel entfernen fragt noch einmal nach (`clearOpen` / `clearChecked` / `clearAll`, `clearDeposit`). Auf einer geteilten Liste gilt das für alle (fetter Hinweis im Dialog). „Liste verlassen“ und „Liste importieren“ sind eigene Menüeinträge, nicht Teil des Dialogs: Verlassen führt zurück auf eine leere lokale Liste, die geteilte bleibt für die anderen unverändert. Punkte ändert das Zurücksetzen nie.
-- **Hinweise:** Auf geteilten Listen erscheint eine kurze Einblendung mit Emoji und Name, wenn ein anderer etwas abhakt oder hinzufügt. Die Abhaker-Marke an Artikeln gibt es nur dort.
-- **Beitreten (Dialog):** Menüeintrag „Liste beitreten“ (nur auf der lokalen Liste) oder „oder einer Liste beitreten“ im Teilen-Fenster. Der Dialog hat „QR-Code scannen“ und ein Feld für den 6-stelligen Code. `parseListCode` (`store.js`) nimmt Code oder Link (`?list=CODE`) und liefert den Code oder `null`. Der Scanner läuft dafür im Modus `join` (Klasse auf `#scanner`: nur QR-Codes, quadratischer Rahmen, ohne Eingabefeld; nicht erkannte Codes zeigen „Das ist kein Listencode“ und der Scan läuft weiter). Danach `joinShared`: prüft `exists`, sonst Hinweis „Diese Liste gibt es nicht“ bzw. „Keine Verbindung zur Datenbank“ und zurück zur lokalen Liste.
-- **Reiter Liste:** Eingabefeld (Text oder reine Zahl = VG-Nummer; „123“-Schalter für Zifferneingabe), Scanner (Barcode-Symbol), offene Artikel, darunter „Im Korb“. Bei Namen erscheint ab 2 Buchstaben ebenfalls eine antippbare Liste ohne Nummern (`searchNames`): Produkte mit gleichem Namen erscheinen nur einmal, Antippen legt den Artikel sofort an, immer ohne VG-Nummer (die lässt sich in der Liste nachtragen oder ändern: kleine Nummer unter dem Artikel antippen, leeres Feld entfernt sie). Platzhalter wie „unbesetzt …“ und „RESERVIERT …“ (etwa ein Fünftel der VG-Liste) werden nie vorgeschlagen (`vg.js`); eine vollständig getippte Platzhalter-Nummer wird trotzdem angenommen, der Artikel heißt dann wie der Eintrag. Bei reinen Zahlen erscheint ab 3 Ziffern eine antippbare Liste passender Produkte (`searchByNumber`); Antippen legt das Produkt sofort an; ab 4 Ziffern ohne Treffer steht ein Hinweis. Artikel ohne Nummer haben ein kleines Nummernfeld; Nummer eintragen legt den Artikel zugleich in den Korb. Ein eingefügter Teilen-Link der VG-App öffnet den Import.
-- **Scanner:** Chrome/Android über den eingebauten `BarcodeDetector`, sonst zxing von jsDelivr (`@zxing/library@0.21.3`). Bekannte EAN → Artikel wird abgehakt; unbekannte EAN → Produktname von Open Food Facts (`product_name_de`, sonst `product_name`, plus erste Marke), danach Suche nach gleichem Titel, sonst neuer Artikel; dann abhaken. Ohne Treffer heißt er „Artikel <EAN>“ (englisch „Item <EAN>“). Manuelle Codeeingabe ist möglich.
-- **Reiter Leergut:** Eine Zeile je Pfand-Typ aus den VG-Daten mit −/+ und Summe. Ohne geladene VG-Daten steht dort „VG-Daten werden geladen …“.
-- **Reiter Kasse:** Nur abgehakte Artikel **mit VG-Nummer**, nach Titel sortiert in Gruppen: „Artikel“ (VG-Nr. ≥ 1000), „Backwaren“ (VG-Nr. < 1000, getrennt) und „Leergut“ (Typen mit Stückzahl > 0). Antippen streicht eine Zeile durch und schiebt sie in den Block „Erledigt“ ganz unten (unter das Leergut); noch einmal antippen holt sie zurück. Das gilt nur auf diesem Handy und nur bis zum Neuladen (`checkoutDone` liegt im Speicher, wird nicht gesynct). In diesem Reiter fordert die App einen Bildschirm-Wachhalter (`wakeLock`) an. Dass Nummern unter 1000 Backwaren sind, ist eine Annahme im Code, keine Angabe aus der VG-Doku **(unsicher)**.
-- **Reiter Rangliste:** Nur auf geteilten Listen; auf der lokalen Liste ist der Reiter ausgeblendet. Podest und Liste, keine Schaltfläche zum Zurücksetzen der Punkte.
-
-## Offline-Verhalten
-
-Ist-Zustand laut Code.
-
-- **Lokale Liste:** Liegt im `localStorage` und funktioniert vollständig offline (Hinzufügen, Abhaken, Leergut, Kasse, Zurücksetzen). Es gibt keinen Willkommensbildschirm mehr, der ohne Netz im Weg stünde.
-- **Service Worker (`sw.js`, Cache `kober-v…`):** Beim Installieren werden `./`, `index.html`, `app.js`, `store.js`, `vg.js`, `i18n.js`, `legal-config.js`, `privacy.html`, `docs/index.html`, `firebase-config.js`, `manifest.json`, `icon.svg`, die Icons und `vendor/qrcode.js` / `vendor/crypto-js.js` in den Cache gelegt. Für gleiche-Herkunft-GET-Anfragen gilt: erst Netz (und Antwort in den Cache), bei Fehler aus dem Cache; Navigationen fallen auf `index.html` zurück. Anfragen an Firebase, gstatic, VG-Server usw. gehen am Service Worker vorbei.
-- **Firebase-SDK** kommt von `gstatic.com` und ist damit offline nur verfügbar, wenn der Browser es selbst noch zwischengespeichert hat **(unsicher)**. Es wird erst geladen, wenn eine geteilte Liste gebraucht wird (`getRemote()` in `app.js`): Die lokale Liste startet daher immer ohne Netz. Scheitert das Laden beim Teilen oder Beitreten, kommt „Keine Verbindung zur Datenbank.“ und die lokale Liste bleibt unverändert; ein gespeicherter Code einer geteilten Liste bleibt erhalten und wird beim nächsten Start erneut versucht (so geprüft mit einer absichtlich fehlschlagenden SDK-Adresse).
-- **App-Start mit gespeicherter geteilter Liste:** Sie startet direkt (`startShared`), es gibt keine Vorabprüfung; Firebase liefert, was es lokal hat. Beitreten (`?list=` oder Code) prüft vorher `exists` und meldet ohne Netz „Keine Verbindung zur Datenbank.“; dann bleibt man auf der lokalen Liste.
-- **Verbindung weg bei laufender App:** Nach 3 Sekunden erscheint in der Kopfzeile das Chip „Offline“, bei Wiederverbindung verschwindet es. Schreibaktionen werden vom Firebase-SDK zwischengespeichert und nach der Wiederverbindung gesendet; ob das über ein Neuladen hinweg hält, ist nicht konfiguriert, vermutlich nicht **(unsicher)**; die Outbox (siehe „Überlast und instabile Verbindung“) hält Änderungen deshalb selbst über ein Neuladen. Der lokale Zustand zeigt die eigenen Änderungen sofort. Transaktionen (Abhaken) laufen offline gegen den lokal bekannten Stand und werden beim Verbinden bestätigt; schlägt das dort fehl, korrigiert sich die Anzeige **(unsicher, aus Firebase-Verhalten abgeleitet, nicht getestet)**. Teilen (`shareLocalList`) braucht Netz; bei Fehler bleibt die lokale Liste erhalten.
-- **VG-Daten** kommen offline aus dem `localStorage`-Cache, falls schon einmal geladen. Import aus der VG-App und Open Food Facts brauchen Netz (Fehlermeldung bzw. „Artikel <EAN>“ als Name).
-
-## Überlast und instabile Verbindung
-
-`conn.js` (rein, ohne DOM und Firebase) bewertet die Verbindung einer geteilten Liste: `ok`, `connecting` (erste 3 s), `degraded` (3 s ohne Verbindung, Flattern mit 3 Abbrüchen in 60 s oder Schreibvorgänge im Timeout) und `busy` (15 s nie verbunden oder wiederholt „verbunden und sofort wieder getrennt“, die Signatur des Verbindungslimits). Zurück auf `ok` erst nach 5 s stabiler Verbindung. Bei `busy` trennt die App die Verbindung selbst (`goOffline`) und versucht es mit exponentiellem Backoff mit Jitter (5, 10, 20, 40 s bis höchstens 120 s) erneut; im versteckten Tab ruht das, beim Sichtbarwerden oder `online` gibt es einen sofortigen Versuch. `store.js` bricht hängende Schreibvorgänge nach 8 s mit einem `PendingError` ab (die Operation bleibt in der Warteschlange; die Folgepunkte für `check` usw. laufen danach nach) und schreibt den Aktivitätsstempel nur bei `ok`. In der Oberfläche zeigt `#connBanner` einen ruhigen Hinweis, nach 10 s ohne ersten Datensatz erscheint ein Leerzustand mit „Vorerst lokale Liste nutzen“ (der gespeicherte Code bleibt). Eine leere Antwort gilt nur bei gesunder Verbindung als „Liste gelöscht“. Änderungen überleben ein Neuladen (Stufe 2):
-
-- **Outbox (`outbox.js`):** Jede Operation auf Artikeln und Leergut (`add`, `check`, `setNum`, `setEan`, `remove`, `depositAdd`, `depositRemove`) wird als Absicht `{id, code, op, args, ts}` im `localStorage` unter `NS + 'kober-outbox'` notiert, bevor sie gesendet wird, und gestrichen, sobald der Store-Aufruf fertig ist. Bei `degraded`/`busy` wird nichts gesendet, der Eintrag wartet. Ist der Zustand wieder `ok` (und beim Start), werden die Einträge der offenen Liste der Reihe nach über dieselben Store-Methoden abgespielt (`store.flush`). Das ist unkritisch, weil diese Methoden abbrechen, wenn der Zielzustand schon erreicht ist. Der Punkt nach einer Artikeländerung steht als eigener Eintrag (`bump`) im Journal, sobald die Artikel-Transaktion durch ist; ein Neuladen dazwischen verliert oder verdoppelt ihn nicht. Jeder Eintrag wird beim Laden und Abspielen erneut geprüft (der `localStorage` ist vom Nutzer beschreibbar), höchstens 200 Einträge (die ältesten fallen weg, einmal der Hinweis `outboxFull`), Einträge über 24 h werden verworfen. Bewusst akzeptiert: Ein abgespieltes `add` eines inzwischen von anderen gelöschten Artikels taucht wieder auf; ein abgespieltes `check` überschreibt eine spätere Änderung anderer (letzter Schreiber gewinnt); ein abgespieltes `depositAdd` zählt nur doppelt, wenn die Seite zwischen Übernahme und Streichen starb; zwei Tabs würden beide abspielen.
-- **Optimistische Anzeige:** `render()` legt die wartenden Einträge über den letzten Datensatz (Haken springen sofort, neue Artikel erscheinen, Leergut zählt hoch; Punkte nie im Voraus). Ein Live-Datensatz ist maßgeblich und ersetzt den Unterbau.
-- **Datensatz-Cache (`cache.js`):** Der letzte Live-Datensatz je Liste liegt unter `NS + 'kober-cache:' + Code` (die zuletzt benutzten 3 Listen, je höchstens 200 KB, beim Laden bereinigt wie Serverdaten). Beim ersten Laden ohne Live-Daten zeigt die App ihn schreibgeschützt (Schreibaktionen werden mit einem Hinweis abgelehnt), bis der erste Live-Datensatz kommt. Greift nicht, wenn schon das Firebase-SDK nicht geladen werden kann (offline ohne Browser-Cache): dann bleibt es bei der lokalen Liste.
-- **Anzeige:** Das Banner nennt die Zahl der wartenden Änderungen (`connPending`), der Reiter Rangliste zeigt `connScoreLater`, solange `degraded`/`busy` ist und die Outbox nicht leer ist.
-
-Testen: `?sim=overload|slow|flap|recover:<Sekunden>|cut:<Sekunden>[:<zurück>]` (`cut`: erst normal, dann fällt die Verbindung weg, optional kommt sie nach <zurück> Sekunden wieder; nur Demo-Modus oder Dev-Seite) ersetzt die geteilte Liste durch einen simulierten Server (`sim.js`); die Unit-Tests in `test/overload.test.js` und `test/outbox.test.js` (Outbox, Neuladen, Idempotenz, Obergrenze, 24 h, ungültige Einträge, Cache) nutzen dieselbe Simulation mit einer manuellen Uhr.
-
-## Tests
-
-`npm test` führt `node --test` aus (Node ≥ 18, keine Abhängigkeiten); aktuell 36 Tests in fünf Dateien.
-
-- `test/store.test.js`: Listenlogik gegen den lokalen Adapter mit eigenem Storage: Anlegen/Existenz, Punkte beim Abhaken und Zurücknehmen, Idempotenz von `add`/`check`, Löschen, `clearChecked` und `clearAll` (Punkte und Leergut bleiben), `resetScores`, EAN- und Nutzerschlüssel-Prüfung, Leergut-Punkte, Eingabevalidierung, `importList` (Übernahme der lokalen Liste ohne Punkte, kaputte Einträge werden ignoriert), Aktivitätsstempel (höchstens stündlich), `deleteList`.
-- `test/rules.test.js`: eine kleine Auswertung von `database.rules.json` im Test: Struktur (Lesen offen, Schreiben auf Listenebene nur zum Löschen), gültige Dokumente aus `store.js` werden akzeptiert, Müll wird abgelehnt, der normale Ablauf von `store.js` schreibt nur Erlaubtes.
-- `test/vg.test.js`: `cleanTitle`, Index (Nummer, Titel, Suche, Infotext), Erkennen und Entschlüsseln von Teilen-Links, Pfand-Typen im Index.
-- `test/i18n.test.js`: Spracherkennung (`?lang`, Fallback Englisch), `t()` mit Parametern, gleiche Schlüssel und Platzhalter in Deutsch und Englisch, alle in `app.js` und in der Tabelle der statischen Texte benutzten Schlüssel existieren, die Selektoren der statischen Texte sind exakt.
-- `test/cleanup.test.js`: `scripts/cleanup-lists.mjs`: Auswahl abgelaufener Listen (`selectExpired`, `lastActivity`), das 30-Tage-Limit (29 Tage bleibt, 31 Tage wird gelöscht), JWT-Signatur für das Dienstkonto, `dbUrl` (`.json` vor der Query).
-
-Nicht getestet: die Oberfläche (`app.js`), der Firebase-Adapter, der Service Worker, die Netzwerkaufrufe in `vg.js` und im Aufräum-Skript.
-
-## Deployment
-
-`.github/workflows/pages.yml` läuft bei Push auf `main` (und manuell): Checkout, `node --test`, dann wird der Ordner `public/` als Pages-Artefakt hochgeladen und veröffentlicht. Schlägt ein Test fehl, wird nicht veröffentlicht. Es gibt keinen Build-Schritt. Daneben gibt es `checks.yml` (dieselben Prüfungen wie lokal per prek, dazu gitleaks über die Historie) und `cleanup.yml` (siehe oben). Die Datenbankregeln werden nicht mitveröffentlicht, sondern von Hand in der Firebase-Konsole eingespielt. Lokal: `npm start` (Python-Webserver auf Port 3000); ohne Firebase-Konfiguration im Demo-Modus.
+- **Farben:** nur `public/theme.css` (Tokens, hell/dunkel); die Seiten binden die Datei ein. Kontrastgrenzen in `scripts/contrast.mjs`.
+- **Texte:** nur `public/i18n.js`; Hilfeseite und Datenschutzseite sind zweisprachig und bringen ihre Texte selbst mit.
+- **Tests:** `test/*.test.js`, `npm test` (`node --test`, keine Abhängigkeiten), je Modul eine Datei (Store, Regeln, VG, i18n, Flows, Outbox/Cache, Overload, Cleanup, Theme, A11y, Safari-15-Scan, Site-Build, Namensprüfung). Nicht automatisch getestet: die Oberfläche in `app.js`, der echte Firebase-Adapter und der Service Worker; Layout prüft `npm run test:screens` (Chrome nötig).
+- **Skripte:** `scripts/` (Aufräumen, Icons, Hilfe-Screenshots, Layoutprüfung, Namensabgleich, Site-Build).
