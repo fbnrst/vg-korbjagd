@@ -136,8 +136,8 @@ body.typing .tabs{display:none}
 .empty{color:var(--mute);font-size:14px;line-height:1.35;padding:2px 0}
 .empty p{display:flex;align-items:center;gap:10px;margin:0 0 8px}
 .empty .eic{flex:none;box-sizing:border-box;min-width:38px;display:grid;place-items:center;color:var(--mute);font-size:15px;font-weight:700;opacity:.8} /* plain glyphs, no button look: only the Help link is tappable here */
-.emptyLinks{display:flex;flex-wrap:wrap;align-items:center;gap:0 14px;margin-top:2px}
-.empty a,.empty .linkbtn{color:var(--green);font:inherit;font-weight:600;display:inline-block;padding:11px 7px;margin:-4px -7px -6px;background:none;border:0;cursor:pointer;text-align:left} /* 40px tall tap area, the text keeps its place; the link-style button looks like the Help link */
+.emptyLinks{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin-top:2px}
+.empty a,.empty .linkbtn{color:var(--green);font:inherit;font-weight:600;display:inline-block;padding:11px 7px;margin:-4px -7px -6px;background:none;border:0;cursor:pointer;text-align:left;white-space:nowrap} /* 40px tall tap area, the text keeps its place; the link-style button looks like the Help link */
 .muted{color:var(--mute)}.hide{display:none!important}
 .big{font-size:22px;letter-spacing:4px;font-weight:700}
 #shareDlg,#resetDlg,#joinDlg,#installDlg,#diagDlg,#gateDlg{position:fixed;left:0;right:0;top:var(--vvtop,0px);bottom:0;height:var(--app-h,100dvh);z-index:30;background:var(--scrim);display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto;-webkit-overflow-scrolling:touch} /* compat-ok: bottom:0 fills the screen before Safari 15.4 */
