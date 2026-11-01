@@ -6,9 +6,9 @@
 <img src="public/docs/img/en-readme.png" alt="Kober shopping list on a phone" width="240" align="right">
 
 ### 👉 [Open Kober on your phone](https://fbnrst.github.io/kober/)
-No account, no app store. First time? [Add it to your home screen](https://fbnrst.github.io/kober/docs/#en-install)
+No account, no app store.
 
-[Help](https://fbnrst.github.io/kober/docs/) · [Privacy](https://fbnrst.github.io/kober/privacy.html)
+[Install](https://fbnrst.github.io/kober/docs/#en-install) · [Help](https://fbnrst.github.io/kober/docs/) · [Privacy](https://fbnrst.github.io/kober/privacy.html)
 
 An independent, unofficial shopping list app. The list lives on your phone first; once you share it, phones sync live and a leaderboard ("who puts the most in the basket") starts. Idea and product data: the [VG app](https://gitlab.com/pyfox/vg-app) of VG Dresden. This project is not affiliated with VG Dresden.
 
