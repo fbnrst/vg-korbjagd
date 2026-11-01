@@ -59,6 +59,8 @@ Löschen (`null`) wird nicht validiert. Die Regeln prüfen nur neue Schreibzugri
 
 Die Regeln werden von Hand eingespielt, **zuerst Dev, dann Produktion** (Projekte `vg-korbjagd-dev` und `vg-korbjagd`; die Ids behalten den alten Namen Korbjagd).
 
+Vorher: `npm run test:emulator` (`scripts/emulator-check.mjs`; Java 21+, `firebase-tools` holt `npx`) spielt `database.rules.json` in den Firebase-Emulator ein und lässt den echten `store.js` mit dem echten Adapter dagegen laufen. Der normale Ablauf muss durchgehen; manipulierte Schreibzugriffe (ganze Liste überschreiben, XSS-Schlüssel, falsche Typen, zu langer Titel, unbekanntes Feld) müssen `PERMISSION_DENIED` liefern; das Löschen einer Liste muss erlaubt sein. Das ergänzt `test/rules.test.js`, dessen eigener Auswerter kein echter Regel-Interpreter ist. Der Test gehört nicht zu `npm test` (Emulator-Download), läuft aber in GitHub Actions (`.github/workflows/emulator.yml`), sobald sich Regeln, `store.js` oder der Test ändern. Der Emulator wendet die Regeln nur auf den Namespace `<projekt>-default-rtdb` an.
+
 1. Firebase console → Projekt → **Realtime Database** → Tab **Rules**.
 2. Inhalt von `database.rules.json` einfügen.
 3. In **Rules Playground** prüfen: Schreiben auf `lists/ABC234/items/a1`, `meta`, `activity` (erlaubt), Löschen von `lists/ABC234` (erlaubt), Überschreiben von `lists/ABC234` mit Daten (abgelehnt).

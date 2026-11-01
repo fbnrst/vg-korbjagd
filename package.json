@@ -8,6 +8,7 @@
     "start": "python3 -m http.server 3000 --directory public",
     "test": "node --test",
     "docs:screenshots": "node scripts/docs-screenshots.mjs",
+    "test:emulator": "npx -y firebase-tools@15.34.2 emulators:exec --only database --project demo-kober 'node scripts/emulator-check.mjs'",
     "test:screens": "node scripts/check-small-screens.mjs",
     "icons": "node scripts/make-icons.mjs",
     "matching:check": "node scripts/check-matching.mjs",
@@ -17,6 +18,7 @@
     "node": ">=18"
   },
   "devDependencies": {
+    "firebase": "10.14.1",
     "playwright-core": "^1.64.1"
   }
 }
