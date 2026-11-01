@@ -55,7 +55,6 @@ code{font-size:13px;overflow-wrap:anywhere}
 @media(max-width:819px){.sec .figs.qrcol{display:none}}
 html[lang=de] [lang=en],html[lang=en] [lang=de]{display:none}
 </style>
-<link rel="stylesheet" href="../dev-theme.css">
 </head>
 <body>
 <header><a href="../" id="back">← Shopping list</a></header>
@@ -218,8 +217,7 @@ if (matchMedia('(min-width: 820px)').matches) {
   document.head.appendChild(sc);
 }
 if (IS_DEV) {
-  document.body.classList.add('dev'); document.title += ' DEV';
-  document.querySelector('meta[name=theme-color]').content = '#7d8de6';
+  document.title += ' DEV';
   document.getElementById('back').insertAdjacentHTML('afterend', '<span class="devtag">DEV</span>');
 }
 </script>

@@ -22,7 +22,6 @@ table{border-collapse:collapse;width:100%;font-size:14px;margin:8px 0}
 th,td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
 html[lang=de] [lang=en],html[lang=en] [lang=de]{display:none}
 </style>
-<link rel="stylesheet" href="dev-theme.css">
 </head>
 <body>
 <header><a href="./" id="back">← Shopping list</a></header>
@@ -133,8 +132,7 @@ document.getElementById('back').textContent = lang === 'de' ? '← Einkaufsliste
   }, { passive: true });
 }
 if (IS_DEV) {
-  document.body.classList.add('dev'); document.title += ' DEV';
-  document.querySelector('meta[name=theme-color]').content = '#7d8de6';
+  document.title += ' DEV';
   document.getElementById('back').insertAdjacentHTML('afterend', '<span class="devtag">DEV</span>');
 }
 document.querySelectorAll('.who').forEach(el => { el.textContent = legal.name; });

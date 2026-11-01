@@ -42,7 +42,7 @@ Technical details, data model and offline behaviour: [docs/architecture.md](docs
 
 ## Releases and the dev site
 
-The site has two versions: the root shows the latest release (the newest git tag `v*`), [`/dev/`](https://fbnrst.github.io/kober/dev/) shows the current `main`. Everyday work goes to `main` and only changes `/dev/`; a release is a tag (for example `gh release create v1.2.0`) followed by `gh workflow run pages.yml --ref main`. `/dev/` is its own app (blue header, own icon, own storage) with a second Firebase project (`public/firebase-config.dev.js`), so trying things never touches real lists.
+The site has two versions: the root shows the latest release (the newest git tag `v*`), [`/dev/`](https://fbnrst.github.io/kober/dev/) shows the current `main`. Everyday work goes to `main` and only changes `/dev/`; a release is a tag (for example `gh release create v1.2.0`) followed by `gh workflow run pages.yml --ref main`. `/dev/` is its own app (same look with a DEV tag, own blue icon, own storage) with a second Firebase project (`public/firebase-config.dev.js`), so trying things never touches real lists.
 
 ## Development
 

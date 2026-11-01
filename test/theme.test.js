@@ -1,5 +1,5 @@
 // Guards the structure of the colour tokens: public/theme.css is the single source (release, light + dark),
-// public/dev-theme.css overrides some of them for the dev site (see the header of theme.css).
+// The dev site uses the same colours as the release (only the DEV tag differs), so there is no second palette.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -12,7 +12,6 @@ const darkAt = theme.indexOf('@media(prefers-color-scheme:dark)');
 const names = css => new Set([...css.matchAll(/(--[a-z0-9-]+)\s*:/g)].map(m => m[1]));
 const light = names(theme.slice(0, darkAt));
 const dark = names(theme.slice(darkAt));
-const devCss = read('dev-theme.css');
 
 // var(--x) uses that are not defined by the page itself at runtime (set by app.js for layout)
 const RUNTIME = new Set(['--app-h', '--vvtop', '--conn-h', '--tabs']);
@@ -38,12 +37,11 @@ for (const page of PAGES) {
     }
   });
 
-  test(`${page}: links theme.css before its styles and before dev-theme.css`, () => {
+  test(`${page}: links theme.css before its styles`, () => {
     const html = read(page);
     const rel = page.includes('/') ? '../' : '';
-    const t = html.indexOf(`href="${rel}theme.css"`), s = html.indexOf('<style>'), d = html.indexOf(`href="${rel}dev-theme.css"`);
+    const t = html.indexOf(`href="${rel}theme.css"`), s = html.indexOf('<style>');
     assert.ok(t > 0 && t < s, 'theme.css must come before <style>');
-    assert.ok(d > t, 'dev-theme.css must come after theme.css');
   });
 
   test(`${page}: defines no colour palette of its own`, () => {
@@ -56,22 +54,13 @@ for (const page of PAGES) {
   });
 }
 
-test('dev-theme.css uses and overrides only tokens that exist in theme.css', () => {
-  const css = stripComments(devCss);
-  for (const v of names(css)) assert.ok(light.has(v), `dev-theme.css overrides unknown token ${v}`);
-  for (const v of used(css)) assert.ok(light.has(v), `dev-theme.css uses unknown token ${v}`);
+test('there is no second (dev) palette any more', () => {
+  assert.ok(!fs.existsSync(new URL('../public/dev-theme.css', import.meta.url)), 'dev-theme.css must stay deleted');
+  for (const page of PAGES) assert.ok(!read(page).includes('dev-theme.css'), `${page} still links dev-theme.css`);
 });
 
-test('dev-theme.css overrides the key tokens in both light and dark', () => {
-  const css = stripComments(devCss);
-  const i = css.indexOf('@media');
-  const a = names(css.slice(0, i)), b = names(css.slice(i));
-  for (const v of ['--hdr', '--fill', '--green', '--scan-frame', '--tick']) assert.ok(a.has(v) && b.has(v), `${v} missing in a dev mode`);
-});
-
-test('sw.js precaches theme.css and dev-theme.css', () => {
+test('sw.js precaches theme.css', () => {
   const sw = read('sw.js');
   const files = sw.match(/const FILES = \[([\s\S]*?)\];/)[1];
   assert.match(files, /'\.\/theme\.css'/);
-  assert.match(files, /'\.\/dev-theme\.css'/);
 });

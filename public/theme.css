@@ -1,8 +1,7 @@
 /* Colour tokens of the app: the single source of truth for the release palette (VG Dresden colours, see AGENTS.md).
-   Layering:
-     theme.css      release palette, light and dark (this file), linked by index.html, privacy.html and docs/index.html
-     dev-theme.css  the blue dev override; overrides these tokens under `body.dev` and is linked AFTER this file
-     build-site.mjs static things CSS cannot reach: <meta name="theme-color"> and the manifest of the dev site
+   One palette for everything: the dev site (/dev/) looks exactly like the release, only the "DEV" tag next to the fox
+   tells them apart. The file is linked by index.html, privacy.html and docs/index.html; the theme-color metas and the
+   manifest colours (CSS cannot reach them) are the release values in both builds.
    Every token is defined in both blocks (a test checks that); keep light and dark in sync. */
 :root{
   --bg:#f1f4ea;          /* page background, input fields */

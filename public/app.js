@@ -864,7 +864,7 @@ const getRemote = () => remotePromise = remotePromise || (async () => {
 
 async function init() {
   applyStatic();
-  if (IS_DEV) { document.body.classList.add('dev'); $('#devTag').classList.remove('hide'); document.title += ' DEV'; document.querySelector('meta[name=theme-color]').content = '#7d8de6'; } // after applyStatic, which sets the title
+  if (IS_DEV) { $('#devTag').classList.remove('hide'); document.title += ' DEV'; } // after applyStatic, which sets the title
   buildEmojis();
   localDb = localAdapter(); localStore = createStore(localDb);
   if (!firebaseConfig) $('#demoBanner').classList.remove('hide');
