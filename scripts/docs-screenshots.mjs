@@ -4,7 +4,7 @@
 //   npm run docs:screenshots          # writes public/docs/img/<lang>-<scene>.jpg
 //   npm run docs:screenshots -- /tmp/out   # another output folder
 //
-// The README picture `en-readme.png` comes from the same run: the English ranking screen in a rounded phone frame like the one
+// The README picture `readme-phone.png` comes from the same run: the English ranking screen in a rounded phone frame like the one
 // on the help page (transparent corners, so it also works on GitHub's dark theme).
 //
 // Needs Google Chrome (or set CHROME_PATH, or run `npx playwright install chromium`).
@@ -98,9 +98,9 @@ async function phoneFrame(browser) {
   const jpg = readmeShot.toString('base64');
   const page = await browser.newPage({ viewport: { width: 700, height: 1500 } });
   await page.setContent(`<body style="margin:0;background:transparent"><div id="f" style="display:inline-block;background:#111;padding:8px;border-radius:30px;box-shadow:0 0 0 1px rgba(255,255,255,.12)"><img style="display:block;width:600px;border-radius:22px" src="data:image/jpeg;base64,${jpg}"></div></body>`);
-  await page.locator('#f').screenshot({ path: path.join(OUT, 'en-readme.png'), omitBackground: true });
+  await page.locator('#f').screenshot({ path: path.join(OUT, 'readme-phone.png'), omitBackground: true });
   await page.close();
-  console.log('  en-readme.png');
+  console.log('  readme-phone.png');
 }
 
 fs.mkdirSync(OUT, { recursive: true });
