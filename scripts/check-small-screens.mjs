@@ -85,7 +85,7 @@ function audit({ minTap, slack, taps }) {
   // 3) controls: inside the viewport (outside the scrolling list), not overlapping, big enough to tap
   // the layer that is on top: an open menu, dialog or scanner, else the app
   const suggest = document.querySelector('#addSuggest');
-  const layer = suggest && visible(suggest) ? document.querySelector('#addBar') : [...document.querySelectorAll('.menu,#shareDlg,#importDlg,#resetDlg,#joinDlg,#installDlg,#diagDlg,#scanner')].find(el => el && visible(el)) || document.querySelector('#app') || document.body;
+  const layer = suggest && visible(suggest) ? document.querySelector('#addBar') : [...document.querySelectorAll('.menu,#shareDlg,#importDlg,#resetDlg,#joinDlg,#installDlg,#diagDlg,#gateDlg,#scanner')].find(el => el && visible(el)) || document.querySelector('#app') || document.body;
   const clipped = el => { const r = el.getBoundingClientRect(); for (let p = el.parentElement; p; p = p.parentElement) { if (getComputedStyle(p).overflowY === 'visible') continue; const q = p.getBoundingClientRect(); if (r.top < q.top - 1 || r.bottom > q.bottom + 1) return true; } return false; };
   const sel = 'button,input:not([type=hidden]),a[href],[data-checkout],[role=menuitem]';
   const controls = taps ? [...layer.querySelectorAll(sel)].filter(visible) : [];
@@ -121,7 +121,7 @@ function audit({ minTap, slack, taps }) {
   }
 
   // 4) dialogs: reachable (fits, or the dialog scrolls) and not cut off at the top
-  for (const dlg of document.querySelectorAll('#shareDlg,#importDlg,#resetDlg,#joinDlg,#installDlg,#diagDlg')) {
+  for (const dlg of document.querySelectorAll('#shareDlg,#importDlg,#resetDlg,#joinDlg,#installDlg,#diagDlg,#gateDlg')) {
     if (!visible(dlg)) continue;
     const card = dlg.firstElementChild.getBoundingClientRect();
     const scrolls = dlg.scrollHeight > dlg.clientHeight + 1 && /(auto|scroll)/.test(getComputedStyle(dlg).overflowY);
@@ -142,6 +142,9 @@ async function runContext(browser, base, [w, h], lang, scheme, violations) {
     userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_8 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.6 Mobile/15E148 Safari/604.1',
   });
   await routeDemoOnly(context);
+  // The phone UA makes the app show its install gate in front of everything; it is switched off once per tab session (the gate
+  // screens below remove the flag again and look at the gate on purpose)
+  await context.addInitScript(() => { try { if (!sessionStorage.getItem('__gateOff')) { sessionStorage.setItem('__gateOff', '1'); localStorage.setItem('installHintOff', 'true'); } } catch (e) { /* none */ } });
   const page = await context.newPage();
   page.on('pageerror', e => violations.push(`[${tag}] page error: ${e.message}`));
   page.on('dialog', d => d.accept()); // confirm() questions of the app
@@ -163,6 +166,11 @@ async function runContext(browser, base, [w, h], lang, scheme, violations) {
 
   await open();
   await check('list-empty');
+  // the install gate in the iPhone browser: plain visit, then opened with a list link (shows the code and "copy code")
+  await page.evaluate(() => localStorage.removeItem('installHintOff')); await open();
+  await check('gate-install'); await page.click('#gateGo'); await page.waitForTimeout(200);
+  await open('&list=ABC234'); await check('gate-join'); await page.click('#gateGo'); await page.waitForTimeout(400);
+  await open();
   // list: long German names, a word that cannot be broken, typed VG numbers go straight into the basket
   for (const v of ['Hafer-Barista-Drink ungesüßt mit Calcium und Vitamin D im 1 Liter Tetrapak', 'Donaudampfschifffahrtsgesellschaftskapitänsmütze', 'Äpfel Elstar', 'Vollkornbrot', '4455', '7901']) await add(v);
   await blur();

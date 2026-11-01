@@ -21,6 +21,7 @@ async function scenes(browser, base, lang) {
     isMobile: true, hasTouch: true,
     userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1',
   });
+  await context.addInitScript(() => { try { localStorage.setItem('installHintOff', 'true'); } catch (e) { /* none */ } }); // the iPhone UA would show the install gate in the pictures
   await routeDemoOnly(context); // only the demo server and the fixture VG data: nothing else may leave the machine
   const page = await context.newPage();
   const errors = [];
