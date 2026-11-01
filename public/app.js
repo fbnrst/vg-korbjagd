@@ -7,7 +7,7 @@ import { IS_DEV, NS } from './env.js';
 import { BUILD } from './version.js';
 import { loadVg, similarNames } from './vg.js';
 import { t, applyStatic } from './i18n.js';
-import { shouldShowAndroidInstall, shouldShowInstallHint, shouldShowBrowserHint, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, createVgLoader, uploadLocalList, checkoutSections, rankPlaces, computeBadges, classifyScan } from './flows.js';
+import { shouldShowAndroidInstall, shouldShowInstallHint, shouldShowBrowserHint, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, sanitizeHistory, recordHistory, historyMatches, HISTORY_KEY, createVgLoader, uploadLocalList, checkoutSections, rankPlaces, computeBadges, classifyScan } from './flows.js';
 import { initDialogs, shortName, menuIndex, visibleFocusables } from './a11y.js';
 
 const $ = s => document.querySelector(s);
@@ -15,6 +15,10 @@ const $ = s => document.querySelector(s);
 const EMOJIS = ['🦊','🐼','🦖','🦈','🦄','🐙','🤖','👽','🧙','🐲','🚀','⚡'];
 const LS = { get(k, d) { try { return JSON.parse(localStorage.getItem(NS + k)) ?? d; } catch (e) { return d; } },
              set(k, v) { try { localStorage.setItem(NS + k, JSON.stringify(v)); } catch (e) {} } };
+
+// Own item history for suggestions: one table for all lists on this phone (lists come and go, shopping habits stay); bounded, validated on load
+let history = sanitizeHistory(LS.get('history', null));
+const remember = (title, vgNum) => { history = recordHistory(history, HISTORY_KEY, title, vgNum); LS.set('history', history); };
 
 const me = LS.get('me', { name: '', emoji: EMOJIS[0] });
 // The list lives on this phone (code LOCAL) until it is shared; then it moves to the server under an 8-character code (6 for older lists).
@@ -311,7 +315,7 @@ document.addEventListener('click', e => {
   if (e.target.closest('#vgRetry')) { vgLoader.start(); return; }
   if (e.target.closest('#useLocal')) { startLocal(); return; } // the saved list code stays, the next start tries it again
   const chk = e.target.closest('[data-chk]');
-  if (chk) { const it = state.items[chk.dataset.chk]; if (it) bg.check(code, it.id, myKey(), !it.checked); return; }
+  if (chk) { const it = state.items[chk.dataset.chk]; if (it && !it.checked) remember(it.title, it.vgNum); if (it) bg.check(code, it.id, myKey(), !it.checked); return; }
   const sg = e.target.closest('[data-sug]');
   if (sg) { // a suggested product was tapped: it goes into the basket right away
     if (readOnly()) return;
@@ -320,9 +324,20 @@ document.addEventListener('click', e => {
     clearField('#addIn');
     return;
   }
+  const sh = e.target.closest('[data-sughist]');
+  if (sh) { // an own past item was tapped: added like a typed name; its remembered VG number only goes along when it still names a similar product
+    if (readOnly()) return;
+    const title = sh.dataset.sughist, v = +sh.dataset.sugnum || 0, p = v && vg ? vg.lookup(v) : null;
+    const num = p && !p.placeholder && similarNames(p.title, title) ? { vgNum: p.vgNum } : {};
+    remember(title, num.vgNum);
+    bg.add(code, { id: uid(), title, ...num }, myKey());
+    clearField('#addIn');
+    return;
+  }
   const sn = e.target.closest('[data-sugname]');
   if (sn) { // a suggested name was tapped: add it right away, without a VG number
     if (readOnly()) return;
+    remember(sn.dataset.sugname, null);
     bg.add(code, { id: uid(), title: sn.dataset.sugname }, myKey());
     clearField('#addIn');
     return;
@@ -411,7 +426,7 @@ $('#addForm').onsubmit = e => {
   $('#addIn').value = ''; $('#addSuggest').classList.add('hide'); syncAddButton();
   if (p) addToBasket(p.title, { vgNum: p.vgNum });
   else if (isNum) addToBasket(t('vgPlaceholderTitle', { n: v }), { vgNum: +v });
-  else bg.add(code, { id: uid(), title: v }, myKey());
+  else { remember(v, null); bg.add(code, { id: uid(), title: v }, myKey()); }
   if (isNum && !p) toast(vg ? t('vgNotInDb', { n: v }) : t('vgNotLoaded'));
 };
 // A product typed, tapped or scanned at the shelf goes straight into the basket: an item with that VG number (or barcode) on
@@ -477,11 +492,13 @@ $('#addIn').oninput = () => {
   const isNum = /^\d+$/.test(q);
   // Tappable list, tap = add the item: from three digits on for numbers, from two letters on for names (no duplicates)
   const nums = vg && isNum && q.length >= 3 ? vg.searchByNumber(q) : [];
-  const names = vg && !isNum && q.length >= 2 ? vg.searchNames(q) : [];
+  const hist = !isNum && q.length >= 2 ? historyMatches(history[HISTORY_KEY], q) : []; // own past items come first
+  const names = vg && !isNum && q.length >= 2 && !hist.length ? vg.searchNames(q) : []; // one source at a time: VG names only when no own name matches
   const long = tooLongNumber(q); // more than 4 digits can never be a VG number: say so here instead of after the tap
   const miss = vg && isNum && !long && q.length >= 4 && !nums.length && !vg.lookup(q); // an exact placeholder number is accepted silently
-  box.classList.toggle('hide', !nums.length && !names.length && !miss && !long);
-  box.innerHTML = nums.map(p => `<button type="button" class="sug" data-sug="${esc(p.vgNum)}"><b>${esc(p.vgNum)}</b><span>${esc(p.title)}</span></button>`).join('')
+  box.classList.toggle('hide', !nums.length && !hist.length && !names.length && !miss && !long);
+  box.innerHTML = hist.map(h => `<button type="button" class="sug hist" data-sughist="${esc(h.t)}" data-sugnum="${esc(h.v || '')}"><span>${esc(h.t)}</span><i aria-hidden="true">↺</i></button>`).join('')
+    + nums.map(p => `<button type="button" class="sug" data-sug="${esc(p.vgNum)}"><b>${esc(p.vgNum)}</b><span>${esc(p.title)}</span></button>`).join('')
     + names.map(p => `<button type="button" class="sug" data-sugname="${esc(p.title)}"><span>${esc(p.title)}</span></button>`).join('')
     + (miss ? `<span class="miss">${esc(t('noVgMatch'))}</span>` : '')
     + (long ? `<span class="miss">${esc(t('vgTooLong'))}</span>` : '');
