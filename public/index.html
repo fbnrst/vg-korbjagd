@@ -63,8 +63,8 @@ header :focus{outline-color:var(--hdr-fg)}
 .opt:has(input:not(:checked)) span{color:var(--mute)} /* what is not chosen fades */ /* compat-ok: Safari < 15.4 does not fade the unchosen options, nothing else changes */
 .btn svg{vertical-align:-4px;margin-right:6px}
 /* Dialogs close with a quiet X in the top right corner instead of a Cancel/Close button in the middle */
-#shareDlg>.card,#resetDlg>.card,#installDlg>.card{position:relative}
-#shareDlg h2,#resetDlg h2,#installDlg h2{padding:0 34px}
+#shareDlg>.card,#resetDlg>.card{position:relative}
+#shareDlg h2,#resetDlg h2{padding:0 34px}
 #resetDlg h2{padding-left:0}
 .dlg-x{position:absolute;top:8px;right:8px;width:40px;height:40px;padding:0;border:0;border-radius:50%;background:transparent;color:var(--mute);display:grid;place-items:center}
 .dlg-x:active{background:var(--green2)}
@@ -142,9 +142,9 @@ body.typing .tabs{display:none}
 .empty a,.empty .linkbtn{color:var(--green);font:inherit;font-weight:600;display:inline-block;padding:11px 7px;margin:-4px -7px -6px;background:none;border:0;cursor:pointer;text-align:left;white-space:nowrap} /* 40px tall tap area, the text keeps its place; the link-style button looks like the Help link */
 .muted{color:var(--mute)}.hide{display:none!important}
 .big{font-size:22px;letter-spacing:4px;font-weight:700}
-#shareDlg,#resetDlg,#joinDlg,#installDlg,#diagDlg,#gateDlg{position:fixed;left:0;right:0;top:var(--vvtop,0px);bottom:0;height:var(--app-h,100dvh);z-index:30;background:var(--scrim);display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto;-webkit-overflow-scrolling:touch} /* compat-ok: bottom:0 fills the screen before Safari 15.4 */
-#shareDlg>.card,#resetDlg>.card,#joinDlg>.card,#installDlg>.card,#diagDlg>.card,#gateDlg>.card{margin:auto}.gateSteps{margin:0 0 14px;padding-left:20px;line-height:1.4}.gateSteps li{margin:0 0 8px} /* auto margins: centred when it fits, starts at the top and scrolls when it is taller than the screen (a small phone, the keyboard open) */
-#qr svg,#installQr svg{width:100%;max-width:min(260px,max(190px,calc(100vh - 360px)));height:auto;background:var(--qr-bg);border-radius:10px}
+#shareDlg,#resetDlg,#joinDlg,#diagDlg,#gateDlg{position:fixed;left:0;right:0;top:var(--vvtop,0px);bottom:0;height:var(--app-h,100dvh);z-index:30;background:var(--scrim);display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto;-webkit-overflow-scrolling:touch} /* compat-ok: bottom:0 fills the screen before Safari 15.4 */
+#shareDlg>.card,#resetDlg>.card,#joinDlg>.card,#diagDlg>.card,#gateDlg>.card{margin:auto}.gateSteps{margin:0 0 14px;padding-left:20px;line-height:1.4}.gateSteps li{margin:0 0 8px} /* auto margins: centred when it fits, starts at the top and scrolls when it is taller than the screen (a small phone, the keyboard open) */
+#qr svg{width:100%;max-width:min(260px,max(190px,calc(100vh - 360px)));height:auto;background:var(--qr-bg);border-radius:10px}
 #scanner{position:fixed;left:0;right:0;top:var(--vvtop,0px);bottom:0;height:var(--app-h,100dvh);z-index:30;background:var(--scanner-bg);color:var(--scanner-fg);display:flex;flex-direction:column;align-items:center;gap:12px;padding:16px} /* compat-ok: bottom:0 fills the screen before Safari 15.4 */
 #scanner video{width:100%;max-width:520px;flex:1;min-height:0;object-fit:cover;border-radius:14px}
 #scanSuggest{display:flex;flex-direction:column;gap:6px;width:100%;max-width:520px;max-height:30%;overflow:auto}
@@ -177,16 +177,6 @@ body.typing .tabs{display:none}
       <div class="row" style="justify-content:center"><button class="btn" id="shareLink" type="button">Send link</button></div>
       <div class="dangerZone"><button class="btn sec danger" id="deleteBtn" type="button">Delete this list for everyone</button></div>
     </div>
-  </div>
-</div>
-<div id="installDlg" class="hide">
-  <div class="card" style="text-align:center;max-width:340px;width:100%">
-    <button class="dlg-x" id="installClose" type="button" aria-label="Close"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
-    <h2 id="installTitle" style="margin:0 0 4px">Install on another phone</h2>
-    <p id="installHint" class="muted" style="margin:0 0 10px">Scan with the camera, then add Kober to the home screen: on iPhone Share → “Add to Home Screen”, on Android menu → “Install app”.</p>
-    <div id="installQr"></div>
-    <div class="row" style="justify-content:center;margin:10px 0"><button class="btn sec" id="installCopy" type="button">Copy link</button></div>
-    <div class="row" style="justify-content:center"><button class="btn" id="installSend" type="button">Send link</button></div>
   </div>
 </div>
 <div id="resetDlg" class="hide">
@@ -237,7 +227,6 @@ body.typing .tabs{display:none}
     <button id="menuReset" class="hide" type="button" role="menuitem">Reset list</button>
     <button id="menuJoin" class="hide" type="button" role="menuitem">Join list</button>
     <button id="menuLeave" class="hide" type="button" role="menuitem">Leave list</button>
-    <button id="menuInstall" class="hide" type="button" role="menuitem">Install on another phone</button>
     <a href="docs/index.html" id="helpLink" role="menuitem">Help</a><a href="privacy.html" class="privacyLink" role="menuitem">Privacy</a>
     <div id="menuVersion" class="menuVersion"></div>
   </div>

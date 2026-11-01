@@ -4,7 +4,7 @@
 
 // Default set of dialog containers. A dialog is "open" while it does not carry the class `hide`. A dialog built later only
 // has to match the selector (or carry the attribute data-dialog) and is picked up by the observer.
-export const DIALOG_SELECTOR = '#shareDlg,#resetDlg,#joinDlg,#installDlg,#diagDlg,#gateDlg,#scanner,[data-dialog]';
+export const DIALOG_SELECTOR = '#shareDlg,#resetDlg,#joinDlg,#diagDlg,#gateDlg,#scanner,[data-dialog]';
 export const FOCUSABLE = 'a[href],button,input,select,textarea,[tabindex]:not([tabindex="-1"])';
 
 // Item names go into button labels: one line, at most `max` characters
