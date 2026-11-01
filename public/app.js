@@ -5,7 +5,7 @@ import { createOutbox } from './outbox.js';
 import { saveSnapshot, loadSnapshot, dropSnapshot, sanitize } from './cache.js';
 import { IS_DEV, NS } from './env.js';
 import { BUILD } from './version.js';
-import { loadVg, similarNames } from './vg.js';
+import { loadVg, similarNames, timeoutSignal } from './vg.js';
 import { t, applyStatic } from './i18n.js';
 import { shouldShowAndroidInstall, shouldShowInstallHint, shouldShowBrowserHint, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, createVgLoader, uploadLocalList, checkoutSections, rankPlaces, classifyScan } from './flows.js';
 import { initDialogs, shortName, menuIndex, visibleFocusables } from './a11y.js';
@@ -584,9 +584,10 @@ $('#joinForm').onsubmit = e => {
   if (!c) { toast(t('notACode')); return; } // the dialog stays open with what was typed
   closeJoin(); joinShared(c);
 };
+const dropListData = c => { if (c) { dropSnapshot(localStorage, c); outbox.dropList(c); } }; // nothing to show or send for a list we left
 const forgetShared = () => {
   clearTimeout(cacheTimer); // a snapshot about to be saved must not bring the cache of this list back
-  const c = LS.get('code', ''); if (c) { dropSnapshot(localStorage, c); outbox.dropList(c); } // nothing to show or send for a list we left
+  dropListData(LS.get('code', ''));
   LS.set('code', ''); history.replaceState(null, '', location.pathname); };
 // "..." menu in the header: reset, leave (shared lists only), help and privacy
 {
@@ -673,6 +674,7 @@ function show(id) {
 /* ---------- Barcode scanner ---------- */
 let zxingReader = null, scanStream = null, scanBusy = false;
 let scanTarget = null; // {id, checkToo} while the scanner was opened for one list item
+let scanSession = 0; // counts the closes: a lookup that comes back after the scanner was closed is dropped
 const loadZxing = () => loadScript(new URL('vendor/zxing.min.js', import.meta.url), () => window.ZXing); // @zxing/library 0.21.3, bundled (no CDN)
 // The line under the camera; a passing complaint ("not recognised") goes back to the aiming hint after a moment
 let scanMsgTimer = 0;
@@ -680,9 +682,10 @@ function scanMsg(text, passing = false) {
   $('#scanMsg').textContent = text; clearTimeout(scanMsgTimer);
   if (passing) scanMsgTimer = setTimeout(() => { const sc = $('#scanner'); if (!sc.classList.contains('hide')) $('#scanMsg').textContent = t(sc.classList.contains('join') ? 'scanQrHint' : 'scanHint'); }, 2500);
 }
+// Weak signal in a shop: after a few seconds the scan goes on without the name instead of blocking the scanner
 async function productName(ean) {
   try {
-    const r = await fetch(`https://world.openfoodfacts.org/api/v2/product/${ean}.json?fields=product_name,product_name_de,brands`);
+    const r = await fetch(`https://world.openfoodfacts.org/api/v2/product/${ean}.json?fields=product_name,product_name_de,brands`, { signal: timeoutSignal(5000) });
     const j = await r.json();
     if (j.status !== 1) return null;
     const p = j.product, name = p.product_name_de || p.product_name;
@@ -703,7 +706,8 @@ async function scanForRow(c, p, target) {
     toast(t(vg ? 'vgNotInDb' : 'vgSaved', { n: c.n }));
   } else if (c.kind === 'ean') {
     scanMsg(t('lookingUp'));
-    const name = await productName(c.ean);
+    const session = scanSession, name = await productName(c.ean);
+    if (session !== scanSession) return; // the scanner was closed while waiting: nothing happens any more
     if (name && !similarNames(name, target.title) && !confirm(t('confirmScanMismatch', { scanned: name, listed: target.title }))) return;
     bg.setEan(code, target.id, myKey(), c.ean, checkToo);
     toast(`✓ ${target.title}`);
@@ -740,7 +744,8 @@ async function handleCode(raw) {
       let title = items.find(i => i.ean === c.ean)?.title;
       if (!title) {
         scanMsg(t('lookingUp'));
-        const name = await productName(c.ean);
+        const session = scanSession, name = await productName(c.ean);
+        if (session !== scanSession) return; // the scanner was closed while waiting: nothing is added
         const same = name && items.find(i => i.title.toLowerCase() === name.toLowerCase());
         if (same) { if (!same.checked) bg.check(code, same.id, myKey(), true); r = { title: same.title, already: !!same.checked }; }
         else title = name || t('itemFallback', { ean: c.ean });
@@ -792,7 +797,7 @@ function openScanner(join = false) {
   startCamera();
 }
 function closeScanner() {
-  stopCamera();
+  scanSession++; stopCamera();
   $('#scanner').classList.add('hide'); $('#scanner').classList.remove('manual', 'join'); scanTarget = null;
   $('#eanIn').value = ''; $('#scanSuggest').classList.add('hide');
 }
@@ -914,12 +919,14 @@ async function startShared(c) {
   bg.join(code, myKey());
   enterApp();
 }
-async function joinShared(c) {
+// `fallback`: where to go when the list cannot be joined; `joined`: runs once the list is open
+async function joinShared(c, { fallback = startLocal, joined = () => {} } = {}) {
   const go = async () => {
     try {
-      if (!(await (await getRemote()).exists(c))) { toast(t('noList')); return startLocal(); }
-    } catch (e) { toast(noDbMsg(e)); return startLocal(); }
-    try { await startShared(c); } catch (e) { toast(noDbMsg(e)); startLocal(); return; }
+      if (!(await (await getRemote()).exists(c))) { toast(t('noList')); return fallback(); }
+    } catch (e) { toast(noDbMsg(e)); return fallback(); }
+    try { await startShared(c); } catch (e) { toast(noDbMsg(e)); fallback(); return; }
+    joined();
   };
   // cancel: back to the list on screen, or (a join link opened the app) to the local list
   me.name ? go() : askIdentity(go, () => { history.replaceState(null, '', location.pathname); store ? backToList() : startLocal(); }, c);
@@ -971,9 +978,14 @@ async function init() {
   const urlCode = parseListCode(urlList); // same check as typed and scanned codes
   if (urlList && !urlCode) toast(t('notAList'));
   const savedCode = LS.get('code', '');
+  const openSaved = () => startShared(savedCode).catch(e => { toast(noDbMsg(e)); startLocal(); }); // offline: local list, saved code is kept
   const startFlow = () => {
-    if (urlCode && urlCode !== savedCode) joinShared(urlCode);
-    else if (savedCode && me.name) startShared(savedCode).catch(e => { toast(noDbMsg(e)); startLocal(); }); // offline: local list, saved code is kept
+    if (urlCode && urlCode !== savedCode && savedCode && me.name) { // a link to another list while a shared list is open: ask first
+      const n = outbox.count(savedCode), lost = n ? `\n\n${t(n === 1 ? 'confirmSwitchPending1' : 'confirmSwitchPending', { n })}` : '';
+      if (!confirm(t('confirmSwitchList', { from: savedCode, to: urlCode }) + lost)) openSaved();
+      else joinShared(urlCode, { fallback: openSaved, joined: () => dropListData(savedCode) }); // the old list is forgotten only once the new one is open
+    } else if (urlCode && urlCode !== savedCode) joinShared(urlCode);
+    else if (savedCode && me.name) openSaved();
     else startLocal();
   };
   const gateFor = urlCode && browserHintDue(urlCode) ? urlCode : null;

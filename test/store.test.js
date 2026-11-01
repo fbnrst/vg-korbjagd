@@ -366,3 +366,34 @@ test('a timed-out create says which code it was', async () => {
   assert.ok(e.pending);
   assert.match(e.listCode, /^[A-Z0-9]{8}$/);
 });
+
+test('meta.created and activity take the adapter\'s server time when it has one (a wrong phone clock must not expire a list)', async () => {
+  const SERVER = { '.sv': 'timestamp' };
+  const db = { ...localAdapter(mem(), false), serverTime: () => SERVER };
+  const sets = [];
+  const set = db.set; db.set = async (code, path, v) => { sets.push([path, v]); return set(code, path, v); };
+  const store = createStore(db);
+  const code = await store.create();
+  assert.deepEqual(sets.find(([p]) => p === 'meta')[1], { created: SERVER });
+  assert.deepEqual(sets.find(([p]) => p === 'activity')[1], SERVER);
+  // without server time (local list) the device clock is used
+  const local = localAdapter(mem(), false), plain = createStore(local), c2 = await plain.create();
+  assert.equal(typeof (await local.get(c2, 'activity')), 'number');
+});
+
+test('New round is one transaction: a player who joins between read and write is kept', async () => {
+  const db = localAdapter(mem(), false), store = createStore(db);
+  const code = await store.create();
+  const A = userKey('🦊', 'Mia'), B = userKey('🐼', 'Ben');
+  await store.join(code, A);
+  await db.update(code, `scores/${A}`, () => 5);
+  // B joins while the reset is on its way: the transaction sees the board as it is when it runs
+  const update = db.update; db.update = async (c, path, fn) => { if (path === 'scores') await update(c, `scores/${B}`, () => 2); return update(c, path, fn); };
+  await store.resetScores(code);
+  assert.deepEqual(await db.get(code, 'scores'), { [A]: 0, [B]: 0 });
+  db.update = update;
+  // an empty board stays empty (no write)
+  const c2 = await store.create();
+  await store.resetScores(c2);
+  assert.equal(await db.get(c2, 'scores'), null);
+});

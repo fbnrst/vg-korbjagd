@@ -27,7 +27,7 @@ const toNum = v => { const n = Math.round(Number(v)); return Number.isFinite(n) 
 
 export async function firebaseAdapter(cfg) {
   const V = '10.14.1';
-  const [{ initializeApp }, { getDatabase, ref, onValue, runTransaction, set, get, remove, goOnline, goOffline }] = await Promise.all([
+  const [{ initializeApp }, { getDatabase, ref, onValue, runTransaction, set, get, remove, goOnline, goOffline, serverTimestamp }] = await Promise.all([
     import(`https://www.gstatic.com/firebasejs/${V}/firebase-app.js`),
     import(`https://www.gstatic.com/firebasejs/${V}/firebase-database.js`),
   ]);
@@ -35,6 +35,8 @@ export async function firebaseAdapter(cfg) {
   const r = (code, path) => ref(db, `lists/${code}${path ? '/' + path : ''}`);
   return {
     mode: 'firebase',
+    // The server fills in its own time: a phone with a wrong clock must not make an active list look old to the cleanup
+    serverTime: () => serverTimestamp(),
     connect: () => goOnline(db),
     disconnect: () => goOffline(db),
     subscribe(code, cb, onStatus) {
@@ -135,6 +137,8 @@ export function guardAdapter(db, { timeoutMs = 8000, setTimeout: st = (f, ms) =>
 
 export function createStore(rawDb, guardOpts = {}) {
   const db = guardAdapter(rawDb, guardOpts), conn = guardOpts.conn, journal = guardOpts.journal;
+  // Time stamps the cleanup relies on (meta.created, activity): server time where the adapter has it, else this device's clock
+  const stampNow = () => (rawDb.serverTime ? rawDb.serverTime() : Date.now());
   // Taking a point from a player who is not on the board (renamed meanwhile) changes nothing: no phantom player with 0 points
   const bumpOnce = (code, key, d) => db.update(code, `scores/${key}`, n => (n == null && d < 0 ? undefined : Math.min(100000, Math.max(0, (n || 0) + d))));
   // One retry for a failure that is not a timeout: the item is already changed, a lost point would never be corrected
@@ -170,7 +174,7 @@ export function createStore(rawDb, guardOpts = {}) {
       let code;
       do { code = randCode(); } while (await db.get(code, 'meta'));
       // a timeout says which code it was: the write is still queued, so a retry can check whether the list came up
-      try { await db.set(code, 'meta', { created: Date.now() }); } catch (e) { if (isPending(e)) e.listCode = code; throw e; }
+      try { await db.set(code, 'meta', { created: stampNow() }); } catch (e) { if (isPending(e)) e.listCode = code; throw e; }
       return code;
     },
     async exists(code) { return !!(await db.get(code, 'meta')); },
@@ -292,17 +296,17 @@ export function createStore(rawDb, guardOpts = {}) {
       await Promise.all(Object.values(items).filter(i => !i.checked).map(i => db.remove(code, `items/${i.id}`)));
     },
     // New round: every counter goes back to zero (the members stay). What already lies in the basket counts for nobody;
-    // taking an old item out later cannot push a counter below zero.
+    // taking an old item out later cannot push a counter below zero. One transaction: a player who joins or a point that
+    // lands meanwhile is not overwritten by a stale copy of the board.
     async resetScores(code) {
-      const old = (await db.get(code, 'scores')) || {};
-      await db.set(code, 'scores', Object.fromEntries(Object.keys(old).map(k => [k, 0])));
+      await db.update(code, 'scores', s => (s && Object.keys(s).length ? Object.fromEntries(Object.keys(s).map(k => [k, 0])) : undefined));
     },
   };
 
   // Activity stamp (`activity`, ms): the server-side cleanup deletes lists after 30 days without activity.
   // Opening or changing a list counts; the stamp is written at most once per hour per list.
   const touched = {};
-  const touch0 = code => Promise.resolve(db.set(code, 'activity', touched[code])).catch(() => {}); // rules not updated yet or offline: harmless
+  const touch0 = code => Promise.resolve(db.set(code, 'activity', stampNow())).catch(() => {}); // rules not updated yet or offline: harmless
   const touch = code => {
     const now = Date.now();
     if (!code || now - (touched[code] || 0) < 3600e3) return null;

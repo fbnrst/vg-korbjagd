@@ -5,7 +5,7 @@ import { NS, IS_DEV } from './env.js';
 const CACHE_KEY = NS + 'kober-vg-v2';
 
 // AbortSignal.timeout() is missing before Safari 16: without it every VG request would fail on iOS 15
-const timeoutSignal = ms => {
+export const timeoutSignal = ms => {
   if (AbortSignal.timeout) return AbortSignal.timeout(ms); // compat-ok: feature-detected, the line below falls back to AbortController
   const c = new AbortController(); setTimeout(() => c.abort(), ms); return c.signal;
 };
