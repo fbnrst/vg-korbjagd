@@ -477,7 +477,12 @@ if (IS_DEV) {
   const h = document.createElement('h2'); h.style.margin = '0 0 8px'; h.textContent = t('devDiag');
   const pre = document.createElement('pre'); pre.style.cssText = 'font-size:12px;white-space:pre-wrap;word-break:break-all;text-align:left;margin:0 0 12px';
   const close = document.createElement('button'); close.type = 'button'; close.className = 'btn sec'; close.textContent = t('close'); close.onclick = () => dlg.classList.add('hide');
-  card.append(h, pre, close); dlg.appendChild(card); document.body.appendChild(dlg);
+  const copy = document.createElement('button'); copy.type = 'button'; copy.className = 'btn sec'; copy.textContent = t('devDiagCopy'); copy.style.marginRight = '8px';
+  copy.onclick = async () => {
+    try { await navigator.clipboard.writeText(pre.textContent); toast(t('devDiagCopied')); }
+    catch (e) { const r = document.createRange(); r.selectNodeContents(pre); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); toast(t('devDiagSelected')); }
+  };
+  card.append(h, pre, copy, close); dlg.appendChild(card); document.body.appendChild(dlg);
   dlg.onclick = e => { if (e.target === dlg) dlg.classList.add('hide'); };
   const item = document.createElement('button');
   item.type = 'button'; item.setAttribute('role', 'menuitem'); item.textContent = t('devDiag');
