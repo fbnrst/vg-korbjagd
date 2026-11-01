@@ -4,7 +4,7 @@
 //   npm run docs:screenshots          # writes public/docs/img/<lang>-<scene>.jpg
 //   npm run docs:screenshots -- /tmp/out   # another output folder
 //
-// The README picture `en-readme.png` comes from the same run: the English list (with more items) in a rounded phone frame like the one
+// The README picture `en-readme.png` comes from the same run: the English ranking screen in a rounded phone frame like the one
 // on the help page (transparent corners, so it also works on GitHub's dark theme).
 //
 // Needs Google Chrome (or set CHROME_PATH, or run `npx playwright install chromium`).
@@ -17,7 +17,7 @@ import path from 'node:path';
 
 const OUT = path.resolve(process.argv[2] || path.join(PUBLIC, 'docs/img'));
 const LANGS = ['en', 'de'];
-let readmeShot = null; // the English list with more items, framed afterwards for the README
+let readmeShot = null; // the English ranking screen, framed afterwards for the README
 
 async function scenes(browser, base, lang) {
   const context = await browser.newContext({
@@ -70,7 +70,6 @@ async function scenes(browser, base, lang) {
   await shot('checkout');
   // 5) reset dialog (opened from the menu)
   await tab('vList');
-  if (lang === 'en') { await page.waitForTimeout(250); readmeShot = await page.screenshot({ type: 'jpeg', quality: 90 }); } // fuller list for the README picture
   await page.click('#menuBtn'); await page.click('#menuReset'); await shot('reset'); await page.click('#resetCancel');
   // 6) share (demo mode keeps the shared list in the browser), the dialog with the QR code, then the menu
   await page.click('#shareBtn'); await page.click('#shareStart');
@@ -88,12 +87,13 @@ async function scenes(browser, base, lang) {
   await row('#items', 'Äpfel').locator('[data-chk]').click(); await page.waitForTimeout(150);
   await tab('vDeposit'); for (let i = 0; i < 3; i++) { await page.click('[data-dep-add="3"]'); await page.waitForTimeout(80); }   // Ben: 1 item + 3 pieces = 4
   await tab('vScore'); await shot('ranking');
+  if (lang === 'en') readmeShot = await page.screenshot({ type: 'jpeg', quality: 90 }); // for the README picture
 
   await context.close();
   if (errors.length) throw new Error(`page errors in ${lang}: ${errors.join('; ')}`);
 }
 
-// README picture: the English list screenshot inside a dark rounded frame (same look as figure.phone in the help page), PNG with transparent corners
+// README picture: the English ranking screenshot inside a dark rounded frame (same look as figure.phone in the help page), PNG with transparent corners
 async function phoneFrame(browser) {
   const jpg = readmeShot.toString('base64');
   const page = await browser.newPage({ viewport: { width: 700, height: 1500 } });
