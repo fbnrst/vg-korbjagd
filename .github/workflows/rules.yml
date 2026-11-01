@@ -1,13 +1,16 @@
 name: Publish database rules
 # Publishes database.rules.json to the Realtime Database (scripts/publish-rules.mjs; see docs/security.md).
 # - A push to main that changes the rules publishes them to the DEV database only (the dev site follows main).
-# - Production is published on purpose: Actions -> Publish database rules -> Run workflow, target "production" or "both"
-#   (dev first, then production). Do this before a release that needs new rules is tagged.
+# - Publishing a release (gh release create vX.Y.Z) publishes the rules of that tag to dev, then to PRODUCTION. Wait for this run
+#   to be green before starting pages.yml, so the rules are live before the new client reaches the release site.
+# - By hand: Actions -> Publish database rules -> Run workflow, target dev, production or both (dev first), e.g. to catch up.
 # Needs the secrets FIREBASE_SERVICE_ACCOUNT_DEV and FIREBASE_SERVICE_ACCOUNT, with permission to change the rules.
 on:
   push:
     branches: [main]
     paths: [database.rules.json, scripts/publish-rules.mjs, .github/workflows/rules.yml]
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       target:
@@ -29,7 +32,7 @@ env:
 jobs:
   dev:
     name: publish (dev)
-    if: github.event_name == 'push' || inputs.target == 'dev' || inputs.target == 'both'
+    if: github.event_name != 'workflow_dispatch' || inputs.target == 'dev' || inputs.target == 'both'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -58,7 +61,7 @@ jobs:
     name: publish (production)
     # dev first: production only runs when dev succeeded or was not part of this run
     needs: dev
-    if: ${{ !cancelled() && github.event_name == 'workflow_dispatch' && (inputs.target == 'production' || inputs.target == 'both') && (needs.dev.result == 'success' || needs.dev.result == 'skipped') }}
+    if: ${{ !cancelled() && (github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && (inputs.target == 'production' || inputs.target == 'both'))) && (needs.dev.result == 'success' || needs.dev.result == 'skipped') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
