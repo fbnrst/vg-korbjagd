@@ -1,0 +1,136 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import { tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, createVgLoader, uploadLocalList, TICK_TTL, TICK_MAX } from '../public/flows.js';
+import { createStore, localAdapter, userKey } from '../public/store.js';
+import { createSim, createClock } from '../public/sim.js';
+import { STRINGS } from '../public/i18n.js';
+
+const mem = () => { const m = {}; return { getItem: k => m[k] ?? null, setItem: (k, v) => { m[k] = v; } }; };
+
+test('input bar: only a run of more than 4 digits is too long for a VG number', () => {
+  for (const q of ['', '1', '123', '1234', 'Apfel', '12a345', '12345 ']) assert.equal(tooLongNumber(q), false, q);
+  for (const q of ['12345', '00073448', '4006381333931']) assert.equal(tooLongNumber(q), true, q);
+});
+
+test('reset plan: the options map to the store calls, the ranking only on a shared list', () => {
+  assert.deepEqual(resetPlan({ done: true, empties: true }, false), ['clearChecked', 'clearDeposit']);
+  assert.deepEqual(resetPlan({ open: true, done: true }, true), ['clearAll']);
+  assert.deepEqual(resetPlan({ open: true }, true), ['clearOpen']);
+  assert.deepEqual(resetPlan({ scores: true }, true), ['resetScores']);
+  assert.deepEqual(resetPlan({ scores: true, empties: true }, false), ['clearDeposit'], 'no ranking on the local list');
+  assert.deepEqual(resetPlan({ done: true, empties: true, scores: true }, true), ['clearChecked', 'clearDeposit', 'resetScores']);
+  assert.deepEqual(resetPlan({}, true), []);
+});
+
+test('reset plan with the ranking: resetScores zeroes every counter and keeps the players', async () => {
+  const db = localAdapter(mem(), false), store = createStore(db);
+  const code = await store.create();
+  const A = userKey('🦊', 'Mia');
+  await store.join(code, A);
+  await store.add(code, { id: 'a', title: 'Milch' }, A);
+  await store.check(code, 'a', A, true);
+  assert.equal((await db.get(code, 'scores'))[A], 1);
+  for (const op of resetPlan({ scores: true }, true)) await store[op](code);
+  assert.deepEqual(await db.get(code, 'scores'), { [A]: 0 });
+  assert.ok((await db.get(code, 'items')).a.checked, 'items stay as they are');
+});
+
+test('checkout ticks: sanitised on load, per list, 24 h, bounded', () => {
+  const now = 1_000_000_000;
+  const ok = packTicks('ABC123', ['a1', 'd7', 'x-y_z'], now);
+  assert.deepEqual(sanitizeTicks(ok, 'ABC123', now + 1000), ['a1', 'd7', 'x-y_z']);
+  assert.deepEqual(sanitizeTicks(ok, 'OTHER1', now + 1000), [], 'dropped when the list code changes');
+  assert.deepEqual(sanitizeTicks(ok, 'ABC123', now + TICK_TTL + 1), [], 'dropped after 24 h');
+  assert.deepEqual(sanitizeTicks(ok, 'ABC123', now - 10 * 60000), [], 'a time stamp from the future is not trusted');
+  for (const junk of [null, undefined, 5, 'x', [], {}, { code: 'ABC123' }, { code: 'ABC123', ts: 'now', keys: [] }, { code: 'ABC123', ts: now, keys: 'a1' }])
+    assert.deepEqual(sanitizeTicks(junk, 'ABC123', now), []);
+  const dirty = { code: 'ABC123', ts: now, keys: ['ok1', '<b>', 5, null, 'a'.repeat(60), 'ok1', 'with space', '', 'ok2'] };
+  assert.deepEqual(sanitizeTicks(dirty, 'ABC123', now), ['ok1', 'ok2']);
+  const many = Array.from({ length: TICK_MAX + 50 }, (_, i) => 'k' + i);
+  assert.equal(packTicks('L', many, now).keys.length, TICK_MAX);
+  assert.equal(sanitizeTicks({ code: 'L', ts: now, keys: many }, 'L', now).length, TICK_MAX);
+});
+
+test('checkout ticks: rows that no longer exist are dropped', () => {
+  assert.deepEqual(pruneTicks(new Set(['a', 'b', 'd1']), new Set(['b', 'd1', 'zzz'])), ['b', 'd1']);
+  assert.deepEqual(pruneTicks([], new Set(['a'])), []);
+});
+
+test('VG loader: loading, ready; a failure or 10 s without data is "unreachable"; retry works', async () => {
+  const clock = createClock();
+  const timers = { setTimeout: clock.setTimeout.bind(clock), clearTimeout: clock.clearTimeout.bind(clock) };
+  const log = [];
+  let calls = 0, answer = new Promise(() => {}); // the first load never answers
+  const loader = createVgLoader({ load: () => { calls++; return answer; }, onChange: (s, d) => log.push(s + (d ? ':data' : '')), ...timers });
+  loader.start();
+  assert.equal(loader.state, 'loading');
+  await clock.advance(9000);
+  assert.equal(loader.state, 'loading');
+  await clock.advance(1500);
+  assert.equal(loader.state, 'unreachable');
+  loader.start(); // retry while the first load is still running: no second request, shows loading again
+  assert.equal(loader.state, 'loading');
+  assert.equal(calls, 1);
+  await clock.advance(10500);
+  assert.equal(loader.state, 'unreachable');
+  assert.deepEqual(log, ['loading', 'unreachable', 'loading', 'unreachable']);
+});
+
+test('VG loader: a failed load can be retried and a late success wins', async () => {
+  const clock = createClock();
+  const timers = { setTimeout: clock.setTimeout.bind(clock), clearTimeout: clock.clearTimeout.bind(clock) };
+  let n = 0, release;
+  const loader = createVgLoader({ load: () => ++n === 1 ? Promise.resolve(null) : n === 2 ? Promise.reject(new Error('offline')) : new Promise(r => { release = r; }), ...timers });
+  loader.start(); await clock.advance(0);
+  assert.equal(loader.state, 'unreachable', 'null (offline, nothing cached)');
+  loader.start(); await clock.advance(0);
+  assert.equal(loader.state, 'unreachable', 'a rejected load');
+  loader.start(); await clock.advance(10500);
+  assert.equal(loader.state, 'unreachable', 'slow');
+  release({ deposits: [] }); await clock.advance(0);
+  assert.equal(loader.state, 'ready');
+  assert.deepEqual(loader.data, { deposits: [] });
+  loader.start(); assert.equal(loader.state, 'ready', 'start() is a no-op once the data is there');
+  assert.equal(n, 3);
+});
+
+test('first share: a failed upload leaves the local list untouched and a retry goes through', async () => {
+  const local = localAdapter(mem(), false);
+  const A = userKey('🦊', 'Mia');
+  const localStore = createStore(local);
+  await localStore.add('LOCAL', { id: 'm', title: 'Milch', vgNum: 1234 }, A);
+  const data = { items: await local.get('LOCAL', 'items'), deposit: (await local.get('LOCAL', 'deposit')) || {} };
+  assert.ok(data.items.m);
+
+  const clock = createClock(1_000_000);
+  const sim = createSim(localAdapter(mem(), false), { clock });
+  const store = createStore(sim, { setTimeout: clock.setTimeout.bind(clock), clearTimeout: clock.clearTimeout.bind(clock), timeoutMs: 8000 });
+  sim.setMode('refuse');
+  await assert.rejects(uploadLocalList(store, data, A));
+  assert.deepEqual(await local.get('LOCAL', 'items'), data.items, 'the local list is as before');
+
+  sim.setMode('ok'); await clock.advance(0);
+  const code = await uploadLocalList(store, data, A);
+  assert.match(code, /^[A-Z0-9]{6}$/);
+  assert.equal(Object.values((await sim.get(code, 'items')) || {})[0].title, 'Milch');
+  assert.deepEqual(await local.get('LOCAL', 'items'), data.items, 'removing the local copy is the caller\'s job, after startShared');
+});
+
+test('new strings exist in both languages; the wording is aligned', () => {
+  for (const k of ['resetScores', 'vgUnreachable', 'tryAgain', 'leaveCode', 'joiningList']) {
+    assert.ok(STRINGS.en[k] && STRINGS.de[k], k);
+  }
+  assert.match(STRINGS.en.leaveCode, /\{code\}/); assert.match(STRINGS.de.leaveCode, /\{code\}/);
+  assert.match(STRINGS.en.joiningList, /\{code\}/); assert.match(STRINGS.de.joiningList, /\{code\}/);
+  assert.equal(STRINGS.en.resetDone, 'Items in the basket'); assert.equal(STRINGS.de.resetDone, 'Artikel im Korb');
+  assert.notEqual(STRINGS.en.secDone, STRINGS.en.resetDone);
+  assert.ok(!/HTTPS/.test(STRINGS.en.cameraFail + STRINGS.de.cameraFail), 'no technical camera text');
+});
+
+test('index.html: the reset dialog has the ranking box (off by default), the share dialog separates the delete button', () => {
+  const html = fs.readFileSync(new URL('../public/index.html', import.meta.url), 'utf8');
+  assert.match(html, /<input type="checkbox" id="resetScores">/);
+  assert.match(html, /class="dangerZone"[^>]*><button[^>]*id="deleteBtn"/);
+  assert.match(html, /\.dangerZone\{[^}]*border-top/);
+});
