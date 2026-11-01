@@ -1,6 +1,8 @@
 import firebaseConfig from './firebase-config.js';
 import { createStore, firebaseAdapter, localAdapter, userKey, parseListCode, isPending } from './store.js';
 import { createConn, shouldForgetList } from './conn.js';
+import { createOutbox } from './outbox.js';
+import { saveSnapshot, loadSnapshot, dropSnapshot } from './cache.js';
 import { IS_DEV, NS } from './env.js';
 import { loadVg, parseShareLink, fetchSharedList, vgNumFromCode, similarNames } from './vg.js';
 import { t, applyStatic } from './i18n.js';
@@ -16,7 +18,9 @@ const me = LS.get('me', { name: '', emoji: EMOJIS[0] });
 const LOCAL = 'LOCAL';
 let code = LOCAL;
 const isLocal = () => code === LOCAL;
-let state = { items: {}, scores: {}, deposit: {} };
+let state = { items: {}, scores: {}, deposit: {} }; // what is shown: `raw` (the last snapshot or cache) plus the changes still waiting in the outbox
+let raw = { items: {}, scores: {}, deposit: {} };
+let stale = false; // `raw` comes from the cache of an earlier visit: read-only until a live snapshot arrives
 let store = null, localDb = null, localStore = null, remotePromise = null, pending = null, pendingCancel = null;
 let unsub = null, first = true, vg = null;
 let loadingStuck = false, emptyPending = false, watchdog = 0; // first snapshot of a shared list did not arrive in time / only an empty one so far
@@ -43,10 +47,15 @@ function toast(msg) {
 // The server can be overloaded (connection limit of the free plan), the network can flap. The list stays usable
 // (changes are kept by the SDK and sent later); the state only shows as a calm banner, and as one toast on recovery.
 const conn = createConn();
+// Changes that could not be sent yet are kept across reloads (outbox.js) and shown at once (optimistic view)
+const outbox = createOutbox({ onFull: () => toast(t('outboxFull')) });
+let viewTimer = 0;
+outbox.subscribe(() => { clearTimeout(viewTimer); viewTimer = setTimeout(() => { render(); renderConn(); }, 0); });
 const busyish = () => conn.state() === 'busy' || conn.state() === 'degraded';
 const noDbMsg = e => t(isPending(e) || busyish() ? 'noDbBusy' : 'noDb'); // for actions that need the server right now
 // Fire-and-forget store calls: a timeout (pending) is covered by the banner, anything else gets a toast; never an unhandled rejection
 const bg = new Proxy({}, { get: (_, name) => (...args) => {
+  if (stale) { toast(t('connCached')); return Promise.resolve(); } // the cached list is only for reading
   const p = store[name](...args);
   Promise.resolve(p).catch(e => { if (!isPending(e)) toast(noDbMsg(e)); });
   return p;
@@ -54,15 +63,21 @@ const bg = new Proxy({}, { get: (_, name) => (...args) => {
 function renderConn() {
   const el = $('#connBanner'), s = conn.state();
   // the empty state of a list that never loaded says it itself
-  const text = isLocal() || (first && loadingStuck) ? '' : s === 'busy' ? t('connBusy') : s === 'degraded' ? t('connDegraded') : '';
-  if (el.textContent !== text) el.textContent = text;
+  const bad = s === 'busy' || s === 'degraded';
+  const base = isLocal() || (first && loadingStuck && !stale) ? '' : !bad ? '' : stale ? t('connCached') : s === 'busy' ? t('connBusy') : t('connDegraded');
+  const n = base ? outbox.count(code) : 0;
+  const text = base && n ? `${base}\n${t('connPending', { n })}` : base;
+  if (el.dataset.text !== text) { el.dataset.text = text; el.innerHTML = text.split('\n').map(esc).join('<br>'); }
   el.classList.toggle('hide', !text);
+  const later = $('#scoreLater'), laterText = !isLocal() && bad && outbox.has(code) ? t('connScoreLater') : '';
+  later.textContent = laterText; later.classList.toggle('hide', !laterText);
   // the bar floats over the list, so the list makes room below it (the shell itself keeps its height)
   document.body.style.setProperty('--conn-h', text ? el.offsetHeight + 'px' : '0px');
 }
 conn.subscribe((s, prev) => {
   renderConn();
   if (s !== 'ok' || isLocal()) return;
+  if (store.flush) store.flush(code); // replay what waits in the outbox
   if (prev === 'busy' || prev === 'degraded') toast(t('connRestored'));
   if (emptyPending) { // an empty snapshot came while the connection was not healthy: ask once whether the list really is gone
     emptyPending = false;
@@ -81,7 +96,7 @@ function onSnapshot(s) {
     }
     emptyPending = true; return; // no live value from a healthy connection: this says nothing about the list
   }
-  clearTimeout(watchdog); loadingStuck = false; emptyPending = false;
+  clearTimeout(watchdog); loadingStuck = false; emptyPending = false; stale = false;
   const next = { items: (s && s.items) || {}, scores: (s && s.scores) || {}, deposit: (s && s.deposit) || {} };
   if (!first && !isLocal()) { // show other people's changes as a toast
     for (const i of Object.values(next.items)) {
@@ -93,13 +108,20 @@ function onSnapshot(s) {
       }
     }
   }
-  first = false; state = next; render(); renderConn();
+  first = false; raw = next; render(); renderConn();
+  if (!isLocal()) { // keep the last live snapshot for the next start (at most once a second)
+    clearTimeout(cacheTimer); const c = code;
+    cacheTimer = setTimeout(() => saveSnapshot(localStorage, c, raw), 1000);
+  }
 }
+let cacheTimer = 0;
 function connect() {
   if (unsub) unsub();
   clearTimeout(watchdog); loadingStuck = false; emptyPending = false;
   first = true;
-  state = { items: {}, scores: {}, deposit: {} }; render();
+  stale = false; raw = { items: {}, scores: {}, deposit: {} };
+  if (!isLocal()) { const c = loadSnapshot(localStorage, code); if (c) { raw = c; stale = true; } } // shown read-only until live data arrives
+  render();
   conn.reset(); conn.attach(isLocal() ? null : store); renderConn();
   unsub = store.subscribe(code, onSnapshot, conn.onStatus);
   // No first snapshot after 10 s: say so in the list area and offer the local list (the saved code is kept)
@@ -125,11 +147,12 @@ function itemHtml(i) {
       <button class="x" data-del="${esc(i.id)}" aria-label="${t('ariaDelete')}">×</button></div>`;
 }
 function render() {
+  state = isLocal() ? raw : outbox.overlayFor(raw, code); // changes waiting to be sent show at once; a live snapshot replaces `raw`
   const typed = editingId ? document.querySelector('[data-vgedit] input')?.value : null; // survive re-renders while typing
   const all = Object.values(state.items).sort((a, b) => ((a.addedAt || 0) - (b.addedAt || 0)));
   const open = all.filter(i => !i.checked);
   const done = all.filter(i => i.checked).sort((a, b) => (b.checkedAt || 0) - (a.checkedAt || 0)); // most recently checked off first
-  $('#items').innerHTML = first && loadingStuck && !isLocal() ? `<div class="stuck"><p class="muted">${esc(t('connLoadingList'))}</p><button type="button" class="btn sec" id="useLocal">${esc(t('connUseLocal'))}</button></div>`
+  $('#items').innerHTML = first && loadingStuck && !stale && !isLocal() ? `<div class="stuck"><p class="muted">${esc(t('connLoadingList'))}</p><button type="button" class="btn sec" id="useLocal">${esc(t('connUseLocal'))}</button></div>`
     : open.length ? open.map(itemHtml).join('')
     : `<p class="muted" style="text-align:center">${t(all.length ? 'allInBasket' : 'nothingYet')}</p>`;
   $('#doneCard').classList.toggle('hide', !done.length);
@@ -287,6 +310,7 @@ $('#addForm').onsubmit = e => {
 // A VG number is typed at the shelf: the item goes straight into the basket (an item with that number on the list is
 // checked off instead of adding it twice). Names are added as open items.
 async function addToBasket(title, vgNum) {
+  if (stale) { toast(t('connCached')); return; }
   const known = Object.values(state.items).find(i => i.vgNum === vgNum);
   if (known) { if (!known.checked) bg.check(code, known.id, myKey(), true); return; }
   const id = uid(), c = code;
@@ -502,7 +526,9 @@ $('#joinForm').onsubmit = e => {
   if (!c) { toast(t('notAList')); return; }
   closeJoin(); joinShared(c);
 };
-const forgetShared = () => { LS.set('code', ''); history.replaceState(null, '', location.pathname); };
+const forgetShared = () => {
+  const c = LS.get('code', ''); if (c) { dropSnapshot(localStorage, c); outbox.dropList(c); } // nothing to show or send for a list we left
+  LS.set('code', ''); history.replaceState(null, '', location.pathname); };
 // "..." menu in the header: reset, VG import, leave (shared lists only), help and privacy
 {
   const menu = $('#menu'), btn = $('#menuBtn');
@@ -796,7 +822,7 @@ async function shareLocalList() {
 // `?sim=overload|slow|flap|recover:<seconds>` swaps in a simulated server (sim.js) to see the overload handling: only in demo
 // mode or on the dev site, never on the release with a real database.
 const simName = new URLSearchParams(location.search).get('sim');
-const remoteStore = db => createStore(db, { onResult: conn.opResult, conn });
+const remoteStore = db => outbox.wrap(createStore(db, { onResult: conn.opResult, conn, journal: outbox.journal }), conn);
 async function simulatedRemote() {
   const { createSim, applyScenario } = await import('./sim.js');
   const sim = createSim(localDb);

@@ -125,6 +125,10 @@ export const STRINGS = {
     connRestored: 'Back online.',
     connLoadingList: 'Loading your list… the server is busy, we keep trying.',
     connUseLocal: 'Use local list for now',
+    connPending: '{n} changes waiting to be sent',
+    connScoreLater: 'Points are counted when the connection is back.',
+    connCached: 'Showing the last saved list. Waiting for the connection.',
+    outboxFull: 'Too many waiting changes; the oldest were dropped.',
   },
   de: {
     pageTitle: 'Einkaufsliste',
@@ -249,6 +253,10 @@ export const STRINGS = {
     connRestored: 'Wieder online.',
     connLoadingList: 'Deine Liste wird geladen … der Server ist ausgelastet, wir versuchen es weiter.',
     connUseLocal: 'Vorerst lokale Liste nutzen',
+    connPending: '{n} Änderungen warten auf das Senden',
+    connScoreLater: 'Punkte werden gezählt, sobald die Verbindung wieder steht.',
+    connCached: 'Zuletzt gespeicherte Liste, wartet auf die Verbindung.',
+    outboxFull: 'Zu viele wartende Änderungen; die ältesten wurden verworfen.',
   },
 };
 

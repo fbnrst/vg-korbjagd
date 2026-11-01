@@ -121,10 +121,19 @@ export function guardAdapter(db, { timeoutMs = 8000, setTimeout: st = (f, ms) =>
 }
 
 export function createStore(rawDb, guardOpts = {}) {
-  const db = guardAdapter(rawDb, guardOpts), conn = guardOpts.conn;
+  const db = guardAdapter(rawDb, guardOpts), conn = guardOpts.conn, journal = guardOpts.journal;
   const bumpOnce = (code, key, d) => db.update(code, `scores/${key}`, n => Math.min(100000, Math.max(0, (n || 0) + d)));
   // One retry for a failure that is not a timeout: the item is already changed, a lost point would never be corrected
   const bump = (code, key, d) => isUserKey(key) ? bumpOnce(code, key, d).catch(e => { if (isPending(e)) throw e; return bumpOnce(code, key, d); }) : null;
+  // The point after an item change. With a journal (the outbox) it is written down before it is sent and struck out when it
+  // went through, so a reload between the item transaction and the point neither loses nor doubles it.
+  const point = (code, key, d) => {
+    if (!isUserKey(key)) return null;
+    const id = journal ? journal.begin(code, key, d) : null;
+    const p = bump(code, key, d);
+    if (id) p.then(() => journal.done(id), e => { if (isPending(e)) e.late.then(() => journal.done(id), () => {}); else journal.done(id); });
+    return p;
+  };
   const CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   const randCode = () => Array.from({ length: 6 }, () => CHARS[Math.floor(Math.random() * CHARS.length)]).join('');
   // The point (bump) is a second transaction after the one that changed the item. If the first one timed out it is still
@@ -162,6 +171,8 @@ export function createStore(rawDb, guardOpts = {}) {
         await db.update(code, `items/${id}`, old => old ? { ...old, ...(old.checkedBy === from ? { checkedBy: to } : {}), ...(old.addedBy === from ? { addedBy: to } : {}) } : undefined);
       }
     },
+    // Replay of a journaled point (outbox.js): the plain counter change, not journaled again
+    bump: (code, key, d) => isUserKey(key) && (d === 1 || d === -1) ? bump(code, key, d) : null,
     join: (code, user) => !isUserKey(user) ? null : db.update(code, `scores/${user}`, n => (n == null ? 0 : undefined)),
     add(code, item, user) {
       const title = String(item.title || '').trim().slice(0, 120);
@@ -176,7 +187,7 @@ export function createStore(rawDb, guardOpts = {}) {
         if (!old || !!old.checked === want) return undefined;
         return { ...old, checked: want, checkedBy: want ? user : null, checkedAt: want ? Date.now() : null };
       });
-      await followUp(toggle, r => r.committed && bump(code, want ? user : prev.checkedBy, want ? 1 : -1));
+      await followUp(toggle, r => r.committed && point(code, want ? user : prev.checkedBy, want ? 1 : -1));
     },
     // Add the VG number later; with checkToo the item also goes into the basket
     // extra: {title, info} from the VG database; the title only replaces the placeholder "VG no. 123" (formerly "VG-Nr. 123")
@@ -192,7 +203,7 @@ export function createStore(rawDb, guardOpts = {}) {
         if (extra.title && /^VG(-Nr\.| no\.) \d+$/.test(old.title)) next.title = String(extra.title).slice(0, 120);
         if (checkToo && !old.checked) { next.checked = true; next.checkedBy = user; next.checkedAt = Date.now(); newlyChecked = true; }
         return next;
-      }), () => newlyChecked && bump(code, user, 1));
+      }), () => newlyChecked && point(code, user, 1));
     },
     // Remember a scanned product barcode on an item (so scanning it again finds the item); optionally check it off
     async setEan(code, id, user, ean, checkToo) {
@@ -204,16 +215,16 @@ export function createStore(rawDb, guardOpts = {}) {
         const next = { ...old, ean: String(ean) };
         if (checkToo && !old.checked) { next.checked = true; next.checkedBy = user; next.checkedAt = Date.now(); newlyChecked = true; }
         return next;
-      }), () => newlyChecked && bump(code, user, 1));
+      }), () => newlyChecked && point(code, user, 1));
     },
     async remove(code, id) {
       let prev;
-      await followUp(db.update(code, `items/${id}`, old => { prev = old; return old ? null : undefined; }), () => prev && prev.checked && bump(code, prev.checkedBy, -1));
+      await followUp(db.update(code, `items/${id}`, old => { prev = old; return old ? null : undefined; }), () => prev && prev.checked && point(code, prev.checkedBy, -1));
     },
     // Deposit: deposit/<type>/<user> = pieces. Each piece gives the person who enters it one point.
     async depositAdd(code, typeId, user) {
       if (!/^[A-Za-z0-9_-]{1,20}$/.test(String(typeId)) || !isUserKey(user)) return;
-      await followUp(db.update(code, `deposit/${typeId}/${user}`, n => (n || 0) + 1), r => r.committed && bump(code, user, 1));
+      await followUp(db.update(code, `deposit/${typeId}/${user}`, n => (n || 0) + 1), r => r.committed && point(code, user, 1));
     },
     // Fewer: own pieces first, otherwise those of the largest contributor (the point is deducted there)
     async depositRemove(code, typeId, user) {
@@ -222,7 +233,7 @@ export function createStore(rawDb, guardOpts = {}) {
       const victim = group[user] > 0 ? user : Object.keys(group).sort((a, b) => group[b] - group[a])[0];
       if (!victim) return;
       let took = false;
-      await followUp(db.update(code, `deposit/${typeId}/${victim}`, n => { took = n > 0; return n > 1 ? n - 1 : n > 0 ? null : undefined; }), () => took && bump(code, victim, -1));
+      await followUp(db.update(code, `deposit/${typeId}/${victim}`, n => { took = n > 0; return n > 1 ? n - 1 : n > 0 ? null : undefined; }), () => took && point(code, victim, -1));
     },
     clearDeposit: code => db.remove(code, 'deposit'),
     // Move a local list into a (new) shared list. Items keep their state, but no points are awarded:
@@ -271,7 +282,7 @@ export function createStore(rawDb, guardOpts = {}) {
     touched[code] = now;
     return touch0(code);
   };
-  for (const name of ['join', 'add', 'check', 'setNum', 'setEan', 'remove', 'depositAdd', 'depositRemove', 'clearDeposit', 'clearChecked', 'clearOpen', 'clearAll', 'resetScores', 'importList', 'renameUser']) {
+  for (const name of ['join', 'bump', 'add', 'check', 'setNum', 'setEan', 'remove', 'depositAdd', 'depositRemove', 'clearDeposit', 'clearChecked', 'clearOpen', 'clearAll', 'resetScores', 'importList', 'renameUser']) {
     const fn = store[name];
     store[name] = async (code, ...args) => { const r = await fn(code, ...args); touch(code); return r; };
   }

@@ -111,15 +111,18 @@ export function createSim(base, { clock = null } = {}) {
   return api;
 }
 
-// `?sim=overload|slow|flap|recover:<seconds>` for the app: a ready-made scenario on a fresh sim
+// `?sim=overload|slow|flap|recover:<seconds>|cut:<seconds>[:<back>]` for the app: a ready-made scenario on a fresh sim.
+// `cut` works normally for <seconds> (default 8), then the connection dies (and, with <back>, returns after that many seconds).
 export function applyScenario(sim, name) {
-  const [kind, arg] = String(name || '').split(':');
+  const [kind, arg, back] = String(name || '').split(':');
   if (kind === 'overload') sim.maxConnections(100); // the plan's limit is reached and stays so
   else if (kind === 'slow') { sim.slowMs(12000); sim.setMode('slow'); }
   else if (kind === 'flap') sim.flap(6000);
   else if (kind === 'recover') { // down for <seconds> (default 20), then everything works
     sim.maxConnections(100);
     setTimeout(() => sim.releaseOthers(), Math.max(1, Number(arg) || 20) * 1000);
+  } else if (kind === 'cut') {
+    setTimeout(() => { sim.setMode('drop'); if (Number(back) > 0) setTimeout(() => sim.setMode('ok'), Number(back) * 1000); }, Math.max(1, Number(arg) || 8) * 1000);
   } else return false;
   return true;
 }
