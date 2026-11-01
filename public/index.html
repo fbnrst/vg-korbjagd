@@ -13,8 +13,8 @@
 <meta name="apple-mobile-web-app-title" content="Kober">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <style>
-:root{--tick:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233f5c04' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7'/%3E%3C/svg%3E");--bg:#f1f4ea;--card:#fff;--fg:#2b2f26;--mute:#666;--green:#587f06;--fill:#8bad73;--on-fill:#17210f;--accent:#669c03;--green2:#e8edde;--line:#d4dac8;--red:#b3322a;--hdr:#8bad73;--hdr-fg:#17210f;--hdr-btn:rgba(0,0,0,.1);--orange:#f7a642;--tone-bg:#e8edde;--tone-bd:#8bad73;--tone-fg:#3f5c04}
-@media(prefers-color-scheme:dark){:root{--tick:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23b9d1a3' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7'/%3E%3C/svg%3E");--bg:#12170e;--card:#1b2216;--fg:#e8edde;--mute:#a3b09a;--green:#8bad73;--fill:#8bad73;--on-fill:#17210f;--accent:#8bad73;--green2:#2a3323;--line:#2e3828;--red:#e46a5c;--hdr:#232d1b;--hdr-fg:#e8edde;--hdr-btn:rgba(255,255,255,.12);--orange:#f7a642;--tone-bg:#2a3323;--tone-bd:#5f7a4c;--tone-fg:#b9d1a3}}
+:root{--tick:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233f5c04' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7'/%3E%3C/svg%3E");--bg:#f1f4ea;--card:#fff;--fg:#2b2f26;--mute:#666;--green:#587f06;--fill:#8bad73;--on-fill:#17210f;--accent:#669c03;--green2:#e8edde;--line:#d4dac8;--red:#b3322a;--hdr:#8bad73;--hdr-fg:#17210f;--hdr-btn:rgba(0,0,0,.1);--orange:#f7a642;--conn-bg:#f7a642;--conn-fg:#3a2300;--tone-bg:#e8edde;--tone-bd:#8bad73;--tone-fg:#3f5c04}
+@media(prefers-color-scheme:dark){:root{--tick:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23b9d1a3' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7'/%3E%3C/svg%3E");--bg:#12170e;--card:#1b2216;--fg:#e8edde;--mute:#a3b09a;--green:#8bad73;--fill:#8bad73;--on-fill:#17210f;--accent:#8bad73;--green2:#2a3323;--line:#2e3828;--red:#e46a5c;--hdr:#232d1b;--hdr-fg:#e8edde;--hdr-btn:rgba(255,255,255,.12);--orange:#f7a642;--conn-bg:#3b2c14;--conn-fg:#f6dcae;--tone-bg:#2a3323;--tone-bd:#5f7a4c;--tone-fg:#b9d1a3}}
 *{box-sizing:border-box;touch-action:manipulation} /* no double-tap zoom; pinch zoom stays available */
 html,body{height:100%;overflow:hidden;overscroll-behavior:none}
 body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.4 system-ui,sans-serif}
@@ -28,8 +28,11 @@ header button{background:var(--hdr-btn);color:var(--hdr-fg);border:0;border-radi
 header .ibtn{width:36px;height:36px;padding:0;display:grid;place-items:center}
 header .ibtn.hide{display:none}
 #devTag{background:#12163f;color:#d8defe;border-radius:999px;padding:1px 9px;font-size:12px;font-weight:800;letter-spacing:.5px}
-#offline{flex:none;background:var(--orange);color:#3a2300;border-radius:999px;padding:2px 10px;font-size:12px;font-weight:700} /* only shown while a shared list has no connection */
+/* Connection notice: a bar that hangs under the header over the top of the list, so showing or hiding it never changes the height of the shell or moves anything. It is only text (no taps), so taps go through to the list. Shared lists only. */
+#connBanner{position:absolute;left:0;right:0;top:100%;z-index:4;pointer-events:none;background:var(--conn-bg);color:var(--conn-fg);border-bottom:2px solid var(--orange);padding:6px 16px;font-size:13px;line-height:1.3;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.18)}
+.stuck{text-align:center;padding:28px 8px}.stuck p{margin:0 0 14px}
 main{flex:1;min-height:0;width:100%;max-width:640px;margin:0 auto;padding:8px 16px 16px;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+main{padding-top:calc(8px + var(--conn-h,0px))} /* room below the connection bar */
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:8px}
 #items,#doneCard{padding:2px 12px}#items:empty{padding:0}
 input,button{font:inherit}
@@ -60,7 +63,7 @@ a{color:var(--green)}
 #addBar{position:relative;flex:none;z-index:6;background:var(--bg);border-top:1px solid var(--line);padding:8px 12px}
 #addBar>form{max-width:640px;margin-left:auto;margin-right:auto}
 #addBar form{margin:0}
-body.local .tabs [data-t=vScore],body.local #offline,body.local #menuLeave,body:not(.local) #menuJoin{display:none}
+body.local .tabs [data-t=vScore],body.local #connBanner,body.local #menuLeave,body:not(.local) #menuJoin{display:none}
 body.typing .tabs{display:none}
 .tabs{flex:none;display:flex;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
 .tabs button{flex:1;height:var(--tabs);padding:0 2px;border:0;background:none;color:var(--mute);font-size:13px;white-space:nowrap} /* never wrap: a wider system font would otherwise push "Rangliste" onto two lines */
@@ -183,7 +186,6 @@ body.typing .tabs{display:none}
 <div id="app">
 <header>
   <h1 id="headInfo"><img src="logo.svg" width="33" height="36" alt="Kober" class="logo"><span id="devTag" class="hide">DEV</span></h1>
-  <span id="offline" class="hide" title="No connection: your changes are sent as soon as you are back online.">Offline</span>
   <button id="shareBtn" class="hide ibtn" type="button" aria-label="Share" title="Share"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/></svg></button>
   <button id="menuBtn" class="ibtn" type="button" aria-label="Menu" title="Menu" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
   <div id="menu" class="menu hide" role="menu">
@@ -194,6 +196,7 @@ body.typing .tabs{display:none}
     <button id="menuLeave" class="hide" type="button" role="menuitem">Leave list</button>
     <a href="docs/index.html" id="helpLink" role="menuitem">Help</a><a href="privacy.html" class="privacyLink" role="menuitem">Privacy</a>
   </div>
+  <div id="connBanner" class="hide" role="status" aria-live="polite"></div>
 </header>
 <main>
   <p id="demoBanner" class="card hide" style="background:var(--green2)">Demo mode: no database set up yet, the list is only visible in this browser (see README).</p>

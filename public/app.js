@@ -1,5 +1,6 @@
 import firebaseConfig from './firebase-config.js';
-import { createStore, firebaseAdapter, localAdapter, userKey, parseListCode } from './store.js';
+import { createStore, firebaseAdapter, localAdapter, userKey, parseListCode, isPending } from './store.js';
+import { createConn, shouldForgetList } from './conn.js';
 import { IS_DEV, NS } from './env.js';
 import { loadVg, parseShareLink, fetchSharedList, vgNumFromCode, similarNames } from './vg.js';
 import { t, applyStatic } from './i18n.js';
@@ -18,6 +19,7 @@ const isLocal = () => code === LOCAL;
 let state = { items: {}, scores: {}, deposit: {} };
 let store = null, localDb = null, localStore = null, remotePromise = null, pending = null, pendingCancel = null;
 let unsub = null, first = true, vg = null;
+let loadingStuck = false, emptyPending = false, watchdog = 0; // first snapshot of a shared list did not arrive in time / only an empty one so far
 let editingId = null; // item whose VG number is being edited
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -37,11 +39,49 @@ function toast(msg) {
   clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), 2600);
 }
 
+/* ---------- Connection ---------- */
+// The server can be overloaded (connection limit of the free plan), the network can flap. The list stays usable
+// (changes are kept by the SDK and sent later); the state only shows as a calm banner, and as one toast on recovery.
+const conn = createConn();
+const busyish = () => conn.state() === 'busy' || conn.state() === 'degraded';
+const noDbMsg = e => t(isPending(e) || busyish() ? 'noDbBusy' : 'noDb'); // for actions that need the server right now
+// Fire-and-forget store calls: a timeout (pending) is covered by the banner, anything else gets a toast; never an unhandled rejection
+const bg = new Proxy({}, { get: (_, name) => (...args) => {
+  const p = store[name](...args);
+  Promise.resolve(p).catch(e => { if (!isPending(e)) toast(noDbMsg(e)); });
+  return p;
+} });
+function renderConn() {
+  const el = $('#connBanner'), s = conn.state();
+  // the empty state of a list that never loaded says it itself
+  const text = isLocal() || (first && loadingStuck) ? '' : s === 'busy' ? t('connBusy') : s === 'degraded' ? t('connDegraded') : '';
+  if (el.textContent !== text) el.textContent = text;
+  el.classList.toggle('hide', !text);
+  // the bar floats over the list, so the list makes room below it (the shell itself keeps its height)
+  document.body.style.setProperty('--conn-h', text ? el.offsetHeight + 'px' : '0px');
+}
+conn.subscribe((s, prev) => {
+  renderConn();
+  if (s !== 'ok' || isLocal()) return;
+  if (prev === 'busy' || prev === 'degraded') toast(t('connRestored'));
+  if (emptyPending) { // an empty snapshot came while the connection was not healthy: ask once whether the list really is gone
+    emptyPending = false;
+    const c = code;
+    store.exists(c).then(there => { if (!there && c === code && conn.state() === 'ok') onSnapshot(null); }).catch(() => {});
+  }
+});
+document.addEventListener('visibilitychange', () => conn.setHidden(document.hidden));
+addEventListener('online', () => conn.wake());
+
 /* ---------- Sync ---------- */
 function onSnapshot(s) {
-  if (!isLocal() && !(s && s.meta)) { // the shared list was deleted (by someone else or by the cleanup)
-    toast(t('toastListGone')); forgetShared(); startLocal(); return;
+  if (!isLocal() && !(s && s.meta)) {
+    if (shouldForgetList(s, conn.state())) { // the shared list was deleted (by someone else or by the cleanup)
+      toast(t('toastListGone')); forgetShared(); startLocal(); return;
+    }
+    emptyPending = true; return; // no live value from a healthy connection: this says nothing about the list
   }
+  clearTimeout(watchdog); loadingStuck = false; emptyPending = false;
   const next = { items: (s && s.items) || {}, scores: (s && s.scores) || {}, deposit: (s && s.deposit) || {} };
   if (!first && !isLocal()) { // show other people's changes as a toast
     for (const i of Object.values(next.items)) {
@@ -53,22 +93,17 @@ function onSnapshot(s) {
       }
     }
   }
-  first = false; state = next; render();
+  first = false; state = next; render(); renderConn();
 }
 function connect() {
   if (unsub) unsub();
+  clearTimeout(watchdog); loadingStuck = false; emptyPending = false;
   first = true;
   state = { items: {}, scores: {}, deposit: {} }; render();
-  setOnline(true);
-  unsub = store.subscribe(code, onSnapshot, setOnline);
-}
-// "Offline" chip in the header: only while a shared list has no connection. The SDK reports "not connected" for a moment
-// at every start, so the chip waits a few seconds before it shows up.
-let offlineTimer = 0;
-function setOnline(on) {
-  clearTimeout(offlineTimer);
-  if (on) $('#offline').classList.add('hide');
-  else offlineTimer = setTimeout(() => $('#offline').classList.remove('hide'), 3000);
+  conn.reset(); conn.attach(isLocal() ? null : store); renderConn();
+  unsub = store.subscribe(code, onSnapshot, conn.onStatus);
+  // No first snapshot after 10 s: say so in the list area and offer the local list (the saved code is kept)
+  if (!isLocal()) watchdog = setTimeout(() => { if (first) { loadingStuck = true; render(); renderConn(); } }, 10000);
 }
 
 /* ---------- Rendering ---------- */
@@ -94,7 +129,8 @@ function render() {
   const all = Object.values(state.items).sort((a, b) => ((a.addedAt || 0) - (b.addedAt || 0)));
   const open = all.filter(i => !i.checked);
   const done = all.filter(i => i.checked).sort((a, b) => (b.checkedAt || 0) - (a.checkedAt || 0)); // most recently checked off first
-  $('#items').innerHTML = open.length ? open.map(itemHtml).join('')
+  $('#items').innerHTML = first && loadingStuck && !isLocal() ? `<div class="stuck"><p class="muted">${esc(t('connLoadingList'))}</p><button type="button" class="btn sec" id="useLocal">${esc(t('connUseLocal'))}</button></div>`
+    : open.length ? open.map(itemHtml).join('')
     : `<p class="muted" style="text-align:center">${t(all.length ? 'allInBasket' : 'nothingYet')}</p>`;
   $('#doneCard').classList.toggle('hide', !done.length);
   $('#doneHead').textContent = t('inBasketHead', { n: done.length });
@@ -161,8 +197,9 @@ function renderDeposit() {
 
 /* ---------- Events ---------- */
 document.addEventListener('click', e => {
+  if (e.target.closest('#useLocal')) { startLocal(); return; } // the saved list code stays, the next start tries it again
   const chk = e.target.closest('[data-chk]');
-  if (chk) { const it = state.items[chk.dataset.chk]; if (it) store.check(code, it.id, myKey(), !it.checked); return; }
+  if (chk) { const it = state.items[chk.dataset.chk]; if (it) bg.check(code, it.id, myKey(), !it.checked); return; }
   const sg = e.target.closest('[data-sug]');
   if (sg) { // a suggested product was tapped: it goes into the basket right away
     const p = vg && vg.lookup(sg.dataset.sug);
@@ -172,7 +209,7 @@ document.addEventListener('click', e => {
   }
   const sn = e.target.closest('[data-sugname]');
   if (sn) { // a suggested name was tapped: add it right away, without a VG number
-    store.add(code, { id: uid(), title: sn.dataset.sugname }, myKey());
+    bg.add(code, { id: uid(), title: sn.dataset.sugname }, myKey());
     $('#addIn').value = ''; $('#addIn').dispatchEvent(new Event('input'));
     return;
   }
@@ -185,10 +222,10 @@ document.addEventListener('click', e => {
   const en = e.target.closest('[data-editnum]');
   if (en) { editingId = en.dataset.editnum; render(); return; }
   const dadd = e.target.closest('[data-dep-add]'), dsub = e.target.closest('[data-dep-sub]');
-  if (dadd) { store.depositAdd(code, dadd.dataset.depAdd, myKey()); return; }
-  if (dsub) { store.depositRemove(code, dsub.dataset.depSub, myKey()); return; }
+  if (dadd) { bg.depositAdd(code, dadd.dataset.depAdd, myKey()); return; }
+  if (dsub) { bg.depositRemove(code, dsub.dataset.depSub, myKey()); return; }
   const del = e.target.closest('[data-del]');
-  if (del) { const it = state.items[del.dataset.del]; if (it && confirm(t('confirmDelete', { item: it.title }))) store.remove(code, it.id); }
+  if (del) { const it = state.items[del.dataset.del]; if (it && confirm(t('confirmDelete', { item: it.title }))) bg.remove(code, it.id); }
 });
 // The quick number field: its confirm button only works with a valid number
 document.addEventListener('input', e => {
@@ -212,7 +249,7 @@ document.addEventListener('submit', e => {
     const id = fe.dataset.vgedit, p = raw && vg ? vg.lookup(v) : null;
     if (!numberFits(p, v, state.items[id])) return; // keep editing so the number can be corrected
     editingId = null;
-    store.setNum(code, id, myKey(), raw ? v : null, false, p ? { title: p.title } : {});
+    bg.setNum(code, id, myKey(), raw ? v : null, false, p ? { title: p.title } : {});
     if (raw) toast(p ? `✓ ${p.title}` : t(vg ? 'vgNotInDb' : 'vgSaved', { n: v }));
     render();
     return;
@@ -224,7 +261,7 @@ document.addEventListener('submit', e => {
   if (!(v > 0)) return;
   const p = vg && vg.lookup(v);
   if (!numberFits(p, v, state.items[f.dataset.vg])) return; // the field keeps the typed number
-  store.setNum(code, f.dataset.vg, myKey(), v, true, p ? { title: p.title } : {}); // entering the number puts it in the basket
+  bg.setNum(code, f.dataset.vg, myKey(), v, true, p ? { title: p.title } : {}); // entering the number puts it in the basket
   toast(p ? `✓ ${p.title}` : t(vg ? 'vgNotInDb' : 'vgSaved', { n: v }));
 });
 // Leaving the edit field (blur) or pressing Escape cancels the edit
@@ -244,17 +281,21 @@ $('#addForm').onsubmit = e => {
   if (parseShareLink(v)) return openImport(v); // a share link from the original app was pasted
   if (p) addToBasket(p.title, p.vgNum);
   else if (isNum) addToBasket(t('vgPlaceholderTitle', { n: v }), +v);
-  else store.add(code, { id: uid(), title: v }, myKey());
+  else bg.add(code, { id: uid(), title: v }, myKey());
   if (isNum && !p) toast(vg ? t('vgNotInDb', { n: v }) : t('vgNotLoaded'));
 };
 // A VG number is typed at the shelf: the item goes straight into the basket (an item with that number on the list is
 // checked off instead of adding it twice). Names are added as open items.
 async function addToBasket(title, vgNum) {
   const known = Object.values(state.items).find(i => i.vgNum === vgNum);
-  if (known) { if (!known.checked) store.check(code, known.id, myKey(), true); return; }
-  const id = uid();
-  await store.add(code, { id, title, vgNum }, myKey());
-  store.check(code, id, myKey(), true);
+  if (known) { if (!known.checked) bg.check(code, known.id, myKey(), true); return; }
+  const id = uid(), c = code;
+  try { await store.add(c, { id, title, vgNum }, myKey()); }
+  catch (e) { // timed out: the item is still queued, so the basket step follows when it has gone through
+    if (isPending(e)) e.late.then(() => bg.check(c, id, myKey(), true)).catch(() => {}); else toast(noDbMsg(e));
+    return;
+  }
+  bg.check(c, id, myKey(), true);
 }
 // Number mode: numeric keyboard, digits only (like the "123" switch of the original app)
 let numMode = LS.get('numMode', false);
@@ -358,14 +399,14 @@ $('#importGo').onclick = async () => {
       const title = it.title;
       if (have.has(title.toLowerCase())) continue;
       have.add(title.toLowerCase());
-      store.add(code, { id: uid(), title, vgNum: it.vgNum, amount: it.amount, unit: it.unit }, myKey());
+      bg.add(code, { id: uid(), title, vgNum: it.vgNum, amount: it.amount, unit: it.unit }, myKey());
       added++;
     }
     msg.textContent = `${t('importDone', { added, total: items.length })}${added < items.length ? t('importRest') : ''}.`;
     toast(t('toastImported', { n: added }));
   } catch (e) { msg.textContent = t('importFail'); }
 };
-$('#resetBtn').onclick = () => { if (confirm(t('confirmReset'))) store.resetScores(code); };
+$('#resetBtn').onclick = () => { if (confirm(t('confirmReset'))) bg.resetScores(code); };
 /* ---------- Sharing (QR code + link) ---------- */
 const shareUrl = () => new URL(`?list=${code}`, location.href.split('?')[0]).href;
 function loadQr() {
@@ -458,10 +499,12 @@ $('#resetGo').onclick = async () => {
   // open items are still to be bought: removing them is asked once more
   if (open && Object.values(state.items).some(i => !i.checked) && !confirm(t(isLocal() ? 'confirmClearOpen' : 'confirmClearOpenShared'))) return;
   closeReset();
-  if (open && done) await store.clearAll(code);
-  else if (open) await store.clearOpen(code);
-  else if (done) await store.clearChecked(code);
-  if ($('#resetEmpties').checked) await store.clearDeposit(code);
+  try {
+    if (open && done) await store.clearAll(code);
+    else if (open) await store.clearOpen(code);
+    else if (done) await store.clearChecked(code);
+    if ($('#resetEmpties').checked) await store.clearDeposit(code);
+  } catch (e) { if (!isPending(e)) toast(noDbMsg(e)); }
 };
 $('#menuImport').onclick = () => openImport();
 $('#menuLeave').onclick = () => {
@@ -472,7 +515,7 @@ $('#deleteBtn').onclick = async () => {
   if (!confirm(t('confirmDeleteList'))) return;
   const c = code;
   if (unsub) { unsub(); unsub = null; } // do not react to our own deletion as if someone else had deleted the list
-  try { await store.deleteList(c); } catch (e) { connect(); toast(t('noDb')); return; }
+  try { await store.deleteList(c); } catch (e) { connect(); toast(noDbMsg(e)); return; }
   closeShareDialog(); forgetShared(); startLocal(); toast(t('toastListDeleted'));
 };
 $('#shareLink').onclick = async () => {
@@ -518,16 +561,16 @@ async function scanForRow(text, p, target, n, manualNumber) {
   if (p) {
     if (p.placeholder) { if (!numberFits(p, p.vgNum, target)) return; }
     else if (!similarNames(p.title, target.title) && !confirm(t('confirmScanMismatch', { scanned: p.title, listed: target.title }))) return;
-    store.setNum(code, target.id, myKey(), p.vgNum, checkToo, { title: p.title });
+    bg.setNum(code, target.id, myKey(), p.vgNum, checkToo, { title: p.title });
     toast(`✓ ${p.title}`);
   } else if (manualNumber && n) { // a typed VG number that is not in the database: keep it anyway, like in the input bar
-    store.setNum(code, target.id, myKey(), n, checkToo, {});
+    bg.setNum(code, target.id, myKey(), n, checkToo, {});
     toast(t('vgNotInDb', { n }));
   } else if (/^\d{8,14}$/.test(text)) {
     $('#scanMsg').textContent = t('lookingUp');
     const name = await productName(text);
     if (name && !similarNames(name, target.title) && !confirm(t('confirmScanMismatch', { scanned: name, listed: target.title }))) return;
-    store.setEan(code, target.id, myKey(), text, checkToo);
+    bg.setEan(code, target.id, myKey(), text, checkToo);
     toast(`✓ ${target.title}`);
   } else { toast(t('scanUnknown')); return; }
   if (navigator.vibrate) navigator.vibrate(60);
@@ -550,15 +593,15 @@ async function handleCode(raw, opts = {}) {
     if (p && p.placeholder && !numberFits(p, n, null)) { closeScanner(); return; } // unused number, declined
     if (p) { // add the labelled product (or find it on the list) and put it in the basket
       let it = Object.values(state.items).find(i => i.vgNum === p.vgNum);
-      if (!it) { it = { id: uid(), title: p.title }; store.add(code, { id: it.id, title: p.title, vgNum: p.vgNum }, myKey()); }
-      if (!it.checked) { store.check(code, it.id, myKey(), true); toast(t('toastInBasket', { item: it.title })); }
+      if (!it) { it = { id: uid(), title: p.title }; bg.add(code, { id: it.id, title: p.title, vgNum: p.vgNum }, myKey()); }
+      if (!it.checked) { bg.check(code, it.id, myKey(), true); toast(t('toastInBasket', { item: it.title })); }
       else toast(t('toastAlready', { item: it.title }));
       if (navigator.vibrate) navigator.vibrate(60);
       closeScanner(); return;
     }
     if (opts.manualNumber && n) { // a typed VG number that is not in the database: add it with a placeholder name
       const it = { id: uid(), title: t('vgPlaceholderTitle', { n }) };
-      store.add(code, { id: it.id, title: it.title, vgNum: n }, myKey()); store.check(code, it.id, myKey(), true);
+      bg.add(code, { id: it.id, title: it.title, vgNum: n }, myKey()); bg.check(code, it.id, myKey(), true);
       toast(t('vgNotInDb', { n })); closeScanner(); return;
     }
     // zxing (iOS) also reads QR codes: anything that is not a barcode number (a URL, some text) is ignored, keep looking
@@ -568,9 +611,9 @@ async function handleCode(raw, opts = {}) {
       $('#scanMsg').textContent = t('lookingUp');
       const name = await productName(ean);
       it = name && Object.values(state.items).find(i => i.title.toLowerCase() === name.toLowerCase());
-      if (!it) { it = { id: uid(), title: name || t('itemFallback', { ean }) }; store.add(code, { id: it.id, title: it.title, ean }, myKey()); }
+      if (!it) { it = { id: uid(), title: name || t('itemFallback', { ean }) }; bg.add(code, { id: it.id, title: it.title, ean }, myKey()); }
     }
-    if (!it.checked) { store.check(code, it.id, myKey(), true); toast(t('toastInBasket', { item: it.title })); }
+    if (!it.checked) { bg.check(code, it.id, myKey(), true); toast(t('toastInBasket', { item: it.title })); }
     else toast(t('toastAlready', { item: it.title }));
     if (navigator.vibrate) navigator.vibrate(60);
     closeScanner();
@@ -672,7 +715,7 @@ $('#renameBtn').onclick = () => {
   askIdentity(async () => {
     const newKey = myKey(); back();
     if (newKey === oldKey) return;
-    try { await store.renameUser(code, oldKey, newKey); toast(t('toastRenamed', { who: newKey })); } catch (e) { toast(t('noDb')); }
+    try { await store.renameUser(code, oldKey, newKey); toast(t('toastRenamed', { who: newKey })); } catch (e) { toast(noDbMsg(e)); }
   }, back);
 };
 function enterApp() {
@@ -687,18 +730,18 @@ function startLocal() {
   enterApp();
 }
 async function startShared(c) {
-  const remote = await getRemote(); // throws when the SDK cannot be loaded (offline)
+  const remote = await Promise.race([getRemote(), new Promise((_, no) => setTimeout(() => no(Object.assign(new Error('SDK did not load'), { pending: true })), 15000))]); // throws when the SDK cannot be loaded (offline) or takes too long
   code = c; store = remote;
   LS.set('code', c); history.replaceState(null, '', `?list=${c}`);
-  store.join(code, myKey());
+  bg.join(code, myKey());
   enterApp();
 }
 async function joinShared(c) {
   const go = async () => {
     try {
       if (!(await (await getRemote()).exists(c))) { toast(t('noList')); return startLocal(); }
-    } catch (e) { toast(t('noDb')); return startLocal(); }
-    try { await startShared(c); } catch (e) { toast(t('noDb')); startLocal(); }
+    } catch (e) { toast(noDbMsg(e)); return startLocal(); }
+    try { await startShared(c); } catch (e) { toast(noDbMsg(e)); startLocal(); }
   };
   // cancel: back to the list on screen, or (a join link opened the app) to the local list
   me.name ? go() : askIdentity(go, () => { history.replaceState(null, '', location.pathname); store ? backToList() : startLocal(); });
@@ -715,12 +758,24 @@ async function shareLocalList() {
     await localDb.remove(LOCAL, '');
     await startShared(c);
     openShareDialog();
-  } catch (e) { toast(t('noDb')); startLocal(); }
+  } catch (e) { toast(noDbMsg(e)); startLocal(); }
 }
 
 // The Firebase SDK is only loaded when a shared list is needed, so the local list starts without any network.
-const getRemote = () => remotePromise = remotePromise || (firebaseConfig
-  ? firebaseAdapter(firebaseConfig).then(createStore) : Promise.resolve(localStore)).catch(e => { remotePromise = null; throw e; });
+// `?sim=overload|slow|flap|recover:<seconds>` swaps in a simulated server (sim.js) to see the overload handling: only in demo
+// mode or on the dev site, never on the release with a real database.
+const simName = new URLSearchParams(location.search).get('sim');
+const remoteStore = db => createStore(db, { onResult: conn.opResult, conn });
+async function simulatedRemote() {
+  const { createSim, applyScenario } = await import('./sim.js');
+  const sim = createSim(localDb);
+  if (!applyScenario(sim, simName)) return null;
+  return remoteStore(sim);
+}
+const getRemote = () => remotePromise = remotePromise || (async () => {
+  if (simName && (!firebaseConfig || IS_DEV)) { const s = await simulatedRemote(); if (s) return s; }
+  return firebaseConfig ? firebaseAdapter(firebaseConfig).then(remoteStore) : localStore;
+})().catch(e => { remotePromise = null; throw e; });
 
 async function init() {
   applyStatic();
@@ -735,7 +790,7 @@ async function init() {
   if (urlList && !urlCode) toast(t('notAList'));
   const savedCode = LS.get('code', '');
   if (urlCode && urlCode !== savedCode) joinShared(urlCode);
-  else if (savedCode && me.name) startShared(savedCode).catch(() => { toast(t('noDb')); startLocal(); }); // offline: local list, saved code is kept
+  else if (savedCode && me.name) startShared(savedCode).catch(e => { toast(noDbMsg(e)); startLocal(); }); // offline: local list, saved code is kept
   else startLocal();
 }
 init();

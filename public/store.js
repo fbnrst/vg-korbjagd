@@ -1,7 +1,8 @@
 // Data layer: list logic written once, against an adapter (Firebase or local).
 // Adapter interface: subscribe(code, cb, onStatus) -> unsubscribe, get(code, path),
 // update(code, path, fn) -> {committed} (transaction; fn returns undefined = abort, null = delete),
-// set(code, path, value), remove(code, path).
+// set(code, path, value), remove(code, path). Optional: connect() / disconnect() (Firebase: goOnline / goOffline), used by
+// conn.js for deliberate reconnects while the server is busy.
 // Firebase key characters and HTML special characters (keys end up in the rendering) are replaced.
 // Must match the rules in database.rules.json: "<emoji without spaces> <name>", at most 60 characters.
 import { NS } from './env.js';
@@ -24,7 +25,7 @@ const toNum = v => { const n = Math.round(Number(v)); return Number.isFinite(n) 
 
 export async function firebaseAdapter(cfg) {
   const V = '10.14.1';
-  const [{ initializeApp }, { getDatabase, ref, onValue, runTransaction, set, get, remove }] = await Promise.all([
+  const [{ initializeApp }, { getDatabase, ref, onValue, runTransaction, set, get, remove, goOnline, goOffline }] = await Promise.all([
     import(`https://www.gstatic.com/firebasejs/${V}/firebase-app.js`),
     import(`https://www.gstatic.com/firebasejs/${V}/firebase-database.js`),
   ]);
@@ -32,6 +33,8 @@ export async function firebaseAdapter(cfg) {
   const r = (code, path) => ref(db, `lists/${code}${path ? '/' + path : ''}`);
   return {
     mode: 'firebase',
+    connect: () => goOnline(db),
+    disconnect: () => goOffline(db),
     subscribe(code, cb, onStatus) {
       const off1 = onValue(r(code), s => cb(s.val()));
       const off2 = onValue(ref(db, '.info/connected'), s => onStatus && onStatus(!!s.val()));
@@ -70,9 +73,11 @@ export function localAdapter(storage = globalThis.localStorage, listen = true) {
   };
   return {
     mode: 'local',
+    connect() {}, // nothing to reconnect
+    disconnect() {},
     subscribe(code, cb, onStatus) {
       const s = { code, cb }; subs.add(s);
-      queueMicrotask(() => { cb(load()[code] ?? null); onStatus && onStatus(true); });
+      queueMicrotask(() => { onStatus && onStatus(true); cb(load()[code] ?? null); }); // connected first, then the data, like the server
       return () => subs.delete(s);
     },
     async get(code, path) { return read(load(), code, path); },
@@ -93,13 +98,47 @@ const makeItem = (i, user) => ({
   vgNum: toNum(i.vgNum), ean: /^\d{8,14}$/.test(i.ean) ? i.ean : null,
   checked: false, checkedBy: null, checkedAt: null, addedBy: user, addedAt: Date.now() });
 
-export function createStore(db) {
-  const bump = (code, key, d) => isUserKey(key) ? db.update(code, `scores/${key}`, n => Math.min(100000, Math.max(0, (n || 0) + d))) : null;
+// A write that does not answer in time. The operation itself is not cancelled (Firebase keeps transactions queued and
+// runs them when the connection is back): `late` settles with its real outcome, so callers can continue then.
+export class PendingError extends Error {
+  constructor(op, late) { super(`${op} is pending`); this.name = 'PendingError'; this.pending = true; this.late = late; }
+}
+export const isPending = e => !!(e && e.pending);
+
+// Timeout guard around the adapter calls: a hanging call becomes a PendingError after `timeoutMs` instead of hanging
+// the UI. `onResult(true)` reports every call that finished (also late), `onResult(false)` every timeout.
+export function guardAdapter(db, { timeoutMs = 8000, setTimeout: st = (f, ms) => globalThis.setTimeout(f, ms), clearTimeout: ct = id => globalThis.clearTimeout(id), onResult } = {}) {
+  const wrap = op => (...args) => {
+    let p;
+    try { p = Promise.resolve(db[op](...args)); } catch (e) { p = Promise.reject(e); }
+    return new Promise((resolve, reject) => {
+      let timedOut = false;
+      const timer = st(() => { timedOut = true; onResult && onResult(false); reject(new PendingError(op, p)); }, timeoutMs);
+      p.then(v => { ct(timer); if (onResult) onResult(true); if (!timedOut) resolve(v); }, e => { ct(timer); if (!timedOut) reject(e); });
+    });
+  };
+  return { ...db, get: wrap('get'), update: wrap('update'), set: wrap('set'), remove: wrap('remove') };
+}
+
+export function createStore(rawDb, guardOpts = {}) {
+  const db = guardAdapter(rawDb, guardOpts), conn = guardOpts.conn;
+  const bumpOnce = (code, key, d) => db.update(code, `scores/${key}`, n => Math.min(100000, Math.max(0, (n || 0) + d)));
+  // One retry for a failure that is not a timeout: the item is already changed, a lost point would never be corrected
+  const bump = (code, key, d) => isUserKey(key) ? bumpOnce(code, key, d).catch(e => { if (isPending(e)) throw e; return bumpOnce(code, key, d); }) : null;
   const CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   const randCode = () => Array.from({ length: 6 }, () => CHARS[Math.floor(Math.random() * CHARS.length)]).join('');
+  // The point (bump) is a second transaction after the one that changed the item. If the first one timed out it is still
+  // queued and may commit later, and then the point must follow it, otherwise it is lost.
+  const followUp = async (txn, next) => {
+    let r;
+    try { r = await txn; } catch (e) { if (isPending(e)) e.late.then(next).catch(() => {}); throw e; }
+    return next(r);
+  };
   const store = {
-    mode: db.mode,
-    subscribe: (code, cb, onStatus) => db.subscribe(code, cb, onStatus),
+    mode: rawDb.mode,
+    subscribe: (code, cb, onStatus) => rawDb.subscribe(code, cb, onStatus),
+    connect: () => rawDb.connect && rawDb.connect(),
+    disconnect: () => rawDb.disconnect && rawDb.disconnect(),
     async create() {
       let code;
       do { code = randCode(); } while (await db.get(code, 'meta'));
@@ -132,12 +171,12 @@ export function createStore(db) {
     async check(code, id, user, want) {
       if (!isId(id) || !isUserKey(user)) return;
       let prev;
-      const r = await db.update(code, `items/${id}`, old => {
+      const toggle = db.update(code, `items/${id}`, old => {
         prev = old;
         if (!old || !!old.checked === want) return undefined;
         return { ...old, checked: want, checkedBy: want ? user : null, checkedAt: want ? Date.now() : null };
       });
-      if (r.committed) await bump(code, want ? user : prev.checkedBy, want ? 1 : -1);
+      await followUp(toggle, r => r.committed && bump(code, want ? user : prev.checkedBy, want ? 1 : -1));
     },
     // Add the VG number later; with checkToo the item also goes into the basket
     // extra: {title, info} from the VG database; the title only replaces the placeholder "VG no. 123" (formerly "VG-Nr. 123")
@@ -145,7 +184,7 @@ export function createStore(db) {
       if (!isId(id) || !isUserKey(user)) return;
       vgNum = toNum(vgNum);
       let newlyChecked = false;
-      await db.update(code, `items/${id}`, old => {
+      await followUp(db.update(code, `items/${id}`, old => {
         newlyChecked = false;
         if (!old) return undefined;
         const next = { ...old, vgNum };
@@ -153,32 +192,28 @@ export function createStore(db) {
         if (extra.title && /^VG(-Nr\.| no\.) \d+$/.test(old.title)) next.title = String(extra.title).slice(0, 120);
         if (checkToo && !old.checked) { next.checked = true; next.checkedBy = user; next.checkedAt = Date.now(); newlyChecked = true; }
         return next;
-      });
-      if (newlyChecked) await bump(code, user, 1);
+      }), () => newlyChecked && bump(code, user, 1));
     },
     // Remember a scanned product barcode on an item (so scanning it again finds the item); optionally check it off
     async setEan(code, id, user, ean, checkToo) {
       if (!isId(id) || !isUserKey(user) || !/^\d{8,14}$/.test(String(ean))) return;
       let newlyChecked = false;
-      await db.update(code, `items/${id}`, old => {
+      await followUp(db.update(code, `items/${id}`, old => {
         newlyChecked = false;
         if (!old) return undefined;
         const next = { ...old, ean: String(ean) };
         if (checkToo && !old.checked) { next.checked = true; next.checkedBy = user; next.checkedAt = Date.now(); newlyChecked = true; }
         return next;
-      });
-      if (newlyChecked) await bump(code, user, 1);
+      }), () => newlyChecked && bump(code, user, 1));
     },
     async remove(code, id) {
       let prev;
-      await db.update(code, `items/${id}`, old => { prev = old; return old ? null : undefined; });
-      if (prev && prev.checked) await bump(code, prev.checkedBy, -1);
+      await followUp(db.update(code, `items/${id}`, old => { prev = old; return old ? null : undefined; }), () => prev && prev.checked && bump(code, prev.checkedBy, -1));
     },
     // Deposit: deposit/<type>/<user> = pieces. Each piece gives the person who enters it one point.
     async depositAdd(code, typeId, user) {
       if (!/^[A-Za-z0-9_-]{1,20}$/.test(String(typeId)) || !isUserKey(user)) return;
-      const r = await db.update(code, `deposit/${typeId}/${user}`, n => (n || 0) + 1);
-      if (r.committed) await bump(code, user, 1);
+      await followUp(db.update(code, `deposit/${typeId}/${user}`, n => (n || 0) + 1), r => r.committed && bump(code, user, 1));
     },
     // Fewer: own pieces first, otherwise those of the largest contributor (the point is deducted there)
     async depositRemove(code, typeId, user) {
@@ -187,8 +222,7 @@ export function createStore(db) {
       const victim = group[user] > 0 ? user : Object.keys(group).sort((a, b) => group[b] - group[a])[0];
       if (!victim) return;
       let took = false;
-      await db.update(code, `deposit/${typeId}/${victim}`, n => { took = n > 0; return n > 1 ? n - 1 : n > 0 ? null : undefined; });
-      if (took) await bump(code, victim, -1);
+      await followUp(db.update(code, `deposit/${typeId}/${victim}`, n => { took = n > 0; return n > 1 ? n - 1 : n > 0 ? null : undefined; }), () => took && bump(code, victim, -1));
     },
     clearDeposit: code => db.remove(code, 'deposit'),
     // Move a local list into a (new) shared list. Items keep their state, but no points are awarded:
@@ -233,6 +267,7 @@ export function createStore(db) {
   const touch = code => {
     const now = Date.now();
     if (!code || now - (touched[code] || 0) < 3600e3) return null;
+    if (conn && conn.state() !== 'ok') return null; // no extra write while the connection is shaky; the next change stamps it
     touched[code] = now;
     return touch0(code);
   };

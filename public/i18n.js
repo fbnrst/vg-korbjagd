@@ -5,8 +5,6 @@ export const STRINGS = {
   en: {
     pageTitle: 'Shopping list',
     menu: 'Menu',
-    offline: 'Offline',
-    offlineHint: 'No connection: your changes are sent as soon as you are back online.',
     share: 'Share',
     shareTitle: 'Scan with your phone',
     shareHint: 'Others scan the code with their camera and join the list.',
@@ -117,12 +115,16 @@ export const STRINGS = {
     needName: 'Please enter your name first.',
     noList: 'This list does not exist.',
     noDb: 'No connection to the database.',
+    noDbBusy: 'The server is busy. Please try again in a moment.',
+    connBusy: 'The server is very busy right now. Your list stays usable, and we keep trying.',
+    connDegraded: 'No stable connection. Changes are kept and sent when it is back.',
+    connRestored: 'Back online.',
+    connLoadingList: 'Loading your list… the server is busy, we keep trying.',
+    connUseLocal: 'Use local list for now',
   },
   de: {
     pageTitle: 'Einkaufsliste',
     menu: 'Menü',
-    offline: 'Offline',
-    offlineHint: 'Keine Verbindung: Deine Änderungen werden gesendet, sobald du wieder online bist.',
     share: 'Teilen',
     shareTitle: 'Mit dem Handy scannen',
     shareHint: 'Die anderen scannen den Code mit der Kamera und sind in der Liste.',
@@ -233,6 +235,12 @@ export const STRINGS = {
     needName: 'Bitte zuerst einen Namen eingeben.',
     noList: 'Diese Liste gibt es nicht.',
     noDb: 'Keine Verbindung zur Datenbank.',
+    noDbBusy: 'Der Server ist ausgelastet. Bitte versuche es gleich nochmal.',
+    connBusy: 'Der Server ist gerade sehr ausgelastet. Deine Liste bleibt nutzbar, wir versuchen es weiter.',
+    connDegraded: 'Keine stabile Verbindung. Änderungen werden gemerkt und gesendet, sobald sie wieder steht.',
+    connRestored: 'Wieder online.',
+    connLoadingList: 'Deine Liste wird geladen … der Server ist ausgelastet, wir versuchen es weiter.',
+    connUseLocal: 'Vorerst lokale Liste nutzen',
   },
 };
 
@@ -256,7 +264,7 @@ export function t(key, params = {}, language = lang) {
 
 // Static texts in index.html: [selector, key, what to set]
 export const STATIC = [
-  ['#menuBtn', 'menu', 'aria-label'], ['#menuBtn', 'menu', 'title'], ['#offline', 'offline', 'text'], ['#offline', 'offlineHint', 'title'], ['#shareBtn', 'share', 'aria-label'], ['#shareBtn', 'share', 'title'],
+  ['#menuBtn', 'menu', 'aria-label'], ['#menuBtn', 'menu', 'title'], ['#shareBtn', 'share', 'aria-label'], ['#shareBtn', 'share', 'title'],
   ['#shareSharedBox h2', 'shareTitle', 'text'], ['#shareHint', 'shareHint', 'text'],
   ['#shareLocalBox h2', 'shareLocalTitle', 'text'], ['#shareLocalHint', 'shareLocalHint', 'text'],
   ['#privacyNoteName', 'privacyNoteName', 'text'],
