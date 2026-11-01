@@ -254,9 +254,7 @@ import { IS_DEV } from '../env.js';
 document.documentElement.lang = lang;
 document.title = lang === 'de' ? 'Hilfe' : 'Help';
 document.getElementById('back').textContent = lang === 'de' ? '← Einkaufsliste' : '← Shopping list';
-// the instructions of the device you are on are open, the others fold away
-const ua = navigator.userAgent, os = /iPhone|iPad|iPod/.test(ua) ? 'ios' : /Android/.test(ua) ? 'android' : 'desktop';
-document.querySelectorAll(`details.how[data-os="${os}"]`).forEach(d => { d.open = true; });
+// the install instructions all start folded: open the one for your device
 const appUrl = new URL('../', location.href).href;
 document.querySelectorAll('[data-url]').forEach(el => { el.textContent = appUrl.replace(/^https?:\/\//, '').replace(/\/$/, ''); });
 if (matchMedia('(min-width: 820px)').matches) {
