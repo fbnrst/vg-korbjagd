@@ -1,70 +1,70 @@
-# Sicherheit der Datenschicht
+# Sicherheit
 
-Stand der Prüfung: `database.rules.json`, `public/store.js`, Rendering in `public/app.js`, Aufräum-Job `scripts/cleanup-lists.mjs` (zuletzt abgeglichen im Oktober 2026).
+Dieses Dokument beschreibt das Bedrohungsmodell, die Vertrauensgrenzen und den Betrieb der Sicherheitsmaßnahmen von Kober. Es richtet sich an den Maintainer und an Agenten, die Regeln, `store.js` oder das Rendering ändern. Meldungen von außen laufen über [SECURITY.md](../SECURITY.md); die Regeln selbst stehen in `database.rules.json`, hier steht nur, was sie bezwecken.
 
 ## Bedrohungsmodell
 
-- Die Firebase-Web-Konfiguration (`public/firebase-config.js`) ist öffentlich und **kein Geheimnis**. Wer die Seite öffnet, kennt sie.
-- Es gibt keine Anmeldung. Der **Listencode** (6 Zeichen aus A–Z/0–9) ist das einzige Geheimnis: Wer ihn kennt, darf die Liste lesen und ändern. Das ist so gewollt (Einkaufsliste in der Familie/WG).
-- Die Wurzel ist gesperrt (`.read`/`.write` = false), Listen lassen sich nicht auflisten. Einen Code zu erraten ist theoretisch möglich (32^6 ≈ 10^9 bei der Erzeugung, 36^6 ≈ 2·10^9 Muster insgesamt), aber nur durch gezieltes Probieren einzelner Pfade.
+- Es gibt keine Anmeldung. Der **Listencode** ist das einzige Geheimnis (Capability): 6 Zeichen, bei der Erzeugung aus 32 Zeichen (32^6 ≈ 10^9), akzeptiert werden `[A-Z0-9]` (36^6 ≈ 2·10^9). Wer ihn kennt, liest, ändert und löscht die Liste. Das ist gewollt (Einkaufsliste in der Familie/WG).
+- Die Wurzel ist gesperrt, Listen lassen sich nicht auflisten. Ein Code lässt sich nur durch Probieren einzelner Pfade erraten. Die Regeln haben **kein Ratenlimit**.
+- Die Firebase-Web-Konfiguration (`public/firebase-config.js`) ist öffentlich und kein Geheimnis. Wer sie kennt, kann neue Listen anlegen und so Speicher und Kontingent des kostenlosen Tarifs belasten. Der wöchentliche Aufräum-Job (30 Tage ohne Aktivität, [retention.md](retention.md)) begrenzt den Speicher, verhindert die Flut aber nicht.
+- Anzahl der Artikel, Nutzer und Leergut-Einträge pro Liste lässt sich in den Regeln nicht begrenzen; wer den Code kennt, kann eine Liste füllen. Abhilfe: Liste neu anlegen.
 
-### Was jemand mit Code oder Konfiguration trotzdem kann
-
-| Angriff | Mit Code | Nur mit Konfiguration |
+| Aktion | Mit Listencode | Nur mit Konfiguration |
 |---|---|---|
 | Liste lesen | ja | nein |
-| Artikel anlegen/ändern/löschen, abhaken | ja | nein |
-| Scores/Leergut verändern (innerhalb 0–100000) | ja | nein |
-| Ganze Liste für alle löschen („Liste für alle löschen“) | **ja**, gewollt (Regeln erlauben nur das Löschen auf Listenebene) | nein |
-| `meta` überschreiben | **nein** (Regeln) | nein |
-| Fremde Daten/XSS/Riesenwerte einschleusen | **nein** (Regeln) | nein |
-| Neue Listen anlegen (Flut) | – | **ja** |
-| Viele Artikel in eine bekannte Liste schreiben | ja | nein |
+| Artikel, Punkte, Leergut ändern (innerhalb der Grenzen) | ja | nein |
+| Liste für alle löschen | ja, gewollt | nein |
+| `meta` überschreiben, Liste umbauen | nein | nein |
+| Daten außerhalb der Grenzen schreiben (Markup, Riesenwerte, Fremdfelder) | nein | nein |
+| Neue Listen anlegen | - | ja |
 
-## Was die Regeln erzwingen
+## Garantien der Regeln
 
-- `lists/$code`: Code muss `^[A-Z0-9]{6}$` sein, `meta` muss vorhanden sein, keine unbekannten Kindknoten. Auf Listenebene ist **nur Löschen** erlaubt (`.write`: `!newData.exists()`), also nichts überschreiben oder umbauen; das trägt die Funktion „Liste für alle löschen“ (`store.deleteList`). Sonst gibt es Schreibrecht nur an `items`, `scores`, `deposit`, `activity` und (nur Anlegen) `meta`.
-- `meta`: nur `created` (Zahl), nur beschreibbar solange es nicht existiert. Der Besitz-Marker kann nicht überschrieben werden.
-- `items/$id`: ID `[A-Za-z0-9_-]{1,40}` und gleich dem Feld `id`; Pflicht `id,title,amount,checked,addedBy,addedAt`; `title` 1–120 Zeichen, `amount` ganze Zahl 1–999, `unit` ≤ 20, `info` ≤ 200, `vgNum` ganze Zahl 1–9999999, `ean` 8–14 Ziffern, `checked` boolean, Zeitstempel Zahlen, `checkedBy`/`addedBy` gültige Nutzerschlüssel, keine Zusatzfelder.
-- `activity`: Zahl > 0, höchstens 24 Stunden in der Zukunft (`now + 86400000`). Der Zeitstempel der letzten Aktivität bestimmt, wann der Aufräum-Job die Liste löscht (30 Tage, siehe [retention.md](retention.md)).
-- `scores/$user`: ganze Zahl 0–100000. `deposit/$typ/$user`: ganze Zahl 1–100000, `$typ` `[A-Za-z0-9_-]{1,20}`.
-- **Nutzerschlüssel** `"<Emoji> <Name>"`: höchstens 60 Zeichen, Emoji-Teil ohne Leerzeichen, keine Zeichen `< > & " ' \``. Das schließt XSS über Schlüssel aus (siehe unten).
-- `null`/Löschen (Transaktionen, `remove`) wird nicht validiert und bleibt erlaubt; das von `store.js` benutzte `remove` ganzer Knoten (`deposit`, `items/<id>`) funktioniert, weil dort Schreibrecht besteht.
+Quelle der Wahrheit sind `database.rules.json` und `test/rules.test.js` (kleiner eigener Auswerter, kein echter Firebase-Interpreter). Kurzfassung:
 
-`store.js` validiert spiegelbildlich (`userKey` ersetzt Sonderzeichen, `isUserKey`/`isId`, `vgNum` wird zu ganzer Zahl oder `null`, Punktestand gedeckelt), damit legitime Clients nie Daten schreiben, die die Regeln ablehnen würden.
+| Knoten | Grenze |
+|---|---|
+| `lists/$code` | Code `^[A-Z0-9]{6}$`, `meta` Pflicht, Schreiben auf Listenebene nur als Löschen |
+| `meta` | nur `created`, nur einmal beschreibbar |
+| `activity` | Zahl, höchstens jetzt + 24 h |
+| `items/$id` | feste Felder, Längen und Zahlbereiche, ID ≤ 40 Zeichen, keine Zusatzfelder |
+| `scores`, `deposit` | ganze Zahlen (0 bzw. 1 bis 100000) |
+| Nutzerschlüssel | `"<Emoji> <Name>"`, ≤ 60 Zeichen, keine Zeichen < > & " ' und Backtick |
 
-## Befunde
+Löschen (`null`) wird nicht validiert. Die Regeln prüfen nur neue Schreibzugriffe, nicht bereits gespeicherte Daten. `store.js` validiert spiegelbildlich (`isUserKey`, `userKey()`, `isId`), damit legitime Clients nie Daten schreiben, die abgelehnt würden; beides muss zusammen geändert werden.
 
-**Hoch (behoben)**
-- *Gespeichertes XSS über Nutzerschlüssel und IDs.* Früher renderte `app.js` Emoji-Teil, Item-IDs, Mengen und VG-Nummern teils ohne `esc()`. Ein Fremder mit Listencode hätte z. B. `scores/<svg/onload=…> x` oder eine Item-ID `"><img onerror=…>` schreiben können, das lief dann bei allen Mitgliedern. Zwei Schichten verhindern das jetzt: Die Regeln lassen solche Schlüssel und Nicht-Zahlen nicht mehr zu, und `app.js` gibt **alles** aus der Datenbank mit `esc()` aus (Titel, Namen, Emoji, IDs, Mengen, Einheiten, VG-Nummern, importierte VG-Listen). Die Regeln wirken nur nach dem Einspielen und nicht auf bereits gespeicherte Daten, deshalb ist das Escaping die eigentliche Absicherung. `esc` maskiert `'` nicht; das ist unkritisch, solange alle Attribute in `"` stehen.
+## Vertrauensgrenzen
 
-**Mittel**
-- *Überschreiben von `meta` oder Umbauen einer Liste auf Listenebene* war möglich; jetzt nicht mehr. **Restrisiko:** Das Löschen der ganzen Liste ist für jeden mit Code möglich, weil „Liste für alle löschen“ es braucht. Ein Fremder mit Code kann also eine Liste löschen; Mitglieder legen sie neu an. Akzeptiert, weil der Code das einzige Geheimnis der Liste ist.
-- *Riesige Werte/Datenmüll* (beliebig lange Strings, Fremdfelder) waren möglich; jetzt begrenzt.
-- *Score-Manipulation*: bleibt möglich (offene Schreibrechte), aber nur im Wertebereich 0–100000. Das ist eine Spielerei, kein Schaden.
+- **Nicht vertrauenswürdig:** alles aus der Datenbank, aus `localStorage` (der Nutzer kann es beschreiben, auch Outbox `NS + 'kober-outbox'` und Cache `NS + 'kober-cache:<code>'`; beide werden beim Laden validiert) sowie Produktdaten von VG und Open Food Facts.
+- **Escaping ist Pflicht:** Jeder dieser Werte geht mit `esc()` in HTML. Nutzerschlüssel entstehen über `userKey()`. Die Regeln sind die zweite Schicht, das Escaping die eigentliche Absicherung (die Regeln wirken nicht auf Altdaten).
+- **Invariante:** `esc()` (`public/app.js`) maskiert `& < > "`, **nicht** `'`. Attribute müssen deshalb immer in doppelten Anführungszeichen stehen. Ein automatischer Test dafür wurde nicht ergänzt, weil er sich nicht zuverlässig schreiben lässt (Template-Strings, verschachtelte Aufrufe); bei Änderungen am Rendering per Review prüfen.
 
-**Niedrig / Restrisiko**
-- Anzahl Artikel pro Liste und Anzahl Nutzer/Leergut-Einträge sind in den Regeln **nicht begrenzbar** (kein `numChildren` in Regeln). Wer den Code kennt, kann eine Liste mit vielen kleinen Einträgen füllen (je ≤ ~600 Byte). Abhilfe: Liste neu anlegen.
-- *Listen-Flut*: Wer die öffentliche Konfiguration kennt, kann beliebig viele Listen mit `meta` anlegen. Der Aufräum-Job löscht Listen nach 30 Tagen ohne Aktivität (`scripts/cleanup-lists.mjs`, wöchentlich), das begrenzt den Speicher, verhindert die Flut aber nicht. Weitere Gegenmittel (nicht im Repo möglich): Firebase **App Check** aktivieren und in der Cloud-Konsole **Budget-/Nutzungsalarme** setzen.
-- *Aufräum-Job*: Der Dienstkonto-Schlüssel im GitHub-Secret `FIREBASE_SERVICE_ACCOUNT` umgeht die Regeln und kann alle Daten lesen und löschen. Er liegt nur als Secret vor (nie im Repo), hat nur den Zweck Aufräumen und wird bei Verdacht in der Cloud-Konsole widerrufen.
-- Eine ungültige Teilmenge eines Mehrfach-Updates wird von Firebase atomar abgelehnt; die App zeigt dann keinen Fehler. Das betrifft nur manipulierte Clients.
-- Bereits gespeicherte Altdaten werden von den Regeln nicht geprüft, nur neue Schreibzugriffe.
-- Nutzer mit einem Namen aus früheren Versionen, der verbotene Zeichen enthielt (`<>&"'`), bekommen jetzt einen anderen Schlüssel (Zeichen werden durch `_` ersetzt) und starten bei 0 Punkten.
+## Dritte, Datenfluss und Browser
 
-## Tests
+- Verbindungen gehen zu Firebase (SDK von gstatic.com, `store.js`), zu den VG-Endpunkten (`vg.js`), zu Open Food Facts (`app.js`, nur beim Scannen unbekannter Codes) und auf iPhones zu jsDelivr (zxing, Version fest, **ohne SRI**). Alles ist in `public/privacy.html` aufgeführt.
+- Der Listencode steckt im Link `?list=CODE`. Alle drei Seiten setzen `<meta name="referrer" content="no-referrer">` (`test/referrer.test.js`), damit er nicht in Anfragen an Dritte mitgeht.
+- Release und `/dev/` teilen sich einen Ursprung. Das Präfix `NS` trennt `localStorage` und Service-Worker-Caches; jeder neue Schlüssel muss es benutzen. Dev hat ein eigenes Firebase-Projekt (`public/firebase-config.dev.js`).
+- `?sim=` (simulierter Server) wirkt nur im Demo-Modus oder auf der Dev-Seite, nie auf dem Release mit echter Datenbank.
 
-`npm test` führt unter anderem aus:
+## Geheimnisse und Lieferkette
 
-- `test/rules.test.js`: liest `database.rules.json` und prüft mit einem kleinen eigenen Auswerter (nur die in den Regeln benutzte Teilmenge: `isString`, `isNumber`, `isBoolean`, `hasChildren`, `matches`, `val()`, `length`, `%`) die Struktur sowie gültige und manipulierte Dokumente, außerdem den kompletten Ablauf von `store.js`.
-- `test/store.test.js`: Validierung in `store.js`.
+- Das Dienstkonto in `FIREBASE_SERVICE_ACCOUNT` umgeht die Regeln und kann alles lesen und löschen. Es liegt nur als GitHub-Secret vor, sollte nur die Rolle *Firebase Realtime Database Admin* haben ([retention.md](retention.md)) und wird bei Verdacht in der Cloud-Konsole widerrufen. Der Aufräum-Job läuft nur für das Produktionsprojekt, nicht für Dev.
+- Dependabot schlägt wöchentlich neue Versionen der GitHub Actions vor. prek-Hooks laufen lokal und in CI; gitleaks scannt absichtlich nur gestagte Änderungen, in CI findet es daher nichts.
+- Die Actions in `autofix.yml` sind auf Commit-Hashes festgelegt, die in `cleanup.yml` und `pages.yml` nur auf Versions-Tags.
+- `public/vendor/` (crypto-js, qrcode) ist von den Prüfungen ausgenommen.
 
-**Nicht prüfbar ohne Firebase:** Der Auswerter ist kein echter Regel-Interpreter; Besonderheiten der Firebase-Regelsprache (Auswertung von `.write` entlang des Pfads, Verhalten von `.validate` bei Mehrpfad-Updates, Regex-Dialekt) sind nicht abgedeckt. Vor dem Veröffentlichen die Regeln im **Regel-Simulator** der Konsole (Tab „Regeln“ → „Regel-Playground“) gegen ein `set` auf `lists/ABC234/items/a1`, `lists/ABC234/meta`, `lists/ABC234/activity` und einen Löschversuch auf `lists/ABC234` (muss erlaubt sein) sowie ein Überschreiben von `lists/ABC234` mit Daten (muss abgelehnt werden) prüfen, oder lokal mit dem Emulator (`npx firebase-tools emulators:start --only database`, braucht `firebase-tools`; wurde hier nicht installiert).
+## Regeln veröffentlichen
 
-## Regeln in der Firebase-Konsole einspielen
+Die Regeln werden von Hand eingespielt, **zuerst Dev, dann Produktion** (Projekte `vg-korbjagd-dev` und `vg-korbjagd`; die Ids behalten den alten Namen Korbjagd).
 
-1. Firebase-Konsole → Projekt `vg-korbjagd` → **Realtime Database** → Tab **Regeln**.
-2. Kompletten Inhalt von `database.rules.json` einfügen (ersetzt die alten Regeln).
-3. Im Regel-Playground die drei Fälle oben simulieren, dann **Veröffentlichen**.
-4. Danach in der App prüfen: neue Liste anlegen, beitreten, Artikel hinzufügen/abhaken/löschen, Leergut, Rangliste zurücksetzen.
+1. Firebase console → Projekt → **Realtime Database** → Tab **Rules**.
+2. Inhalt von `database.rules.json` einfügen.
+3. In **Rules Playground** prüfen: Schreiben auf `lists/ABC234/items/a1`, `meta`, `activity` (erlaubt), Löschen von `lists/ABC234` (erlaubt), Überschreiben von `lists/ABC234` mit Daten (abgelehnt).
+4. **Publish**, dann in der App eine Liste anlegen, beitreten, Artikel anlegen/abhaken/löschen.
 
-Alternativ mit der CLI: `firebase deploy --only database` (setzt `firebase.json` mit `"database": {"rules": "database.rules.json"}` voraus).
+## Offene Punkte
+
+- **App Check** und **Budget-/Nutzungsalarme**: Status unbekannt, in der Firebase console prüfen (App Check: *Build → App Check*; Alarme: *Project settings → Usage and billing*, Details in der Google Cloud console unter *Billing → Budgets & alerts*).
+- Actions in `cleanup.yml` und `pages.yml` auf Commit-Hashes festlegen.
+- zxing von jsDelivr mit Subresource Integrity laden oder ins Repo übernehmen.
+- Kein Ratenlimit und keine Begrenzung der Knotenanzahl in den Regeln (siehe oben).

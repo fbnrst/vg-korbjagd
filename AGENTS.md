@@ -45,6 +45,10 @@ Guidance for AI agents and humans working on **Kober** (repository `kober`): a s
 - The Firebase web config in `public/firebase-config.js` is public by design (allow-listed in `.gitleaks.toml`). Access control is the rules file plus the list code.
 - The VG endpoints are public and send CORS `*` when the browser sends an `Origin` header (plain `curl` hides this); see `docs/vg-api.md`. Do not call the write endpoints (`shareList.php`, `sendFeedback.php`).
 
+## Security
+
+`SECURITY.md` (English, repository root) is the reporting policy for GitHub; `docs/security.md` (German) holds the threat model, trust boundaries and the how-to for publishing the rules. When the rules, the validation in `store.js` or a trust boundary change (new third party, new storage, new rendering of untrusted data), update `docs/security.md` in the same change. All pages carry `<meta name="referrer" content="no-referrer">` so the list code in `?list=CODE` is not sent along (`test/referrer.test.js`).
+
 ## Release and dev site
 
 One GitHub Pages site shows two versions (`.github/workflows/pages.yml`, `scripts/build-site.mjs`): the **root is the latest release** (the newest tag `v*`; until the first tag exists it is main), **`/dev/` is the current main**. Work and push to main as usual: only `/dev/` changes. A release is cut by the user's word: `gh release create vX.Y.Z --target main --notes-file …` (or `git tag` + push), then `gh workflow run pages.yml --ref main` publishes it (a run started by the tag itself is rejected: the environment github-pages only accepts the branch main). Check the run, then the live site. Never tag on your own.
