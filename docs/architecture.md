@@ -16,7 +16,7 @@ Kober ist eine statische Seite ohne Server und ohne Build-Schritt (ES-Module, Gi
 | `outbox.js` | Journal wartender Änderungen im `localStorage` |
 | `cache.js` | letzter Live-Datensatz je geteilter Liste im `localStorage` |
 | `sim.js` | simulierter Server mit Fehlerinjektion (`?sim=…`) und manuelle Uhr für Tests |
-| `vg.js` | VG-Stammdaten laden und cachen, Index und Suche, Namensprüfung, Scan-Codes, Import von VG-App-Links |
+| `vg.js` | VG-Stammdaten laden und cachen, Index und Suche, Namensprüfung, Scan-Codes |
 | `i18n.js` | alle sichtbaren Texte (`STRINGS.en`, `STRINGS.de`), `t()`, `applyStatic()` |
 | `a11y.js` | Dialog-Semantik, Fokusfalle, Menü-Tastatur, `shortName()` |
 | `env.js` | `IS_DEV` (Pfad `/dev/`) und `NS`, das Präfix für jeden Storage-Schlüssel und Cache-Namen |
@@ -24,7 +24,7 @@ Kober ist eine statische Seite ohne Server und ohne Build-Schritt (ES-Module, Gi
 | `firebase-config.js`, `firebase-config.dev.js` | Firebase-Webkonfiguration (öffentlich); `null` = Demo-Modus |
 | `privacy.html`, `docs/index.html`, `legal-config.js` | Datenschutzseite, Hilfeseite (beide zweisprachig), Kontaktangabe |
 | `manifest.json`, `icon.svg`, `logo.svg`, `icons/` | PWA-Metadaten und Icons (`npm run icons`) |
-| `vendor/` | Fremdbibliotheken (QR-Code, CryptoJS, zxing), von den Prüfungen ausgenommen |
+| `vendor/` | Fremdbibliotheken (QR-Code, zxing), von den Prüfungen ausgenommen |
 
 Der Firebase-SDK (10.14.1) wird erst bei Bedarf von `gstatic.com` geladen, der Scanner auf iOS/Safari lädt bei Bedarf `vendor/zxing.min.js` (`@zxing/library@0.21.3`); Chrome/Android nutzt den eingebauten `BarcodeDetector`. Unbekannte EANs werden bei Open Food Facts nachgeschlagen.
 

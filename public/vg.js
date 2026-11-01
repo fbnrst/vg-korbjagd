@@ -200,22 +200,3 @@ export const SIMILAR_ENOUGH = 0.75;
 // Usable beats perfect: the app should only ask when it is quite sure the number is wrong, so a few wrong accepts are fine
 // (Tomaten ~ Tomatenmark lands exactly on the threshold and passes)
 export const similarNames = (a, b) => nameSimilarity(a, b) >= SIMILAR_ENOUGH;
-
-/* ---------- Import lists from the original VG app ---------- */
-// Share link of the original app: https://app.vg-dresden.de/list?shareId=123#KEY
-export function parseShareLink(text) {
-  const m = String(text).match(/shareId=(\d+)#([^\s]+)/);
-  return m ? { id: m[1], key: m[2] } : null;
-}
-// The list is stored AES-encrypted (CryptoJS passphrase) on the VG server; the key is only in the link.
-export function decryptShared(CryptoJS, cipherText, key) {
-  const plain = CryptoJS.AES.decrypt(cipherText, key).toString(CryptoJS.enc.Utf8);
-  const items = JSON.parse(plain);
-  if (!Array.isArray(items)) throw new Error('unexpected format');
-  return items.filter(i => i && i.title).map(i => ({ title: String(i.title), vgNum: i.vgNum || null,
-    amount: Math.max(1, Math.round(+i.amount || 1)), unit: i.unit || '', checked: !!i.checked }));
-}
-export async function fetchSharedList(CryptoJS, { id, key }) {
-  const text = await get('getSharedList.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ shareId: id }) });
-  return decryptShared(CryptoJS, text, key);
-}

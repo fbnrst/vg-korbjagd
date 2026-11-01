@@ -4,7 +4,7 @@ import { createConn, shouldForgetList } from './conn.js';
 import { createOutbox } from './outbox.js';
 import { saveSnapshot, loadSnapshot, dropSnapshot } from './cache.js';
 import { IS_DEV, NS } from './env.js';
-import { loadVg, parseShareLink, fetchSharedList, vgNumFromCode, similarNames } from './vg.js';
+import { loadVg, vgNumFromCode, similarNames } from './vg.js';
 import { t, applyStatic } from './i18n.js';
 import { shouldShowAndroidInstall, shouldShowInstallHint, shouldShowBrowserHint, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, createVgLoader, uploadLocalList } from './flows.js';
 import { initDialogs, shortName, menuIndex, visibleFocusables } from './a11y.js';
@@ -178,7 +178,7 @@ function emptyHint() {
   return `<div class="empty"><p><span class="eic">+</span><span>${esc(t('emptyAdd'))}</span></p>
     <p><span class="eic">123</span><span>${esc(t('emptyShop'))}</span></p>
     <p><span class="eic">${share}</span><span>${esc(t('emptyShare'))}</span></p>
-    <a href="docs/index.html" class="emptyHelp">${esc(t('emptyHelp'))}</a></div>`;
+    <div class="emptyLinks"><button type="button" class="linkbtn" id="emptyJoin">${esc(t('emptyJoin'))}</button><a href="docs/index.html" class="emptyHelp">${esc(t('emptyHelp'))}</a></div></div>`;
 }
 function render() {
   state = isLocal() ? raw : outbox.overlayFor(raw, code); // changes waiting to be sent show at once; a live snapshot replaces `raw`
@@ -349,7 +349,6 @@ $('#addForm').onsubmit = e => {
   if (tooLongNumber(v)) return; // VG numbers have 3-4 digits: the "+" is muted and the suggestion area says so; the typed number stays in the field
   if (p && p.placeholder && !numberFits(p, v, null)) return; // declined: the typed number stays in the field
   $('#addIn').value = ''; $('#addSuggest').classList.add('hide'); syncAddButton();
-  if (parseShareLink(v)) return openImport(v); // a share link from the original app was pasted
   if (p) addToBasket(p.title, p.vgNum);
   else if (isNum) addToBasket(t('vgPlaceholderTitle', { n: v }), +v);
   else bg.add(code, { id: uid(), title: v }, myKey());
@@ -426,60 +425,6 @@ $('#addIn').oninput = () => {
     + (long ? `<span class="miss">${esc(t('vgTooLong'))}</span>` : '');
 };
 
-/* ---------- Import from the original VG app ---------- */
-let CryptoJSP = null;
-function loadCrypto() {
-  if (window.CryptoJS) return Promise.resolve(window.CryptoJS);
-  return CryptoJSP = CryptoJSP || new Promise((res, rej) => {
-    const s = document.createElement('script');
-    s.src = new URL('vendor/crypto-js.js', import.meta.url).href;
-    s.onload = () => res(window.CryptoJS); s.onerror = rej; document.head.appendChild(s);
-  });
-}
-function openImport(text = '') {
-  dismissKeyboard();
-  $('#importDlg').classList.remove('hide'); $('#importIn').value = text; $('#importMsg').textContent = '';
-  if (text) $('#importGo').click();
-  else clipboardIfAllowed().then(l => { if (l && !$('#importIn').value && !$('#importDlg').classList.contains('hide')) $('#importIn').value = l; });
-}
-// Where the browser already allows reading the clipboard without asking (Chrome/Android after "Allow"), a share link on it is
-// filled in when the dialog opens. Safari does not know this permission and would show its "Paste" bubble: no read there.
-async function clipboardIfAllowed() {
-  try {
-    if ((await navigator.permissions.query({ name: 'clipboard-read' })).state !== 'granted') return '';
-    const text = (await navigator.clipboard.readText()).trim();
-    return parseShareLink(text) ? text : '';
-  } catch (e) { return ''; }
-}
-// "Paste" next to the field: reading the clipboard only on this tap, because iOS answers every read with its own "Paste" bubble
-// (opening the dialog with a read put that bubble over the menu). The import starts only when "Import" is tapped.
-$('#importPaste').classList.toggle('hide', !navigator.clipboard?.readText);
-$('#importPaste').onclick = async () => {
-  let text = '';
-  try { text = (await navigator.clipboard.readText()).trim(); } catch (e) { return; } // declined or unreadable: nothing happens
-  if (parseShareLink(text)) { $('#importIn').value = text; $('#importMsg').textContent = ''; }
-  else $('#importMsg').textContent = t('clipNoLink');
-};
-$('#importClose').onclick = () => $('#importDlg').classList.add('hide');
-$('#importGo').onclick = async () => {
-  const link = parseShareLink($('#importIn').value), msg = $('#importMsg');
-  if (!link) { msg.textContent = t('importBad'); return; }
-  msg.textContent = t('importLoading');
-  try {
-    const items = await fetchSharedList(await loadCrypto(), link);
-    const have = new Set(Object.values(state.items).map(i => i.title.toLowerCase()));
-    let added = 0;
-    for (const it of items) {
-      const title = it.title;
-      if (have.has(title.toLowerCase())) continue;
-      have.add(title.toLowerCase());
-      bg.add(code, { id: uid(), title, vgNum: it.vgNum, amount: it.amount, unit: it.unit }, myKey());
-      added++;
-    }
-    msg.textContent = `${t('importDone', { added, total: items.length })}${added < items.length ? t('importRest') : ''}.`;
-    toast(t('toastImported', { n: added }));
-  } catch (e) { msg.textContent = t('importFail'); }
-};
 $('#resetBtn').onclick = () => { if (confirm(t('confirmReset'))) bg.resetScores(code); };
 /* ---------- Sharing (QR code + link) ---------- */
 const shareUrl = () => new URL(`?list=${code}`, location.href.split('?')[0]).href;
@@ -596,6 +541,7 @@ if (IS_DEV) {
 const closeJoin = () => { $('#joinDlg').classList.add('hide'); $('#codeIn').value = ''; };
 function openJoin() { dismissKeyboard(); $('#joinDlg').classList.remove('hide'); }
 $('#menuJoin').onclick = openJoin;
+$('#items').addEventListener('click', e => { if (e.target.closest('#emptyJoin')) openJoin(); }); // the empty-list hint offers the same dialog
 $('#joinClose').onclick = closeJoin;
 $('#joinDlg').onclick = e => { if (e.target.id === 'joinDlg') closeJoin(); };
 $('#joinScan').onclick = () => { closeJoin(); scanTarget = null; openScanner(true); };
@@ -608,7 +554,7 @@ $('#joinForm').onsubmit = e => {
 const forgetShared = () => {
   const c = LS.get('code', ''); if (c) { dropSnapshot(localStorage, c); outbox.dropList(c); } // nothing to show or send for a list we left
   LS.set('code', ''); history.replaceState(null, '', location.pathname); };
-// "..." menu in the header: reset, VG import, leave (shared lists only), help and privacy
+// "..." menu in the header: reset, leave (shared lists only), help and privacy
 {
   const menu = $('#menu'), btn = $('#menuBtn');
   const items = () => visibleFocusables(menu);
@@ -630,7 +576,7 @@ const forgetShared = () => {
     setOpen(false); btn.focus(); e.preventDefault();
   });
 }
-// Dialogs (share, import, reset, join, diagnostics, scanner and any dialog added later): one generic helper gives them
+// Dialogs (share, reset, join, diagnostics, scanner and any dialog added later): one generic helper gives them
 // role, label, focus handling, a focus trap and Escape (a11y.js). From the menu, focus goes back to the menu button.
 initDialogs(document, undefined, { fallbackFocus: el => (el.closest('#menu') ? $('#menuBtn') : null) });
 
@@ -660,7 +606,6 @@ $('#resetGo').onclick = async () => {
     for (const op of plan) await store[op](code);
   } catch (e) { if (!isPending(e)) toast(noDbMsg(e)); }
 };
-$('#menuImport').onclick = () => openImport();
 $('#menuLeave').onclick = () => {
   if (!confirm(`${t('confirmLeave')}\n\n${t('leaveCode', { code })}`)) return; // the code is shown so the person can come back
   forgetShared(); startLocal();
@@ -910,7 +855,7 @@ $('#renameBtn').onclick = () => {
 };
 function enterApp() {
   $('#tabs').classList.remove('hide'); $('#shareBtn').classList.remove('hide');
-  for (const id of ['#menuShare', '#menuInstall', '#menuReset', '#menuImport', '#menuJoin', '#menuLeave']) $(id).classList.remove('hide'); // #menuLeave is hidden on the local list by CSS (body.local)
+  for (const id of ['#menuShare', '#menuInstall', '#menuReset', '#menuJoin', '#menuLeave']) $(id).classList.remove('hide'); // #menuLeave is hidden on the local list by CSS (body.local)
   document.body.classList.toggle('local', isLocal());
   show('vList');
   connect();

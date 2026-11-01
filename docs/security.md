@@ -53,7 +53,7 @@ Löschen (`null`) wird nicht validiert. Die Regeln prüfen nur neue Schreibzugri
 - Dependabot schlägt wöchentlich neue Versionen der GitHub Actions vor. prek-Hooks laufen lokal und in CI; gitleaks scannt absichtlich nur gestagte Änderungen, in CI findet es daher nichts.
 - Alle Actions sind auf Commit-Hashes festgelegt (Versions-Tag als Kommentar, Dependabot aktualisiert beides). In `cleanup.yml` bekommen nur die zwei Schritte, die es brauchen, das Secret `FIREBASE_SERVICE_ACCOUNT`, nicht die Fremd-Actions; `checkout` läuft dort ohne gespeicherten Token.
 - Listencodes kommen aus `crypto.getRandomValues` (`store.js`), nicht aus `Math.random`.
-- `public/vendor/` (crypto-js, qrcode, zxing) ist von den Prüfungen ausgenommen. zxing ist byte-gleich mit `umd/index.min.js` aus dem npm-Paket `@zxing/library@0.21.3`; ein Update ersetzt die Datei aus dem npm-Paket und vergleicht den Hash.
+- `public/vendor/` (qrcode, zxing) ist von den Prüfungen ausgenommen. zxing ist byte-gleich mit `umd/index.min.js` aus dem npm-Paket `@zxing/library@0.21.3`; ein Update ersetzt die Datei aus dem npm-Paket und vergleicht den Hash.
 
 ## Regeln veröffentlichen
 
