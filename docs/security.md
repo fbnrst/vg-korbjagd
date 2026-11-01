@@ -42,7 +42,7 @@ Deleting (`null`) is not validated; an empty object counts as a deletion in the 
 
 ## Trust boundaries
 
-- **Not trustworthy:** everything from the database, from `localStorage` (the user can write to it, including the outbox `NS + 'kober-outbox'` and the cache `NS + 'kober-cache:<code>'`; both are validated on load) and product data from VG and Open Food Facts.
+- **Not trustworthy:** everything from the database, from `localStorage` (the user can write to it, including the outbox `NS + 'kober-outbox'` and the cache `NS + 'kober-cache:<code>'` with its index `NS + 'kober-cache-index'`; all are validated on load) and product data from VG and Open Food Facts.
 - **Escaping is mandatory:** each of these values goes into HTML through `esc()`. User keys are created through `userKey()`. The rules are the second layer, the escaping is the actual protection (the rules do not act on old data).
 - **Invariant:** `esc()` (`public/app.js`) escapes `& < > "`, **not** `'`. Attributes must therefore always be in double quotes. An automatic test for this was not added because it cannot be written reliably (template strings, nested calls); check it in review when the rendering changes.
 

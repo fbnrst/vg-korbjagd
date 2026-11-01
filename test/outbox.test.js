@@ -5,7 +5,7 @@ import { createConn } from '../public/conn.js';
 import { createStore, localAdapter, userKey } from '../public/store.js';
 import { createSim, createClock, applyScenario } from '../public/sim.js';
 import { createOutbox, validEntry, overlay, MAX_ENTRIES, MAX_AGE } from '../public/outbox.js';
-import { saveSnapshot, loadSnapshot, sanitize, KEEP, MAX_BYTES, MAX_ITEMS } from '../public/cache.js';
+import { saveSnapshot, loadSnapshot, dropSnapshot, sanitize, KEEP, MAX_BYTES, MAX_ITEMS } from '../public/cache.js';
 import { STRINGS } from '../public/i18n.js';
 
 const SEC = 1000, CODE = 'ABCDEF';
@@ -286,11 +286,81 @@ test('cache: only the last-used lists are kept, and a huge list is not cached', 
   assert.equal(saveSnapshot({ setItem() { throw new Error('quota'); }, removeItem() {}, length: 0, key: () => null }, CODE, {}, 1), false);
 });
 
+const EMPTY = { items: {}, scores: {}, deposit: {} };
+const cached = storage => { const ks = []; for (let i = 0; i < storage.length; i++) { const k = storage.key(i); if (k.startsWith('kober-cache:')) ks.push(k.slice(12)); } return ks.sort(); };
+const index = storage => JSON.parse(storage.getItem('kober-cache-index'));
+
+test('cache index: pruning goes by the last write, without parsing the other snapshots', () => {
+  const storage = mem();
+  saveSnapshot(storage, 'AAAAAA', EMPTY, 1000); saveSnapshot(storage, 'BBBBBB', EMPTY, 2000); saveSnapshot(storage, 'CCCCCC', EMPTY, 3000);
+  saveSnapshot(storage, 'AAAAAA', EMPTY, 4000); // A is the most recent again
+  saveSnapshot(storage, 'DDDDDD', EMPTY, 5000);
+  assert.deepEqual(cached(storage), ['AAAAAA', 'CCCCCC', 'DDDDDD'], 'B was the oldest write');
+  assert.deepEqual(index(storage), { AAAAAA: 4000, CCCCCC: 3000, DDDDDD: 5000 });
+  // a save with an intact index reads nothing but the index
+  const reads = []; const getItem = storage.getItem; storage.getItem = k => { reads.push(k); return getItem(k); };
+  saveSnapshot(storage, 'EEEEEE', EMPTY, 6000);
+  storage.getItem = getItem;
+  assert.deepEqual(reads, ['kober-cache-index']);
+  assert.deepEqual(cached(storage), ['AAAAAA', 'DDDDDD', 'EEEEEE']);
+});
+
+test('cache index: garbage counts as missing and is rebuilt from the cache keys', () => {
+  const many = JSON.stringify(Object.fromEntries(Array.from({ length: 50 }, (_, i) => ['Q' + String(i).padStart(5, '0'), i])));
+  for (const junk of ['{broken', '[1,2]', 'null', '5', '{"bad code":1}', '{"AAAAAA":"x"}', '{"AAAAAA":-1}', '{"AAAAAA":1e400}', '{"__proto__":1}', many]) {
+    const storage = mem();
+    saveSnapshot(storage, 'AAAAAA', EMPTY, 1000); saveSnapshot(storage, 'BBBBBB', EMPTY, 2000); saveSnapshot(storage, 'CCCCCC', EMPTY, 3000);
+    storage.setItem('kober-cache-index', junk);
+    assert.ok(saveSnapshot(storage, 'DDDDDD', EMPTY, 4000), junk);
+    assert.deepEqual(cached(storage), ['BBBBBB', 'CCCCCC', 'DDDDDD'], junk);
+    assert.deepEqual(index(storage), { BBBBBB: 2000, CCCCCC: 3000, DDDDDD: 4000 }, junk);
+  }
+  // an index write that fails leaves no index behind, so the next save rebuilds it (no orphaned cache key)
+  const storage = mem(); const setItem = storage.setItem;
+  storage.setItem = (k, v) => { if (k === 'kober-cache-index') throw new Error('quota'); setItem(k, v); };
+  ['AAAAAA', 'BBBBBB', 'CCCCCC'].forEach((c, i) => assert.ok(saveSnapshot(storage, c, EMPTY, 1000 + i)));
+  assert.equal(storage.getItem('kober-cache-index'), null);
+  storage.setItem = setItem;
+  saveSnapshot(storage, 'DDDDDD', EMPTY, 5000);
+  assert.deepEqual(cached(storage), ['BBBBBB', 'CCCCCC', 'DDDDDD']);
+});
+
+test('cache index: caches written before the index are migrated and pruned', () => {
+  const storage = mem();
+  const old = (c, ts) => storage.setItem('kober-cache:' + c, JSON.stringify({ ts, data: EMPTY }));
+  old('AAAAAA', 3000); old('BBBBBB', 1000); old('CCCCCC', 2000); storage.setItem('kober-cache:YYYYYY', '{broken'); storage.setItem('kober-cache:bad', '{}');
+  storage.setItem('other', 'kept');
+  assert.ok(saveSnapshot(storage, 'DDDDDD', EMPTY, 4000));
+  assert.deepEqual(cached(storage), ['AAAAAA', 'CCCCCC', 'DDDDDD'], 'the two newest old ones stay, broken and unreadable keys go');
+  assert.deepEqual(index(storage), { AAAAAA: 3000, CCCCCC: 2000, DDDDDD: 4000 });
+  assert.equal(storage.getItem('other'), 'kept');
+  assert.equal(loadSnapshot(storage, 'AAAAAA', 5000).ts, 3000, 'old caches stay readable');
+});
+
+test('cache index: dropping a list or outgrowing MAX_BYTES keeps the index in step', () => {
+  const storage = mem();
+  saveSnapshot(storage, 'AAAAAA', EMPTY, 1000); saveSnapshot(storage, 'BBBBBB', EMPTY, 2000);
+  dropSnapshot(storage, 'AAAAAA');
+  assert.deepEqual(cached(storage), ['BBBBBB']); assert.deepEqual(index(storage), { BBBBBB: 2000 });
+  dropSnapshot(storage, 'ZZZZZZ'); assert.deepEqual(index(storage), { BBBBBB: 2000 }, 'an unknown code changes nothing');
+  const big = { items: Object.fromEntries(Array.from({ length: 3000 }, (_, i) => [`i${i}`, { id: `i${i}`, title: 'Ein langer Artikelname mit Zusatz ' + i, info: 'x'.repeat(100) }])) };
+  assert.equal(saveSnapshot(storage, 'BBBBBB', big, 3000), false);
+  assert.deepEqual(cached(storage), []); assert.deepEqual(index(storage), {});
+  // garbage in the index: the drop still removes the cache (the next save rebuilds the index)
+  saveSnapshot(storage, 'CCCCCC', EMPTY, 4000); storage.setItem('kober-cache-index', '{broken');
+  dropSnapshot(storage, 'CCCCCC');
+  assert.deepEqual(cached(storage), []);
+  // storage that throws everywhere: no exception
+  const no = () => { throw new Error('blocked'); };
+  const bad = { getItem: no, setItem: no, removeItem: no, key: no, get length() { return no(); } };
+  assert.equal(saveSnapshot(bad, CODE, {}, 1), false); dropSnapshot(bad, CODE);
+});
+
 test('NS prefix on both new storage keys, and the sim scenario `cut`', t => {
   const o = fs.readFileSync(new URL('../public/outbox.js', import.meta.url), 'utf8');
   const c = fs.readFileSync(new URL('../public/cache.js', import.meta.url), 'utf8');
   assert.ok(/NS \+ 'kober-outbox'/.test(o));
-  assert.ok(/NS \+ 'kober-cache:'/.test(c));
+  assert.ok(/NS \+ 'kober-cache:'/.test(c)); assert.ok(/NS \+ 'kober-cache-index'/.test(c));
   assert.ok(!/localStorage\.|sessionStorage|indexedDB/.test(o + c), 'storage is injected, never reached for globally');
   // applyScenario uses the global timers (it is meant for the app): mock them so the test does not wait 5 + 10 s
   t.mock.timers.enable({ apis: ['setTimeout'] });
