@@ -1,6 +1,6 @@
 # VG-Dresden-Endpunkte (inoffiziell dokumentiert)
 
-Die Original-App ([gitlab.com/pyfox/vg-app](https://gitlab.com/pyfox/vg-app), GPLv3) lädt ihre Stammdaten von `https://app.vg-dresden.de/php/`. Diese Beschreibung stammt aus dem Quelltext der App (`src/shared/DataManager.tsx`) und aus Abfragen am 2026-10-31. Es ist **keine offizielle API-Doku**; Endpunkte und Formate können sich jederzeit ändern. Vor produktiver Nutzung oder Weiterverbreitung der Daten bitte bei der VG Dresden nachfragen (info@vg-dresden.de).
+Die Original-App ([gitlab.com/pyfox/vg-app](https://gitlab.com/pyfox/vg-app), GPLv3) lädt ihre Stammdaten von `https://app.vg-dresden.de/php/`. Diese Beschreibung stammt aus dem Quelltext der App (`src/shared/DataManager.tsx`) und aus Abfragen am 2026-10-31; Anzahl und Größe der Einträge sind der Stand damals (zuletzt nur gegen `public/vg.js` geprüft, die Endpunkte waren nicht erreichbar). Es ist **keine offizielle API-Doku**; Endpunkte und Formate können sich jederzeit ändern. Vor produktiver Nutzung oder Weiterverbreitung der Daten bitte bei der VG Dresden nachfragen (info@vg-dresden.de).
 
 ## Lese-Endpunkte (GET, ohne Anmeldung)
 
@@ -24,11 +24,11 @@ Verknüpfung: `product.unitID` → Units, `product.manufacturerID` → Manufactu
 
 Antworten sind JSON, kommen aber mit `Content-Type: text/html`.
 
-**CORS:** Sobald der Browser einen `Origin`-Header mitschickt, antworten die Endpunkte (auch auf den `OPTIONS`-Preflight) mit `access-control-allow-origin: *`. Ein einfacher `curl` ohne `Origin` zeigt den Header nicht, das hatte uns zunächst getäuscht. Browser-Apps können die Daten also direkt abrufen, ein Proxy ist nicht nötig. Umgesetzt in `public/vg.js` (Cache im `localStorage`, Aktualisierung über die Prüfsummen).
+**CORS:** Sobald der Browser einen `Origin`-Header mitschickt, antworten die Endpunkte (auch auf den `OPTIONS`-Preflight) mit `access-control-allow-origin: *`. Ein einfacher `curl` ohne `Origin` zeigt den Header nicht, das hatte uns zunächst getäuscht. Browser-Apps können die Daten also direkt abrufen, ein Proxy ist nicht nötig. Umgesetzt in `public/vg.js`.
 
 ## Aktualisierung über Prüfsummen
 
-Die App ruft zuerst `getChecksums.php` ab, vergleicht je Tabelle mit der lokal gespeicherten Prüfsumme und lädt nur geänderte Listen neu. Zuordnung Tabelle → Endpunkt: `manufacturers`, `countries`, `vg-products`, `units`, `deposit`.
+`loadVg` in `public/vg.js` ruft zuerst `getChecksums.php` ab und vergleicht alle Prüfsummen zusammen mit der gespeicherten (Cache `kober-vg-v2` im `localStorage`). Sind sie gleich oder ist das Netz weg, gilt der Cache. Sonst werden alle fünf Listen (Produkte, Hersteller, Länder, Einheiten, Pfand) neu geladen, nicht nur die geänderte. Zeitlimit je Anfrage: 20 s.
 
 ## Geteilte Listen der Original-App
 
@@ -38,7 +38,7 @@ Die Original-App teilt Listen als Link `https://app.vg-dresden.de/list?shareId=<
 - Der Text ist mit CryptoJS-AES (Passphrase-Modus) verschlüsselt. Der Schlüssel steht nur im Link-Fragment (`#…`) und geht nie an den Server.
 - Entschlüsselt ergibt sich ein JSON-Array von `{title, id, amount, unit?, vgNum?, country?, checked, date, hasVgNum, order}`.
 
-Kober importiert solche Links (im Menü „Liste importieren“ oder Link ins Eingabefeld einfügen), siehe `fetchSharedList` / `decryptShared` in `public/vg.js`.
+Kober importiert solche Links (Menü „Liste importieren“ oder Link ins Eingabefeld einfügen), siehe `parseShareLink`, `fetchSharedList` und `decryptShared` in `public/vg.js`.
 
 ## Weitere Endpunkte (nicht abgefragt)
 
