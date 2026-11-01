@@ -4,8 +4,13 @@ const BASE = 'https://app.vg-dresden.de/php/';
 import { NS } from './env.js';
 const CACHE_KEY = NS + 'kober-vg-v2';
 
+// AbortSignal.timeout() is missing before Safari 16: without it every VG request would fail on iOS 15
+const timeoutSignal = ms => {
+  if (AbortSignal.timeout) return AbortSignal.timeout(ms); // compat-ok: feature-detected, the line below falls back to AbortController
+  const c = new AbortController(); setTimeout(() => c.abort(), ms); return c.signal;
+};
 const get = async (name, init) => {
-  const r = await fetch(BASE + name, { ...init, signal: AbortSignal.timeout(20000) });
+  const r = await fetch(BASE + name, { ...init, signal: timeoutSignal(20000) });
   if (!r.ok) throw new Error(name + ' ' + r.status);
   return r.text();
 };

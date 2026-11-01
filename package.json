@@ -8,6 +8,7 @@
     "start": "python3 -m http.server 3000 --directory public",
     "test": "node --test",
     "docs:screenshots": "node scripts/docs-screenshots.mjs",
+    "test:screens": "node scripts/check-small-screens.mjs",
     "icons": "node scripts/make-icons.mjs",
     "matching:check": "node scripts/check-matching.mjs",
     "matching:off": "node scripts/check-off-synonyms.mjs"

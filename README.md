@@ -26,7 +26,8 @@ Documentation: [help page in the app](https://fbnrst.github.io/kober/docs/) · [
 
 ## Try it locally (demo mode)
     npm start      # http://localhost:3000
-    npm test       # store, rules, vg, i18n, cleanup tests
+    npm test       # store, rules, vg, i18n, cleanup tests, Safari 15 compatibility scan
+    npm run test:screens   # layout at 320px (iPhone SE) and other phone sizes, needs Chrome (see AGENTS.md)
 
 Without a Firebase configuration the app runs in demo mode: shared lists live in the browser only, and tabs in the same browser sync with each other. Testing with several phones needs Firebase.
 

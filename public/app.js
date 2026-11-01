@@ -232,7 +232,7 @@ function renderCheckout() {
 let wakeLock = null;
 async function setWake(on) {
   try {
-    if (on && 'wakeLock' in navigator && !wakeLock) wakeLock = await navigator.wakeLock.request('screen');
+    if (on && 'wakeLock' in navigator && !wakeLock) wakeLock = await navigator.wakeLock.request('screen'); // compat-ok: guarded by 'in navigator' (Safari < 16.4: no wake lock, the screen may dim)
     else if (!on && wakeLock) { await wakeLock.release(); wakeLock = null; }
   } catch (e) { wakeLock = null; }
 }
@@ -658,7 +658,7 @@ async function scanForRow(text, p, target, n, manualNumber) {
     bg.setEan(code, target.id, myKey(), text, checkToo);
     toast(`✓ ${target.title}`);
   } else { toast(t('scanUnknown')); return; }
-  if (navigator.vibrate) navigator.vibrate(60);
+  if (navigator.vibrate) navigator.vibrate(60); // compat-ok: guarded, iOS has no vibration
 }
 async function handleCode(raw, opts = {}) {
   if ($('#scanner').classList.contains('join')) { // scanning a list's QR code: only a list code or join link counts
@@ -681,7 +681,7 @@ async function handleCode(raw, opts = {}) {
       if (!it) { it = { id: uid(), title: p.title }; bg.add(code, { id: it.id, title: p.title, vgNum: p.vgNum }, myKey()); }
       if (!it.checked) { bg.check(code, it.id, myKey(), true); toast(t('toastInBasket', { item: it.title })); }
       else toast(t('toastAlready', { item: it.title }));
-      if (navigator.vibrate) navigator.vibrate(60);
+      if (navigator.vibrate) navigator.vibrate(60); // compat-ok: guarded, iOS has no vibration
       closeScanner(); return;
     }
     if (opts.manualNumber && n) { // a typed VG number that is not in the database: add it with a placeholder name
@@ -700,7 +700,7 @@ async function handleCode(raw, opts = {}) {
     }
     if (!it.checked) { bg.check(code, it.id, myKey(), true); toast(t('toastInBasket', { item: it.title })); }
     else toast(t('toastAlready', { item: it.title }));
-    if (navigator.vibrate) navigator.vibrate(60);
+    if (navigator.vibrate) navigator.vibrate(60); // compat-ok: guarded, iOS has no vibration
     closeScanner();
   } finally { scanBusy = false; }
 }
@@ -716,11 +716,11 @@ async function startCamera() {
   const my = ++camToken, video = $('#cam');
   try {
     const join = $('#scanner').classList.contains('join'); // QR codes of lists instead of product barcodes
-    if ('BarcodeDetector' in window && (!join || (await BarcodeDetector.getSupportedFormats()).includes('qr_code'))) { // Chrome/Android: built in
+    if ('BarcodeDetector' in window && (!join || (await BarcodeDetector.getSupportedFormats()).includes('qr_code'))) { // compat-ok: guarded by 'in window' (Chrome/Android: built in, iOS uses zxing)
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
       if (my !== camToken) { stream.getTracks().forEach(track => track.stop()); return; }
       scanStream = stream; video.srcObject = stream; await video.play();
-      const det = new BarcodeDetector({ formats: join ? ['qr_code'] : ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
+      const det = new BarcodeDetector({ formats: join ? ['qr_code'] : ['ean_13', 'ean_8', 'upc_a', 'upc_e'] }); // compat-ok: only reached when the guard above found the detector (iOS uses zxing)
       const loop = async () => {
         if (!scanStream || my !== camToken) return;
         try { const r = await det.detect(video); if (r[0]) { await handleCode(r[0].rawValue); if (!scanStream || my !== camToken) return; } } catch (e) {}
