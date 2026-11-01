@@ -6,7 +6,7 @@ const PREFIX = 'kober-' + (self.registration.scope.includes('/dev/') ? 'dev-' : 
 const CACHE = PREFIX + VERSION.slice(1);
 // Everything the app needs offline. test/sw.test.js checks that the module graph of app.js and the files index.html links are
 // all here; build-site.mjs swaps the icons for the dev ones in /dev/.
-const FILES = ['./', './index.html', './app.js', './store.js', './conn.js', './outbox.js', './cache.js', './flows.js', './a11y.js', './sim.js', './vg.js', './i18n.js', './env.js', './version.js', './legal-config.js', './privacy.html', './privacy.js', './theme.css', './docs/index.html', './docs/help.js', './firebase-config.js', './manifest.json', './icon.svg', './logo.svg',
+const FILES = ['./', './index.html', './app.js', './store.js', './conn.js', './outbox.js', './cache.js', './flows.js', './aisles.js', './a11y.js', './sim.js', './vg.js', './i18n.js', './env.js', './version.js', './legal-config.js', './privacy.html', './privacy.js', './theme.css', './docs/index.html', './docs/help.js', './firebase-config.js', './manifest.json', './icon.svg', './logo.svg',
   './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png', './icons/apple-touch-icon.png',
   './vendor/qrcode.js', './vendor/zxing.min.js'];
 // A shop with weak signal: after this long without an answer the cached copy is used (the network may still update the cache)
