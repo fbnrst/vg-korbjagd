@@ -8,7 +8,7 @@ const CACHE = PREFIX + VERSION.slice(1);
 // all here; build-site.mjs swaps the icons for the dev ones in /dev/.
 const FILES = ['./', './index.html', './app.js', './store.js', './conn.js', './outbox.js', './cache.js', './flows.js', './aisles.js', './order.js', './a11y.js', './sim.js', './vg.js', './i18n.js', './env.js', './version.js', './legal-config.js', './privacy.html', './privacy.js', './theme.css', './docs/index.html', './docs/help.js', './firebase-config.js', './manifest.json', './icon.svg', './logo.svg',
   './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png', './icons/apple-touch-icon.png',
-  './vendor/qrcode.js', './vendor/zxing.min.js'];
+  './vendor/qrcode.js', './vendor/zxing.min.js', './vendor/firebase/firebase-app.js', './vendor/firebase/firebase-database.js'];
 // A shop with weak signal: after this long without an answer the cached copy is used (the network may still update the cache)
 const TIMEOUT_MS = 3000;
 

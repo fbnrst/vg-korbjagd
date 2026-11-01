@@ -134,9 +134,12 @@ test('public/ uses no JS or CSS feature that Safari 15 (iPhone SE 1st generation
 test('the Firebase SDK stays on a major that was checked against Safari 15', () => {
   // Firebase 10.x (modular, ES2017 builds) lists Safari 11+ as supported. Check the "supported environments" page of the
   // Firebase docs before moving to another major, then change this number.
-  const store = fs.readFileSync(path.join(PUBLIC, 'store.js'), 'utf8');
-  const v = store.match(/const V = '(\d+)\.\d+\.\d+'/);
-  assert.ok(v, 'store.js declares the Firebase version as `const V = \'x.y.z\'`');
+  // The vendored copy (vendor/firebase/) is what runs; test/firebase-version.test.js keeps store.js and package.json in line.
+  const app = fs.readFileSync(path.join(PUBLIC, 'vendor/firebase/firebase-app.js'), 'utf8');
+  const name = app.match(/\bconst SDK_VERSION = (version\$\d+);/);
+  assert.ok(name, 'vendor/firebase/firebase-app.js: SDK_VERSION not found');
+  const v = app.match(new RegExp(`\\bconst ${name[1].replace('$', '\\$')} = "(\\d+)\\.\\d+\\.\\d+";`));
+  assert.ok(v, 'vendor/firebase/firebase-app.js: SDK version string not found');
   assert.equal(v[1], '10');
 });
 
