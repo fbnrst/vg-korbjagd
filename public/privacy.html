@@ -11,7 +11,8 @@
 @media(prefers-color-scheme:dark){:root{--bg:#12170e;--card:#1b2216;--fg:#e8edde;--mute:#a3b09a;--green:#8bad73;--line:#2e3828;--hdr:#232d1b;--hdr-fg:#e8edde}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans-serif}
-header{background:var(--hdr);color:var(--hdr-fg);padding:12px 16px}
+header{position:sticky;top:0;z-index:10;background:var(--hdr);color:var(--hdr-fg);padding:12px 16px;transition:transform .2s}
+header.away{transform:translateY(-100%)} /* scrolling down hides the header, a little scrolling up brings it back */
 header a{color:var(--hdr-fg);text-decoration:none;font-weight:600}
 .devtag{margin-left:10px;background:#12163f;color:#d8defe;border-radius:999px;padding:1px 9px;font-size:12px;font-weight:800;letter-spacing:.5px}
 main{max-width:720px;margin:0 auto;padding:16px}
@@ -122,6 +123,16 @@ import legal from './legal-config.js';
 document.documentElement.lang = lang;
 document.title = lang === 'de' ? 'Datenschutz' : 'Privacy';
 document.getElementById('back').textContent = lang === 'de' ? '← Einkaufsliste' : '← Shopping list';
+{
+  const head = document.querySelector('header');
+  let last = scrollY;
+  addEventListener('scroll', () => {
+    const y = scrollY;
+    if (Math.abs(y - last) < 6) return; // ignore jitter
+    head.classList.toggle('away', y > last && y > head.offsetHeight);
+    last = y;
+  }, { passive: true });
+}
 if (IS_DEV) {
   document.body.classList.add('dev'); document.title += ' DEV';
   document.querySelector('meta[name=theme-color]').content = '#7d8de6';
