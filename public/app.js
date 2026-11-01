@@ -9,7 +9,7 @@ import { loadVg, similarNames } from './vg.js';
 import { t, applyStatic } from './i18n.js';
 import { shouldShowAndroidInstall, shouldShowInstallHint, shouldShowBrowserHint, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, sanitizeHistory, recordHistory, historyMatches, HISTORY_KEY, createVgLoader, uploadLocalList, checkoutSections, rankPlaces, computeBadges, classifyScan } from './flows.js';
 import { planMove, planDrop, sortOpen } from './order.js';
-import { AISLES, OTHER, aisleOf, groupByAisle, sanitizeOverrides, withChoice } from './aisles.js';
+import { AISLES, OTHER, aisleOf, groupByAisle, sanitizeOverrides, withChoice, guessAisle } from './aisles.js';
 import { initDialogs, shortName, menuIndex, visibleFocusables } from './a11y.js';
 
 const $ = s => document.querySelector(s);
@@ -191,6 +191,15 @@ let aisleOn = LS.get('aisles', false) === true;
 let aisleOver = sanitizeOverrides(LS.get('aisleOver', {}));
 // Reorder mode (long press on an open item, or "Reorder items" in the menu): the open rows show only the name and the arrows
 let reorder = false;
+// The sections to show: only those with items, but every section while reordering (an empty one is a place to drop an item)
+const aisleGroups = open => {
+  const by = new Map(groupByAisle(open, aisleOver).map(g => [g.aisle, g.items]));
+  return [...AISLES, OTHER].map(a => ({ aisle: a, items: by.get(a) || [] })).filter(g => reorder || g.items.length);
+};
+// Moving an item into a section remembers it on this phone (the order itself is shared); the automatic section forgets the choice
+const putInSection = (title, aisle) => {
+  aisleOver = withChoice(aisleOver, title, aisle === (guessAisle(title) || OTHER) ? null : aisle); LS.set('aisleOver', aisleOver);
+};
 function orderRowHtml(i) {
   const id = esc(i.id), nm = esc(shortName(i.title));
   return `<div class="item ord"><button type="button" class="ordh" data-ordh="${id}" aria-label="${t('ariaDragItem', { name: nm })}"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 8h14M5 12h14M5 16h14"/></svg></button><div class="t">${i.amount > 1 ? `${esc(i.amount)}${i.unit ? ' ' + esc(i.unit) : '×'} ` : ''}${esc(i.title)}</div></div>`;
@@ -216,7 +225,7 @@ function itemHtml(i) {
     : `<button type="button" class="numedit claim" data-claim="${id}" data-want="1" aria-label="${t('ariaClaimItem', { name: nm })}">${esc(t('claimIt'))}</button>`}</small>`;
   return `<div class="item ${i.checked ? 'done' : ''}">
       <button class="chk" data-chk="${esc(i.id)}" aria-label="${t(i.checked ? 'ariaBackItem' : 'ariaCheckItem', { name: nm })}"></button>
-      <div class="t">${i.amount > 1 ? `${esc(i.amount)}${i.unit ? ' ' + esc(i.unit) : '×'} ` : ''}${aisleOn && !i.checked ? `<button type="button" class="mv" data-move="${id}" aria-label="${t('ariaMoveItem', { name: nm })}">${esc(i.title)}</button>` : esc(i.title)}<small>${sub}</small>${claim}</div>${by}${vgIn}
+      <div class="t">${i.amount > 1 ? `${esc(i.amount)}${i.unit ? ' ' + esc(i.unit) : '×'} ` : ''}${esc(i.title)}<small>${sub}</small>${claim}</div>${by}${vgIn}
       <button class="x" data-del="${esc(i.id)}" aria-label="${t('ariaDeleteItem', { name: nm })}">×</button></div>`;
 }
 // The start hint: shown only while the list has no item at all (open or checked off)
@@ -235,7 +244,7 @@ function emptyHint() {
 let rowsLater = false;
 const rowFieldFocused = () => { const a = document.activeElement; return !!a && a.tagName === 'INPUT' && !!a.closest('#items, #doneItems'); };
 // A button that had keyboard focus is found again after the rebuild (the + of the empties, a check box, a checkout row)
-const FOCUS_KEYS = ['data-ordh', 'data-orddone', 'data-move', 'data-claim', 'data-dep-add', 'data-dep-sub', 'data-chk', 'data-checkout', 'data-editnum'];
+const FOCUS_KEYS = ['data-ordh', 'data-orddone', 'data-claim', 'data-dep-add', 'data-dep-sub', 'data-chk', 'data-checkout', 'data-editnum'];
 function focusedKey() {
   const a = document.activeElement, k = a && a.tagName === 'BUTTON' && FOCUS_KEYS.find(x => a.hasAttribute(x));
   return k ? `[${k}="${CSS.escape(a.getAttribute(k))}"]` : null;
@@ -252,7 +261,7 @@ function render() {
   if (!rowsLater) {
     $('#items').innerHTML = first && loadingStuck && !stale && !isLocal() ? `<div class="stuck"><p class="muted">${esc(t('connLoadingList'))}</p><button type="button" class="btn sec" id="useLocal">${esc(t('connUseLocal'))}</button></div>`
       : open.length ? (reorder ? `<div class="orderBar"><span>${esc(t('orderHint'))}</span><button type="button" class="btn" data-orddone="1">${esc(t('orderDone'))}</button></div>` : '')
-        + (aisleOn ? groupByAisle(open, aisleOver).map(g => `<h3 class="aisleHead">${esc(t(AISLE_NAME[g.aisle]))}</h3>${g.items.map(i => reorder ? orderRowHtml(i) : itemHtml(i)).join('')}`).join('') : open.map(i => reorder ? orderRowHtml(i) : itemHtml(i)).join(''))
+        + (aisleOn ? aisleGroups(open).map(g => `<h3 class="aisleHead${g.items.length ? '' : ' empty'}" data-aisle="${g.aisle}">${esc(t(AISLE_NAME[g.aisle]))}</h3>${g.items.map(i => reorder ? orderRowHtml(i) : itemHtml(i)).join('')}`).join('') : open.map(i => reorder ? orderRowHtml(i) : itemHtml(i)).join(''))
       : !isEmptyList(state.items) ? `<p class="muted" style="text-align:center">${t('allInBasket')}</p>`
       : first && !isLocal() ? '' // the first snapshot of a shared list is still on its way
       : emptyHint();
@@ -339,42 +348,71 @@ function setReorder(on) {
 const applyPlan = (id, plan) => { if (plan) for (const [mid, pos] of plan.renumber || [[id, plan.pos]]) bg.move(code, mid, pos); };
 const openItems = () => Object.values(state.items).filter(i => !i.checked);
 // The handle is the only control: drag it with a finger or the mouse; with the keyboard, Up/Down on the focused handle
-// moves the item one place inside its section (the whole list when sections are off)
+// moves the item one place, and past the edge of its section into the neighbouring section (the whole list when sections are off)
 function moveItem(id, dir) {
   if (readOnly()) return;
-  const open = openItems();
-  const visible = aisleOn ? (groupByAisle(sortOpen(open), aisleOver).find(g => g.items.some(i => i.id === id)) || { items: open }).items : open;
-  applyPlan(id, planMove(open, id, dir, visible));
+  const open = openItems(), it = state.items[id];
+  if (!aisleOn) { applyPlan(id, planMove(open, id, dir)); return; }
+  const groups = aisleGroups(open), g = groups.findIndex(x => x.items.some(i => i.id === id));
+  if (g < 0) return;
+  const mine = groups[g].items, at = mine.findIndex(i => i.id === id);
+  if (mine[at + dir]) { applyPlan(id, planMove(open, id, dir, mine)); return; }
+  const next = groups[g + dir];
+  if (!next) return;
+  putInSection(it.title, next.aisle);
+  const others = next.items; // up: the end of the section above; down: the start of the section below
+  applyPlan(id, dir < 0 ? planDrop(open, id, others.length ? others[others.length - 1].id : null, null) : planDrop(open, id, null, others.length ? others[0].id : null));
+  render();
 }
 let dragging = false;
-// Dragging moves nothing in the DOM (a node that is taken out and put back loses the pointer capture, which made the drag stop
-// after one step): the held row follows the finger with a transform, the rows it passes slide by one row height, and the
-// order is decided and written once, on drop.
+// Dragging moves nothing in the DOM (a node that is taken out and put back loses the pointer capture, which stopped the drag
+// after one step): the held row follows the finger with a transform, a line shows where it will land, and the section and
+// the order are decided once, on drop. Dropping under another section heading (also an empty one) moves it into that section.
 $('#items').addEventListener('pointerdown', e => {
   const h = e.target.closest('[data-ordh]');
   if (!h || e.button > 0 || readOnly()) return;
   e.preventDefault();
   const row = h.closest('.item'), id = h.dataset.ordh;
-  let first = row; // the rows of the same section: neighbours with class ord, up to the next heading
-  while (first.previousElementSibling && first.previousElementSibling.classList.contains('ord')) first = first.previousElementSibling;
-  const rows = []; for (let n = first; n && n.classList.contains('ord'); n = n.nextElementSibling) rows.push(n);
-  const rects = rows.map(r => r.getBoundingClientRect()), i0 = rows.indexOf(row), r0 = rects[i0], step = r0.height;
-  const startY = e.clientY, lo = rects[0].top - r0.top, hi = rects[rows.length - 1].top - r0.top;
-  let target = i0;
+  // containers: with sections one per heading (its rows follow it), otherwise one for the whole list
+  const boxes = []; let cur = null;
+  for (const n of $('#items').children) {
+    if (n.classList.contains('aisleHead')) boxes.push(cur = { head: n, aisle: n.dataset.aisle, rows: [] });
+    else if (n.classList.contains('ord')) { if (!cur) boxes.push(cur = { head: null, aisle: null, rows: [] }); cur.rows.push(n); }
+  }
+  const from = boxes.find(b => b.rows.includes(row));
+  const all = boxes.flatMap(b => [...(b.head ? [b.head] : []), ...b.rows]);
+  const r0 = row.getBoundingClientRect(), startY = e.clientY;
+  const lo = all[0].getBoundingClientRect().top - r0.top, hi = all[all.length - 1].getBoundingClientRect().bottom - r0.bottom;
+  const headTops = boxes.map(b => (b.head ? b.head.getBoundingClientRect().top : -Infinity));
+  const mids = new Map(boxes.flatMap(b => b.rows).map(r => { const q = r.getBoundingClientRect(); return [r, q.top + q.height / 2]; }));
+  let dest = from, at = from.rows.indexOf(row);
   dragging = true; row.classList.add('drag'); h.setPointerCapture(e.pointerId);
+  const mark = () => {
+    for (const n of $('#items').querySelectorAll('.dropBefore,.dropAfter,.dropSec')) n.classList.remove('dropBefore', 'dropAfter', 'dropSec');
+    const others = dest.rows.filter(r => r !== row);
+    if (others[at]) others[at].classList.add('dropBefore');
+    else if (others.length) others[others.length - 1].classList.add('dropAfter');
+    else if (dest.head) dest.head.classList.add('dropAfter');
+    if (dest.head && dest !== from) dest.head.classList.add('dropSec');
+  };
   const move = ev => {
     const dy = Math.min(hi, Math.max(lo, ev.clientY - startY));
     row.style.transform = `translateY(${dy}px)`;
-    const centre = r0.top + step / 2 + dy;
-    target = rects.filter((r, i) => i !== i0 && r.top + r.height / 2 < centre).length;
-    rows.forEach((r, i) => { if (i !== i0) r.style.transform = (i > i0 && i <= target ? `translateY(${-step}px)` : i < i0 && i >= target ? `translateY(${step}px)` : ''); });
+    const centre = r0.top + r0.height / 2 + dy;
+    let b = 0; headTops.forEach((top, i) => { if (top <= centre) b = i; });
+    dest = boxes[b];
+    at = dest.rows.filter(r => r !== row && mids.get(r) < centre).length;
+    mark();
   };
   const end = ev => {
     h.removeEventListener('pointermove', move); h.removeEventListener('pointerup', end); h.removeEventListener('pointercancel', end);
     row.classList.remove('drag'); dragging = false;
-    const order = rows.filter(r => r !== row); order.splice(target, 0, row);
+    const others = dest.rows.filter(r => r !== row);
     const idOf = n => (n ? n.querySelector('[data-ordh]').dataset.ordh : null);
-    if (ev.type === 'pointerup' && target !== i0) applyPlan(id, planDrop(openItems(), id, idOf(order[target - 1]), idOf(order[target + 1])));
+    if (ev.type === 'pointerup' && (dest !== from || at !== from.rows.indexOf(row))) {
+      if (dest !== from) putInSection(state.items[id].title, dest.aisle);
+      applyPlan(id, planDrop(openItems(), id, idOf(others[at - 1]), idOf(others[at])));
+    }
     render();
   };
   h.addEventListener('pointermove', move); h.addEventListener('pointerup', end); h.addEventListener('pointercancel', end);
@@ -404,8 +442,6 @@ document.addEventListener('click', e => {
   if (e.target.closest('#useLocal')) { startLocal(); return; } // the saved list code stays, the next start tries it again
   if (e.target.closest('[data-orddone]')) { setReorder(false); return; }
   if (Date.now() < noClickUntil) return; // the click that ends a long press must not open the section dialog or tick the item
-  const mv = e.target.closest('[data-move]');
-  if (mv) { const it = state.items[mv.dataset.move]; if (it) openAisleDlg(it); return; }
   const chk = e.target.closest('[data-chk]');
   if (chk) { const it = state.items[chk.dataset.chk]; if (it && !it.checked) remember(it.title, it.vgNum); if (it) bg.check(code, it.id, myKey(), !it.checked); return; }
   const cl = e.target.closest('[data-claim]');
@@ -687,25 +723,8 @@ if (IS_DEV) {
 $('#menuVersion').textContent = t('version', { v: BUILD });
 // Join dialog (menu on the local list): type the code, or scan the QR code
 const closeJoin = () => { $('#joinDlg').classList.add('hide'); $('#codeIn').value = ''; };
-// The menu switch and the move dialog of the aisle grouping
-let aisleItem = null;
+// The menu switch of the aisle grouping; an item changes section only by moving it in the reorder mode
 const renderAisleMenu = () => $('#menuAisles').setAttribute('aria-checked', String(aisleOn));
-function openAisleDlg(it) {
-  aisleItem = it.title;
-  dismissKeyboard();
-  const now = aisleOf(it.title, aisleOver);
-  $('#aisleName').textContent = it.title;
-  $('#aisleOpts').innerHTML = [...AISLES, OTHER].map(a => `<button type="button" class="btn sec${a === now ? ' on' : ''}" data-aisle="${a}" aria-pressed="${a === now}">${esc(t(AISLE_NAME[a]))}</button>`).join('')
-    + `<button type="button" class="btn sec" data-aisle="">${esc(t('aisleAuto'))}</button>`;
-  $('#aisleDlg').classList.remove('hide');
-}
-$('#aisleClose').onclick = () => $('#aisleDlg').classList.add('hide');
-$('#aisleOpts').addEventListener('click', e => {
-  const b = e.target.closest('[data-aisle]');
-  if (!b || aisleItem === null) return;
-  aisleOver = withChoice(aisleOver, aisleItem, b.dataset.aisle || null); LS.set('aisleOver', aisleOver);
-  aisleItem = null; $('#aisleDlg').classList.add('hide'); render();
-});
 $('#menuAisles').onclick = () => { aisleOn = !aisleOn; LS.set('aisles', aisleOn); renderAisleMenu(); render(); };
 renderAisleMenu();
 function openJoin() { dismissKeyboard(); $('#joinDlg').classList.remove('hide'); }
