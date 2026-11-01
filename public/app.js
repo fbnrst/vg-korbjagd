@@ -510,6 +510,27 @@ const closeShareDialog = () => $('#shareDlg').classList.add('hide');
 $('#shareBtn').onclick = () => openShareDialog();
 $('#menuShare').onclick = () => openShareDialog(); // the same dialog from the ⋯ menu, where people also look for it
 $('#shareClose').onclick = closeShareDialog;
+// Install invitation: the QR code and link point at the app itself (no list code), so a newcomer lands on the page that can be added to the home screen
+const appUrl = () => new URL('./', location.href.split(/[?#]/)[0]).href;
+async function openInstallDialog() {
+  dismissKeyboard();
+  $('#installDlg').classList.remove('hide');
+  try {
+    await loadQr();
+    const qr = window.qrcode(0, 'M'); qr.addData(appUrl()); qr.make();
+    $('#installQr').innerHTML = qr.createSvgTag({ cellSize: 6, margin: 2, scalable: true });
+  } catch (e) { $('#installQr').textContent = t('qrFail'); }
+}
+$('#menuInstall').onclick = openInstallDialog;
+$('#installClose').onclick = () => $('#installDlg').classList.add('hide');
+$('#installDlg').onclick = e => { if (e.target.id === 'installDlg') $('#installDlg').classList.add('hide'); };
+$('#installCopy').onclick = async () => {
+  try { await navigator.clipboard.writeText(appUrl()); toast(t('linkCopied')); } catch (e) { prompt(t('linkPrompt'), appUrl()); }
+};
+$('#installSend').onclick = async () => {
+  try { if (navigator.share) return await navigator.share({ title: 'Kober', text: t('installShareText'), url: appUrl() }); } catch (e) { return; }
+  try { await navigator.clipboard.writeText(appUrl()); toast(t('linkCopied')); } catch (e) { prompt(t('linkPrompt'), appUrl()); }
+};
 // Copy the list code; without clipboard access the code text is selected so it can be copied by hand
 $('#copyCode').onclick = async () => {
   const el = $('#shareCode');
@@ -862,7 +883,7 @@ $('#renameBtn').onclick = () => {
 };
 function enterApp() {
   $('#tabs').classList.remove('hide'); $('#shareBtn').classList.remove('hide');
-  for (const id of ['#menuShare', '#menuReset', '#menuImport', '#menuJoin', '#menuLeave']) $(id).classList.remove('hide'); // #menuLeave is hidden on the local list by CSS (body.local)
+  for (const id of ['#menuShare', '#menuInstall', '#menuReset', '#menuImport', '#menuJoin', '#menuLeave']) $(id).classList.remove('hide'); // #menuLeave is hidden on the local list by CSS (body.local)
   document.body.classList.toggle('local', isLocal());
   show('vList');
   connect();

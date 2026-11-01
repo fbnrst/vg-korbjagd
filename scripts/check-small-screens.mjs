@@ -85,7 +85,7 @@ function audit({ minTap, slack, taps }) {
   // 3) controls: inside the viewport (outside the scrolling list), not overlapping, big enough to tap
   // the layer that is on top: an open menu, dialog or scanner, else the app
   const suggest = document.querySelector('#addSuggest');
-  const layer = suggest && visible(suggest) ? document.querySelector('#addBar') : [...document.querySelectorAll('.menu,#shareDlg,#importDlg,#resetDlg,#joinDlg,#diagDlg,#scanner')].find(el => el && visible(el)) || document.querySelector('#app') || document.body;
+  const layer = suggest && visible(suggest) ? document.querySelector('#addBar') : [...document.querySelectorAll('.menu,#shareDlg,#importDlg,#resetDlg,#joinDlg,#installDlg,#diagDlg,#scanner')].find(el => el && visible(el)) || document.querySelector('#app') || document.body;
   const clipped = el => { const r = el.getBoundingClientRect(); for (let p = el.parentElement; p; p = p.parentElement) { if (getComputedStyle(p).overflowY === 'visible') continue; const q = p.getBoundingClientRect(); if (r.top < q.top - 1 || r.bottom > q.bottom + 1) return true; } return false; };
   const sel = 'button,input:not([type=hidden]),a[href],[data-checkout],[role=menuitem]';
   const controls = taps ? [...layer.querySelectorAll(sel)].filter(visible) : [];
@@ -121,7 +121,7 @@ function audit({ minTap, slack, taps }) {
   }
 
   // 4) dialogs: reachable (fits, or the dialog scrolls) and not cut off at the top
-  for (const dlg of document.querySelectorAll('#shareDlg,#importDlg,#resetDlg,#joinDlg,#diagDlg')) {
+  for (const dlg of document.querySelectorAll('#shareDlg,#importDlg,#resetDlg,#joinDlg,#installDlg,#diagDlg')) {
     if (!visible(dlg)) continue;
     const card = dlg.firstElementChild.getBoundingClientRect();
     const scrolls = dlg.scrollHeight > dlg.clientHeight + 1 && /(auto|scroll)/.test(getComputedStyle(dlg).overflowY);
