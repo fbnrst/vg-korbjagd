@@ -3,7 +3,9 @@
 [![Checks](https://github.com/fbnrst/kober/actions/workflows/autofix.yml/badge.svg)](https://github.com/fbnrst/kober/actions/workflows/autofix.yml)
 [![Deploy](https://github.com/fbnrst/kober/actions/workflows/pages.yml/badge.svg)](https://github.com/fbnrst/kober/actions/workflows/pages.yml)
 
-**[Open the app](https://fbnrst.github.io/kober/)** · **[Help](https://fbnrst.github.io/kober/docs/)**
+## Just want to use it?
+
+**On your phone, open [fbnrst.github.io/kober](https://fbnrst.github.io/kober/).** Nothing to sign up for. The app shows you how to put it on your home screen (iPhone: Safari → Share → Add to Home Screen; Android: Chrome → Install app). [Step-by-step install guide](https://fbnrst.github.io/kober/docs/#en-install) · [Help](https://fbnrst.github.io/kober/docs/) · [Privacy](https://fbnrst.github.io/kober/privacy.html)
 
 An independent, unofficial shopping list app. The list lives on your phone first; once you share it, phones sync live and a leaderboard ("who puts the most in the basket") starts. Idea and product data: the [VG app](https://gitlab.com/pyfox/vg-app) of VG Dresden. This project is not affiliated with VG Dresden.
 
@@ -21,13 +23,12 @@ An independent, unofficial shopping list app. The list lives on your phone first
 </tr>
 </table>
 
-## Documentation
-- [Help page](https://fbnrst.github.io/kober/docs/) (for users) and [privacy notice](public/privacy.html)
+## For developers and maintainers
 - For maintainers (not deployed): [architecture, build, release and Firebase setup](docs/architecture.md), [retention and deletion](docs/retention.md), [security](docs/security.md), [VG endpoints](docs/vg-api.md)
 
 The app has two versions: the [release](https://fbnrst.github.io/kober/) (latest tag) and [`/dev/`](https://fbnrst.github.io/kober/dev/) (current `main`).
 
-## Development
+### Development
     npm start      # http://localhost:3000, demo mode without Firebase
     npm test
 
