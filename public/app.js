@@ -393,6 +393,7 @@ async function openShareDialog() {
 }
 const closeShareDialog = () => $('#shareDlg').classList.add('hide');
 $('#shareBtn').onclick = openShareDialog;
+$('#menuShare').onclick = openShareDialog; // the same dialog from the ⋯ menu, where people also look for it
 $('#shareClose').onclick = closeShareDialog;
 $('#shareDlg').onclick = e => { if (e.target.id === 'shareDlg') closeShareDialog(); };
 $('#shareStart').onclick = () => { closeShareDialog(); me.name ? shareLocalList() : askIdentity(shareLocalList, backToList); };
@@ -656,7 +657,7 @@ $('#renameBtn').onclick = () => {
 };
 function enterApp() {
   $('#tabs').classList.remove('hide'); $('#shareBtn').classList.remove('hide');
-  for (const id of ['#menuReset', '#menuImport', '#menuJoin', '#menuLeave']) $(id).classList.remove('hide'); // #menuLeave is hidden on the local list by CSS (body.local)
+  for (const id of ['#menuShare', '#menuReset', '#menuImport', '#menuJoin', '#menuLeave']) $(id).classList.remove('hide'); // #menuLeave is hidden on the local list by CSS (body.local)
   document.body.classList.toggle('local', isLocal());
   show('vList');
   connect();

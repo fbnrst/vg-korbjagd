@@ -261,7 +261,7 @@ export const STATIC = [
   ['#shareLocalBox h2', 'shareLocalTitle', 'text'], ['#shareLocalHint', 'shareLocalHint', 'text'],
   ['#privacyNoteName', 'privacyNoteName', 'text'],
   ['.privacyLink', 'linkPrivacy', 'text'], ['#helpLink', 'linkHelp', 'text'],
-  ['#shareStart', 'shareStart', 'text'], ['#menuReset', 'resetTitle', 'text'], ['#menuImport', 'resetImport', 'text'], ['#menuLeave', 'resetLeave', 'text'],
+  ['#shareStart', 'shareStart', 'text'], ['#menuShare', 'shareStart', 'text'], ['#menuReset', 'resetTitle', 'text'], ['#menuImport', 'resetImport', 'text'], ['#menuLeave', 'resetLeave', 'text'],
   ['#resetTitle', 'resetTitle', 'text'], ['#resetShared', 'resetShared', 'text'], ['#resetOpenLbl', 'resetOpen', 'text'], ['#resetDoneLbl', 'resetDone', 'text'],
   ['#resetEmptiesLbl', 'resetEmpties', 'text'], ['#resetCancel', 'close', 'aria-label'], ['#resetGo', 'resetGo', 'text'],
   ['#deleteBtn', 'deleteList', 'text'],
