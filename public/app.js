@@ -20,7 +20,14 @@ const LS = { get(k, d) { try { return JSON.parse(localStorage.getItem(NS + k)) ?
 
 // Own item history for suggestions: one table for all lists on this phone (lists come and go, shopping habits stay); bounded, validated on load
 let itemHistory = sanitizeHistory(LS.get('history', null));
-const remember = (title, vgNum) => { itemHistory = recordHistory(itemHistory, HISTORY_KEY, title, vgNum); LS.set('history', itemHistory); };
+// Ask the browser to keep this site's storage (the local list lives only there): Safari deletes it after about a week
+// without a visit, other browsers under storage pressure. Asked once per start, only when there is something to keep.
+let keepAsked = false;
+function keepStorage() {
+  if (keepAsked) return; keepAsked = true;
+  try { const s = navigator.storage; if (s && s.persist) s.persisted().then(p => p || s.persist()).catch(() => {}); } catch (e) { /* not supported: nothing to do */ }
+}
+const remember = (title, vgNum) => { keepStorage(); itemHistory = recordHistory(itemHistory, HISTORY_KEY, title, vgNum); LS.set('history', itemHistory); };
 
 const me = LS.get('me', { name: '', emoji: EMOJIS[0] });
 // The list lives on this phone (code LOCAL) until it is shared; then it moves to the server under an 8-character code (6 for older lists).
@@ -81,6 +88,24 @@ function hideToast() {
   el.addEventListener('pointerenter', hold); el.addEventListener('focusin', hold);
   el.addEventListener('pointerleave', go); el.addEventListener('focusout', () => setTimeout(go, 0));
 }
+// A question before an action, in the app's own dialog (#askDlg) instead of the browser's confirm(): styled, in the app's
+// language, accessible through initDialogs, and it does not freeze the page (the camera keeps running behind it).
+// Resolves true for `yes`, false for Cancel, Escape or a tap beside it. `danger`: the yes button is the red one.
+// `no: null` shows only the yes button (a message). A new question answers an open one with false.
+let askDone = null;
+function ask(msg, { yes = t('ok'), no = t('cancel'), danger = false } = {}) {
+  dismissKeyboard();
+  if (askDone) askDone(false);
+  return new Promise(resolve => {
+    askDone = v => { askDone = null; $('#askDlg').classList.add('hide'); resolve(v); };
+    $('#askText').textContent = msg;
+    $('#askYes').textContent = yes; $('#askYes').classList.toggle('destroy', danger);
+    $('#askNo').textContent = no ?? ''; $('#askNo').classList.toggle('hide', no === null);
+    $('#askDlg').classList.remove('hide');
+  });
+}
+$('#askYes').onclick = () => { if (askDone) askDone(true); };
+$('#askNo').onclick = () => { if (askDone) askDone(false); };
 // The cached list of an earlier visit is only for reading: every flow that changes the list asks this first, so it neither
 // shows a success that did not happen nor throws away what was typed
 const readOnly = () => { if (!stale) return false; toast(t('connCached')); return true; };
@@ -501,13 +526,19 @@ document.addEventListener('input', e => {
 });
 // A typed number whose product has a completely different name than the item (apple vs. orange), or that the database
 // lists as unused ("unbesetzt"): ask first. The shop may still use it, so it can be confirmed.
-function numberFits(p, n, item) {
+async function numberFits(p, n, item) {
   if (!p) return true;
-  if (p.placeholder) return confirm(t('confirmPlaceholder', { n, product: p.title })); // an unused number is most likely a typo
+  if (p.placeholder) return ask(t('confirmPlaceholder', { n, product: p.title }), { yes: t('askUseNumber') }); // an unused number is most likely a typo
   if (!item || similarNames(p.title, item.title)) return true;
-  return confirm(t('confirmNumberMismatch', { n, product: p.title, listed: item.title }));
+  return ask(t('confirmNumberMismatch', { n, product: p.title, listed: item.title }), { yes: t('askUseNumber') });
 }
-document.addEventListener('submit', e => {
+// Declined: the row's number field gets the typed number back (the rows may have been rebuilt while the question was open)
+function keepTyping(sel, value) {
+  const input = document.querySelector(sel);
+  if (!input) return;
+  input.value = value; input.dispatchEvent(new Event('input', { bubbles: true })); input.focus();
+}
+document.addEventListener('submit', async e => {
   const fe = e.target.closest('[data-vgedit]');
   if (fe) { // change, add or (empty field) remove the VG number of an item; the basket state stays as it is
     e.preventDefault();
@@ -515,7 +546,7 @@ document.addEventListener('submit', e => {
     const raw = fe.querySelector('input').value.trim(), v = parseInt(raw, 10);
     if (raw && !(v > 0)) return;
     const id = fe.dataset.vgedit, p = raw && vg ? vg.lookup(v) : null;
-    if (!numberFits(p, v, state.items[id])) return; // keep editing so the number can be corrected
+    if (!(await numberFits(p, v, state.items[id]))) { render(); return; } // keep editing so the number can be corrected
     editingId = null; dismissKeyboard(); // the field goes away: the rows may be rebuilt now
     bg.setNum(code, id, myKey(), raw ? v : null, false, p ? { title: p.title } : {});
     if (raw) toast(p ? `✓ ${p.title}` : t(vg ? 'vgNotInDb' : 'vgSaved', { n: v }));
@@ -529,7 +560,7 @@ document.addEventListener('submit', e => {
   const v = parseInt(f.querySelector('input').value, 10);
   if (!(v > 0)) return;
   const p = vg && vg.lookup(v);
-  if (!numberFits(p, v, state.items[f.dataset.vg])) return; // the field keeps the typed number
+  if (!(await numberFits(p, v, state.items[f.dataset.vg]))) { keepTyping(`[data-vg="${CSS.escape(f.dataset.vg)}"] input`, String(v)); return; } // the field keeps the typed number
   dismissKeyboard(); // the item moves into the basket: the rows may be rebuilt now
   bg.setNum(code, f.dataset.vg, myKey(), v, true, p ? { title: p.title } : {}); // entering the number puts it in the basket
   toast(p ? `✓ ${p.title}` : t(vg ? 'vgNotInDb' : 'vgSaved', { n: v }));
@@ -537,7 +568,7 @@ document.addEventListener('submit', e => {
 // Leaving the edit field (blur) or pressing Escape cancels the edit
 document.addEventListener('focusout', e => {
   if (!e.target.closest('[data-vgedit]')) return;
-  setTimeout(() => { if (editingId && !document.activeElement?.closest('[data-vgedit]') && $('#scanner').classList.contains('hide')) { editingId = null; render(); } }, 350);
+  setTimeout(() => { if (editingId && !document.activeElement?.closest('[data-vgedit]') && $('#scanner').classList.contains('hide') && $('#askDlg').classList.contains('hide')) { editingId = null; render(); } }, 350);
 });
 // The rows waited while a number field had focus (see render): rebuild them once focus has left the rows' fields
 document.addEventListener('focusout', e => {
@@ -545,14 +576,14 @@ document.addEventListener('focusout', e => {
   setTimeout(() => { if (rowsLater && !rowFieldFocused()) render(); }, 0);
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && editingId) { editingId = null; dismissKeyboard(); render(); } });
-$('#addForm').onsubmit = e => {
+$('#addForm').onsubmit = async e => {
   e.preventDefault();
   const v = $('#addIn').value.trim(); if (!v) return;
   if (readOnly()) return; // the typed text stays in the field
   const isNum = /^\d+$/.test(v);
   const p = vg && isNum ? vg.lookup(v) : null; // names are added as typed, without a number
   if (tooLongNumber(v)) return; // VG numbers have 3-4 digits: the "+" is muted and the suggestion area says so; the typed number stays in the field
-  if (p && p.placeholder && !numberFits(p, v, null)) return; // declined: the typed number stays in the field
+  if (p && p.placeholder && !(await numberFits(p, v, null))) return; // declined: the typed number stays in the field
   $('#addIn').value = ''; $('#addSuggest').classList.add('hide'); syncAddButton();
   if (p) addToBasket(p.title, { vgNum: p.vgNum });
   else if (isNum) addToBasket(t('vgPlaceholderTitle', { n: v }), { vgNum: +v });
@@ -634,7 +665,7 @@ $('#addIn').oninput = () => {
     + (long ? `<span class="miss">${esc(t('vgTooLong'))}</span>` : '');
 };
 
-$('#resetBtn').onclick = () => { if (confirm(t('confirmReset'))) bg.resetScores(code); };
+$('#resetBtn').onclick = async () => { if (await ask(t('confirmReset'), { yes: t('newRound') })) bg.resetScores(code); };
 /* ---------- Sharing (QR code + link) ---------- */
 const shareUrl = () => new URL(`?list=${code}`, location.href.split('?')[0]).href;
 // A bundled third-party script (vendor/), loaded on first use; `ready` says whether it is there already
@@ -789,18 +820,18 @@ $('#resetGo').onclick = async () => {
   const open = $('#resetOpen').checked, done = $('#resetDone').checked;
   const plan = resetPlan({ open, done, empties: $('#resetEmpties').checked, scores: $('#resetScores').checked }, !isLocal());
   // open items are still to be bought: removing them is asked once more
-  if (open && Object.values(state.items).some(i => !i.checked) && !confirm(t(isLocal() ? 'confirmClearOpen' : 'confirmClearOpenShared'))) return;
+  if (open && Object.values(state.items).some(i => !i.checked) && !(await ask(t(isLocal() ? 'confirmClearOpen' : 'confirmClearOpenShared'), { yes: t('askRemove'), danger: true }))) return;
   closeReset();
   try {
     for (const op of plan) await store[op](code);
   } catch (e) { if (!isPending(e)) toast(noDbMsg(e)); }
 };
-$('#menuLeave').onclick = () => {
-  if (!confirm(`${t('confirmLeave')}\n\n${t('leaveCode', { code })}`)) return; // the code is shown so the person can come back
+$('#menuLeave').onclick = async () => {
+  if (!(await ask(`${t('confirmLeave')}\n\n${t('leaveCode', { code })}`, { yes: t('resetLeave') }))) return; // the code is shown so the person can come back
   forgetShared(); startLocal();
 };
 $('#deleteBtn').onclick = async () => {
-  if (!confirm(t('confirmDeleteList'))) return;
+  if (!(await ask(t('confirmDeleteList'), { yes: t('askDelete'), danger: true }))) return;
   const c = code;
   if (unsub) { unsub(); unsub = null; } // do not react to our own deletion as if someone else had deleted the list
   try { await store.deleteList(c); } catch (e) { connect(); toast(noDbMsg(e)); return; }
@@ -809,7 +840,7 @@ $('#deleteBtn').onclick = async () => {
 $('#shareLink').onclick = async () => {
   const url = shareUrl();
   try { if (navigator.share) return await navigator.share({ title: t('shareTitleText'), text: t('shareText', { code }), url }); } catch (e) { return; }
-  try { await navigator.clipboard.writeText(url); toast(t('linkCopied')); } catch (e) { prompt(t('linkPrompt'), url); }
+  try { await navigator.clipboard.writeText(url); toast(t('linkCopied')); } catch (e) { ask(`${t('linkPrompt')}\n${url}`, { yes: t('ok'), no: null }); } // the link stays selectable in the dialog
 };
 document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => show(b.dataset.t));
 function show(id) {
@@ -851,8 +882,8 @@ async function productName(ean) {
 async function scanForRow(c, p, target) {
   const checkToo = scanTarget.checkToo && !target.checked;
   if (p) {
-    if (p.placeholder) { if (!numberFits(p, p.vgNum, target)) return; }
-    else if (!similarNames(p.title, target.title) && !confirm(t('confirmScanMismatch', { scanned: p.title, listed: target.title }))) return;
+    if (p.placeholder) { if (!(await numberFits(p, p.vgNum, target))) return; }
+    else if (!similarNames(p.title, target.title) && !(await ask(t('confirmScanMismatch', { scanned: p.title, listed: target.title }), { yes: t('askUseScan') }))) return;
     bg.setNum(code, target.id, myKey(), p.vgNum, checkToo, { title: p.title });
     toast(`✓ ${p.title}`);
   } else if (c.kind === 'vg') { // a VG number the database does not know (or the VG data has not loaded): keep it anyway, like in the input bar
@@ -862,7 +893,7 @@ async function scanForRow(c, p, target) {
     scanMsg(t('lookingUp'));
     const session = scanSession, name = await productName(c.ean);
     if (session !== scanSession) return; // the scanner was closed while waiting: nothing happens any more
-    if (name && !similarNames(name, target.title) && !confirm(t('confirmScanMismatch', { scanned: name, listed: target.title }))) return;
+    if (name && !similarNames(name, target.title) && !(await ask(t('confirmScanMismatch', { scanned: name, listed: target.title }), { yes: t('askUseScan') }))) return;
     bg.setEan(code, target.id, myKey(), c.ean, checkToo);
     toast(`✓ ${target.title}`);
   } else { toast(t('scanUnknown')); return; }
@@ -887,7 +918,7 @@ async function handleCode(raw) {
     }
     // zxing (iOS) also reads QR codes: anything that is not a barcode number (a URL, some text) is ignored, keep looking
     if (c.kind === 'unknown') { scanMsg(t('scanUnknown'), true); return; }
-    if (p && p.placeholder && !numberFits(p, c.n, null)) { closeScanner(); return; } // unused number, declined
+    if (p && p.placeholder && !(await numberFits(p, c.n, null))) { closeScanner(); return; } // unused number, declined
     let r;
     if (p) r = addToBasket(p.title, { vgNum: p.vgNum }); // the labelled product (or the item with its number) goes into the basket
     else if (c.kind === 'vg') { // a VG number the database does not know, or the VG data has not loaded yet: a placeholder name
@@ -1004,6 +1035,7 @@ function showGate(c, proceed, kind = 'ios') {
     const [before, after] = t('gateStepJoin', { code: '\n' }).split('\n'), b = document.createElement('b');
     b.id = 'gateCodeText'; b.textContent = c; steps.lastChild.replaceChildren(before, b, after ?? '');
   }
+  $('#gateNote').classList.toggle('hide', android); // iOS: Safari clears the storage of a site not visited for a week (not the installed app)
   $('#gateCopy').classList.toggle('hide', !c || android);
   $('#gateInstall').classList.toggle('hide', !android);
   $('#gateGo').onclick = () => { $('#gateDlg').classList.add('hide'); if (c) browserHintDone(c); else LS.set('installHintOff', true); proceed(); };
@@ -1132,12 +1164,15 @@ async function init() {
   const urlCode = parseListCode(urlList); // same check as typed and scanned codes
   if (urlList && !urlCode) toast(t('notAList'));
   const savedCode = LS.get('code', '');
+  if (savedCode || me.name || itemHistory[HISTORY_KEY]) keepStorage(); // there is something on this phone worth keeping
   const openSaved = () => startShared(savedCode).catch(e => { toast(noDbMsg(e)); startLocal(); }); // offline: local list, saved code is kept
   const startFlow = () => {
     if (urlCode && urlCode !== savedCode && savedCode && me.name) { // a link to another list while a shared list is open: ask first
       const n = outbox.count(savedCode), lost = n ? `\n\n${t(n === 1 ? 'confirmSwitchPending1' : 'confirmSwitchPending', { n })}` : '';
-      if (!confirm(t('confirmSwitchList', { from: savedCode, to: urlCode }) + lost)) openSaved();
-      else joinShared(urlCode, { fallback: openSaved, joined: () => dropListData(savedCode) }); // the old list is forgotten only once the new one is open
+      ask(t('confirmSwitchList', { from: savedCode, to: urlCode }) + lost, { yes: t('askSwitch'), danger: !!n }).then(go => {
+        if (!go) openSaved();
+        else joinShared(urlCode, { fallback: openSaved, joined: () => dropListData(savedCode) }); // the old list is forgotten only once the new one is open
+      });
     } else if (urlCode && urlCode !== savedCode) joinShared(urlCode);
     else if (savedCode && me.name) openSaved();
     else startLocal();

@@ -148,7 +148,7 @@ async function runContext(browser, base, [w, h], lang, scheme, violations) {
   await context.addInitScript(() => { try { if (!sessionStorage.getItem('__gateOff')) { sessionStorage.setItem('__gateOff', '1'); localStorage.setItem('installHintOff', 'true'); } } catch (e) { /* none */ } });
   const page = await context.newPage();
   page.on('pageerror', e => violations.push(`[${tag}] page error: ${e.message}`));
-  page.on('dialog', d => d.accept()); // confirm() questions of the app
+  page.on('dialog', d => d.accept()); // a native dialog would block the walk (the app asks with #askDlg instead)
   let n = 0;
   const check = async (screen, { taps = true } = {}) => {
     await page.waitForTimeout(150); // transitions (toast, banner)
@@ -223,6 +223,7 @@ async function runContext(browser, base, [w, h], lang, scheme, violations) {
   await menu(); await check('menu-shared'); await page.keyboard.press('Escape'); await page.click('header h1').catch(() => {});
   await menu(); await page.click('#menuReset'); await page.check('#resetScores'); await page.check('#resetOpen'); await page.waitForTimeout(100);
   await check('reset-dialog-shared'); await page.click('#resetCancel'); // four options, the button is red
+  await menu(); await page.click('#menuLeave'); await page.waitForTimeout(100); await check('ask-dialog'); await page.click('#askNo'); // the app's own question dialog (the longest text: leave with the code)
   for (const [who, emoji, item] of [['Ben', '🐼', 'Vollkornbrot'], ['Bartholomäus-Friedrich', '🦖', 'Hafer']]) {
     await page.evaluate(([name, e]) => localStorage.setItem('me', JSON.stringify({ name, emoji: e })), [who, emoji]);
     await open(); await tab('vList');
