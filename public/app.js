@@ -457,6 +457,25 @@ if (IS_DEV) {
     } catch (e) { toast(t('noDb')); startLocal(); }
   });
   devBtn('#shareSharedBox', 'devShareBack', () => { closeShareDialog(); forgetShared(); startLocal(); });
+  // Diagnostics for what only a phone can show (status bar colour, service worker, caches); plain text, never HTML
+  const diag = async out => {
+    const meta = h => (h.match(/<meta[^>]*name="theme-color"[^>]*>/g) || []).join(' ') || '(none)';
+    const lines = [];
+    try { lines.push('server meta: ' + meta(await (await fetch(location.href, { cache: 'reload' })).text())); } catch (e) { lines.push('server meta: ' + e.message); }
+    lines.push('live meta: ' + [...document.querySelectorAll('meta[name=theme-color]')].map(m => m.content).join(', '));
+    lines.push('header: ' + getComputedStyle($('header')).backgroundColor + ', html: ' + getComputedStyle(document.documentElement).backgroundColor);
+    lines.push('standalone: ' + (navigator.standalone === true) + ', dark: ' + matchMedia('(prefers-color-scheme: dark)').matches);
+    try { lines.push('caches: ' + (await caches.keys()).join(', ')); } catch (e) { lines.push('caches: ' + e.message); }
+    try { const r = await navigator.serviceWorker.getRegistration(); lines.push('sw: ' + (r && r.active ? r.active.scriptURL : 'none') + ', controlled: ' + !!navigator.serviceWorker.controller); } catch (e) { lines.push('sw: ' + e.message); }
+    lines.push('url: ' + location.href);
+    out.textContent = lines.join('\n');
+  };
+  for (const box of ['#shareLocalBox', '#shareSharedBox']) {
+    const pre = document.createElement('pre');
+    pre.style.cssText = 'font-size:12px;white-space:pre-wrap;word-break:break-all;text-align:left;margin:8px 0 0';
+    devBtn(box, 'devDiag', () => diag(pre));
+    $(box).appendChild(pre);
+  }
 }
 // Join dialog (menu on the local list): type the code, or scan the QR code
 const closeJoin = () => { $('#joinDlg').classList.add('hide'); $('#codeIn').value = ''; };
