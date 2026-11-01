@@ -166,9 +166,9 @@ document.addEventListener('click', e => {
   const chk = e.target.closest('[data-chk]');
   if (chk) { const it = state.items[chk.dataset.chk]; if (it) store.check(code, it.id, myKey(), !it.checked); return; }
   const sg = e.target.closest('[data-sug]');
-  if (sg) { // a suggested product was tapped: add it right away
+  if (sg) { // a suggested product was tapped: it goes into the basket right away
     const p = vg && vg.lookup(sg.dataset.sug);
-    if (p) store.add(code, { id: uid(), title: p.title, vgNum: p.vgNum }, myKey());
+    if (p) addToBasket(p.title, p.vgNum);
     $('#addIn').value = ''; $('#addIn').dispatchEvent(new Event('input'));
     return;
   }
@@ -244,10 +244,20 @@ $('#addForm').onsubmit = e => {
   if (p && p.placeholder && !numberFits(p, v, null)) return; // declined: the typed number stays in the field
   $('#addIn').value = ''; $('#addSuggest').classList.add('hide'); syncAddButton();
   if (parseShareLink(v)) return openImport(v); // a share link from the original app was pasted
-  if (p) store.add(code, { id: uid(), title: p.title, vgNum: p.vgNum }, myKey());
-  else store.add(code, { id: uid(), title: isNum ? t('vgPlaceholderTitle', { n: v }) : v, vgNum: isNum ? +v : null }, myKey());
+  if (p) addToBasket(p.title, p.vgNum);
+  else if (isNum) addToBasket(t('vgPlaceholderTitle', { n: v }), +v);
+  else store.add(code, { id: uid(), title: v }, myKey());
   if (isNum && !p) toast(vg ? t('vgNotInDb', { n: v }) : t('vgNotLoaded'));
 };
+// A VG number is typed at the shelf: the item goes straight into the basket (an item with that number on the list is
+// checked off instead of adding it twice). Names are added as open items.
+async function addToBasket(title, vgNum) {
+  const known = Object.values(state.items).find(i => i.vgNum === vgNum);
+  if (known) { if (!known.checked) store.check(code, known.id, myKey(), true); return; }
+  const id = uid();
+  await store.add(code, { id, title, vgNum }, myKey());
+  store.check(code, id, myKey(), true);
+}
 // Number mode: numeric keyboard, digits only (like the "123" switch of the original app)
 let numMode = LS.get('numMode', false);
 function applyMode(focus) {
