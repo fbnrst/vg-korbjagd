@@ -10,7 +10,8 @@ const sw = read('sw.js');
 const FILES = new Function(`return ${sw.match(/const FILES = (\[[\s\S]*?\]);/)[1]}`)().map(f => path.posix.normalize(f));
 
 // Same-origin files a module loads: static imports/re-exports, literal dynamic imports and `new URL('...', import.meta.url)`.
-// Absolute URLs (the Firebase SDK from gstatic) are cross-origin and left out.
+// Absolute URLs are cross-origin and left out. vendor/ is not followed, except the ES modules of the Firebase SDK
+// (firebase-database.js imports ./firebase-app.js).
 const deps = (file, src) => {
   const out = [];
   const add = spec => { if (!/^[a-z]+:|^\/\//i.test(spec)) out.push(path.posix.normalize(path.posix.join(path.posix.dirname(file), spec))); };
@@ -26,7 +27,7 @@ const graph = entries => {
     const f = todo.pop();
     if (seen.has(f)) continue;
     seen.add(f);
-    if (f.endsWith('.js') && !f.startsWith('vendor/')) todo.push(...deps(f, read(f)));
+    if (f.endsWith('.js') && (!f.startsWith('vendor/') || f.startsWith('vendor/firebase/'))) todo.push(...deps(f, read(f)));
   }
   return seen;
 };
@@ -37,7 +38,7 @@ const links = page => [...read(page).matchAll(/<(?:script|link)\b[^>]*?\b(?:src|
 test('sw.js precaches every module app.js loads and every file the pages link', () => {
   const pages = ['index.html', 'privacy.html', 'docs/index.html'];
   const need = graph(pages.flatMap(links));
-  assert.ok(need.has('app.js') && need.has('store.js') && need.has('vendor/zxing.min.js') && need.has('theme.css'), 'the graph was found');
+  assert.ok(need.has('app.js') && need.has('store.js') && need.has('vendor/zxing.min.js') && need.has('vendor/firebase/firebase-database.js') && need.has('vendor/firebase/firebase-app.js') && need.has('theme.css'), 'the graph was found');
   for (const p of pages) assert.ok(FILES.includes(p), `${p} is precached`);
   for (const f of need) {
     assert.ok(fs.existsSync(path.join(PUB, f)), `${f} exists`);

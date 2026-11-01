@@ -36,10 +36,10 @@ export const isPlaceholderTitle = t => /^VG(-Nr\.| no\.) \d+$/.test(t);
 const toNum = v => intIn(v, 1, 9999999);
 
 export async function firebaseAdapter(cfg) {
-  const V = '10.14.1';
+  // Firebase JS SDK 10.14.1, served from our own origin (vendor/firebase/, see LICENSE.txt there); loaded only for shared lists
   const [{ initializeApp }, { getDatabase, ref, onValue, runTransaction, set, get, remove, goOnline, goOffline, serverTimestamp }] = await Promise.all([
-    import(`https://www.gstatic.com/firebasejs/${V}/firebase-app.js`),
-    import(`https://www.gstatic.com/firebasejs/${V}/firebase-database.js`),
+    import('./vendor/firebase/firebase-app.js'),
+    import('./vendor/firebase/firebase-database.js'),
   ]);
   const db = getDatabase(initializeApp(cfg));
   const r = (code, path) => ref(db, `lists/${code}${path ? '/' + path : ''}`);

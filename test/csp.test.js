@@ -34,8 +34,9 @@ test('the app CSP allows exactly the hosts the code talks to', () => {
     assert.ok(src.includes(host), `${host} is no longer used: drop it from the CSP`);
     assert.ok(p['connect-src'].includes(host), `connect-src misses ${host}`);
   }
-  assert.ok(src.includes('https://www.gstatic.com/firebasejs/'));
-  assert.ok(p['script-src'].includes('https://www.gstatic.com'));
+  // the Firebase SDK is served from our own origin (vendor/firebase/), so no CDN host in script-src
+  assert.ok(src.includes('./vendor/firebase/firebase-database.js'));
+  assert.deepStrictEqual(p['script-src'], ["'self'", 'https://*.firebasedatabase.app'], 'script-src: own origin and the database only');
   // the Realtime Database: WebSocket, and long polling (JSONP script tags in an iframe) as a fallback
   for (const cfg of ['firebase-config.js', 'firebase-config.dev.js']) {
     const url = read(cfg).match(/databaseURL: '([^']+)'/);
