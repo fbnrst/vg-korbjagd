@@ -1,4 +1,4 @@
-const VERSION = 'v114';
+const VERSION = 'v115';
 // The release (/) and the dev build (/dev/) share one origin and so one cache storage: each keeps to its own cache names
 const PREFIX = 'kober-' + (self.registration.scope.includes('/dev/') ? 'dev-' : '') + 'v';
 const CACHE = PREFIX + VERSION.slice(1);
