@@ -55,7 +55,7 @@ header :focus{outline-color:var(--hdr-fg)}
 .btn.destroy:not(:disabled){background:var(--danger);color:var(--on-danger)} /* red filled = destructive action (the reset dialog while open items are ticked); green filled = ordinary action */
 .dangerZone{margin-top:22px;padding-top:16px;border-top:1px solid var(--line)} /* a thumb slip from "Send link" must not reach the delete button */
 .btn.ibtn2{display:flex;align-items:center;justify-content:center;padding:10px 12px} /* flex, not grid: Safari left the icon off-centre in a stretched grid button */
-.btn.ibtn2 svg{flex:none;display:block}
+.btn.ibtn2 svg{flex:none;display:block;margin:0} /* `.btn svg` adds margin-right:6px for icons beside text, which pushed this one left */
 .opt{display:flex;gap:10px;align-items:center;padding:10px 0;cursor:pointer}
 /* Options: an unselected one is a hollow ring (--ctl-bd, 3:1 against the card), the selected one carries the colour (the native look made the unselected radio the brightest thing in the dialog) */
 .opt input{appearance:none;-webkit-appearance:none;flex:none;width:22px;height:22px;margin:0;border:2px solid var(--ctl-bd);border-radius:50%;background:transparent}
