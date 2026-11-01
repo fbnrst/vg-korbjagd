@@ -85,7 +85,7 @@ function itemHtml(i) {
   const vgIn = editing ? `<form data-vgedit="${id}"><input class="vg" type="number" inputmode="numeric" enterkeyhint="done" value="${esc(i.vgNum || '')}" placeholder="${t('noShort')}">${buttons(0)}</form>`
     : i.vgNum || i.checked ? '' : `<form data-vg="${id}"><input class="vg" type="number" inputmode="numeric" enterkeyhint="done" placeholder="${t('noShort')}">${buttons(1, true)}</form>`;
   return `<div class="item ${i.checked ? 'done' : ''}">
-      <button class="chk" data-chk="${esc(i.id)}" aria-label="${t(i.checked ? 'ariaBack' : 'ariaCheck')}">${i.checked ? '✓' : ''}</button>
+      <button class="chk" data-chk="${esc(i.id)}" aria-label="${t(i.checked ? 'ariaBack' : 'ariaCheck')}"></button>
       <div class="t">${i.amount > 1 ? `${esc(i.amount)}${i.unit ? ' ' + esc(i.unit) : '×'} ` : ''}${esc(i.title)}<small>${sub}</small></div>${by}${vgIn}
       <button class="x" data-del="${esc(i.id)}" aria-label="${t('ariaDelete')}">×</button></div>`;
 }
