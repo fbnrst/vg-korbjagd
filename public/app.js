@@ -8,6 +8,7 @@ import { BUILD } from './version.js';
 import { loadVg, similarNames } from './vg.js';
 import { t, applyStatic } from './i18n.js';
 import { shouldShowAndroidInstall, shouldShowInstallHint, shouldShowBrowserHint, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, createVgLoader, uploadLocalList, checkoutSections, rankPlaces, classifyScan } from './flows.js';
+import { AISLES, OTHER, aisleOf, groupByAisle, sanitizeOverrides, withChoice } from './aisles.js';
 import { initDialogs, shortName, menuIndex, visibleFocusables } from './a11y.js';
 
 const $ = s => document.querySelector(s);
@@ -179,6 +180,10 @@ function connect() {
 }
 
 /* ---------- Rendering ---------- */
+// Aisle grouping of the open items: a switch in the "..." menu, off by default; what the person moves is remembered on this phone
+const AISLE_NAME = { produce: 'aisleProduce', bakery: 'aisleBakery', dairy: 'aisleDairy', meat: 'aisleMeat', frozen: 'aisleFrozen', dry: 'aisleDry', drinks: 'aisleDrinks', household: 'aisleHousehold', other: 'aisleOther' };
+let aisleOn = LS.get('aisles', false) === true;
+let aisleOver = sanitizeOverrides(LS.get('aisleOver', {}));
 function itemHtml(i) {
   const by = !isLocal() && i.checked && i.checkedBy ? `<span class="badge">${esc(i.checkedBy)}</span>` : '';
   const id = esc(i.id);
@@ -194,7 +199,7 @@ function itemHtml(i) {
     : i.vgNum || i.checked ? '' : `<form data-vg="${id}" class="quick"><input class="vg" type="number" inputmode="numeric" enterkeyhint="done" placeholder="${t('noShort')}" aria-label="${t('ariaNumItem', { name: nm })}">${buttons(1)}</form>`;
   return `<div class="item ${i.checked ? 'done' : ''}">
       <button class="chk" data-chk="${esc(i.id)}" aria-label="${t(i.checked ? 'ariaBackItem' : 'ariaCheckItem', { name: nm })}"></button>
-      <div class="t">${i.amount > 1 ? `${esc(i.amount)}${i.unit ? ' ' + esc(i.unit) : '×'} ` : ''}${esc(i.title)}<small>${sub}</small></div>${by}${vgIn}
+      <div class="t">${i.amount > 1 ? `${esc(i.amount)}${i.unit ? ' ' + esc(i.unit) : '×'} ` : ''}${aisleOn && !i.checked ? `<button type="button" class="mv" data-move="${id}" aria-label="${t('ariaMoveItem', { name: nm })}">${esc(i.title)}</button>` : esc(i.title)}<small>${sub}</small></div>${by}${vgIn}
       <button class="x" data-del="${esc(i.id)}" aria-label="${t('ariaDeleteItem', { name: nm })}">×</button></div>`;
 }
 // The start hint: shown only while the list has no item at all (open or checked off)
@@ -213,7 +218,7 @@ function emptyHint() {
 let rowsLater = false;
 const rowFieldFocused = () => { const a = document.activeElement; return !!a && a.tagName === 'INPUT' && !!a.closest('#items, #doneItems'); };
 // A button that had keyboard focus is found again after the rebuild (the + of the empties, a check box, a checkout row)
-const FOCUS_KEYS = ['data-dep-add', 'data-dep-sub', 'data-chk', 'data-checkout', 'data-editnum'];
+const FOCUS_KEYS = ['data-move', 'data-dep-add', 'data-dep-sub', 'data-chk', 'data-checkout', 'data-editnum'];
 function focusedKey() {
   const a = document.activeElement, k = a && a.tagName === 'BUTTON' && FOCUS_KEYS.find(x => a.hasAttribute(x));
   return k ? `[${k}="${CSS.escape(a.getAttribute(k))}"]` : null;
@@ -228,7 +233,7 @@ function render() {
   rowsLater = rowFieldFocused();
   if (!rowsLater) {
     $('#items').innerHTML = first && loadingStuck && !stale && !isLocal() ? `<div class="stuck"><p class="muted">${esc(t('connLoadingList'))}</p><button type="button" class="btn sec" id="useLocal">${esc(t('connUseLocal'))}</button></div>`
-      : open.length ? open.map(itemHtml).join('')
+      : open.length ? (aisleOn ? groupByAisle(open, aisleOver).map(g => `<h3 class="aisleHead">${esc(t(AISLE_NAME[g.aisle]))}</h3>${g.items.map(itemHtml).join('')}`).join('') : open.map(itemHtml).join(''))
       : !isEmptyList(state.items) ? `<p class="muted" style="text-align:center">${t('allInBasket')}</p>`
       : first && !isLocal() ? '' // the first snapshot of a shared list is still on its way
       : emptyHint();
@@ -307,6 +312,8 @@ function renderDeposit() {
 document.addEventListener('click', e => {
   if (e.target.closest('#vgRetry')) { vgLoader.start(); return; }
   if (e.target.closest('#useLocal')) { startLocal(); return; } // the saved list code stays, the next start tries it again
+  const mv = e.target.closest('[data-move]');
+  if (mv) { const it = state.items[mv.dataset.move]; if (it) openAisleDlg(it); return; }
   const chk = e.target.closest('[data-chk]');
   if (chk) { const it = state.items[chk.dataset.chk]; if (it) bg.check(code, it.id, myKey(), !it.checked); return; }
   const sg = e.target.closest('[data-sug]');
@@ -573,6 +580,27 @@ if (IS_DEV) {
 $('#menuVersion').textContent = t('version', { v: BUILD });
 // Join dialog (menu on the local list): type the code, or scan the QR code
 const closeJoin = () => { $('#joinDlg').classList.add('hide'); $('#codeIn').value = ''; };
+// The menu switch and the move dialog of the aisle grouping
+let aisleItem = null;
+const renderAisleMenu = () => $('#menuAisles').setAttribute('aria-checked', String(aisleOn));
+function openAisleDlg(it) {
+  aisleItem = it.title;
+  dismissKeyboard();
+  const now = aisleOf(it.title, aisleOver);
+  $('#aisleName').textContent = it.title;
+  $('#aisleOpts').innerHTML = [...AISLES, OTHER].map(a => `<button type="button" class="btn sec${a === now ? ' on' : ''}" data-aisle="${a}" aria-pressed="${a === now}">${esc(t(AISLE_NAME[a]))}</button>`).join('')
+    + `<button type="button" class="btn sec" data-aisle="">${esc(t('aisleAuto'))}</button>`;
+  $('#aisleDlg').classList.remove('hide');
+}
+$('#aisleClose').onclick = () => $('#aisleDlg').classList.add('hide');
+$('#aisleOpts').addEventListener('click', e => {
+  const b = e.target.closest('[data-aisle]');
+  if (!b || aisleItem === null) return;
+  aisleOver = withChoice(aisleOver, aisleItem, b.dataset.aisle || null); LS.set('aisleOver', aisleOver);
+  aisleItem = null; $('#aisleDlg').classList.add('hide'); render();
+});
+$('#menuAisles').onclick = () => { aisleOn = !aisleOn; LS.set('aisles', aisleOn); renderAisleMenu(); render(); };
+renderAisleMenu();
 function openJoin() { dismissKeyboard(); $('#joinDlg').classList.remove('hide'); }
 $('#menuJoin').onclick = openJoin;
 $('#items').addEventListener('click', e => { if (e.target.closest('#emptyJoin')) openJoin(); }); // the empty-list hint offers the same dialog
