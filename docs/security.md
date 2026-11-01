@@ -65,7 +65,7 @@ Die Regeln werden von Hand eingespielt, **zuerst Dev, dann Produktion** (Projekt
 ## Offene Punkte
 
 - **Tarif:** Das Produktionsprojekt läuft auf dem kostenlosen **Spark**-Tarif (bestätigt vom Maintainer). Damit können keine Kosten entstehen; bei überschrittenem Kontingent (u. a. etwa 100 gleichzeitige Verbindungen) wird der Dienst gedrosselt oder gestoppt. **Budgetalarme** gibt es nur beim Blaze-Tarif und sind hier nicht nötig. Die App fängt das ab (Verbindungsbanner, Outbox, Cache, siehe [architecture.md](architecture.md)).
-- **App Check:** Status unbekannt (Firebase console: *Build → App Check*, Reiter *Apps* und *APIs*). Für eine Familien-Einkaufsliste bewusst nicht eingeführt: es braucht reCAPTCHA und könnte bei falscher Einstellung die App aussperren; der Listencode bleibt der Zugriffsschutz.
+- **App Check:** Status unbekannt (Firebase console: *Build → App Check*, Reiter *Apps* und *APIs*). Für eine Familien-Einkaufsliste nicht empfohlen und nicht geplant: es braucht reCAPTCHA und könnte bei falscher Einstellung die App aussperren; der Listencode bleibt der Zugriffsschutz.
 - Actions in `cleanup.yml` und `pages.yml` auf Commit-Hashes festlegen.
 - zxing von jsDelivr mit Subresource Integrity laden oder ins Repo übernehmen.
 - Kein Ratenlimit und keine Begrenzung der Knotenanzahl in den Regeln (siehe oben).
