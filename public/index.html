@@ -135,8 +135,11 @@ body.typing .tabs{display:none}
 .orderBar{display:flex;align-items:center;gap:10px;padding:4px 2px 8px;border-bottom:1px solid var(--line)}.orderBar span{flex:1;font-size:14px;color:var(--mute)}
 .item.ord{flex-wrap:nowrap}.item.ord .t{flex:1;min-width:0;overflow-wrap:anywhere}
 .ordh{position:relative;flex:none;width:40px;height:40px;padding:0;border:0;border-radius:10px;background:var(--green2);color:var(--fg);display:grid;place-items:center;touch-action:none;cursor:grab;-webkit-user-select:none;user-select:none}
-.item.ord.drag{background:var(--green2);border-radius:10px}
-#items .item:not(.ord) .t{-webkit-touch-callout:none} /* a long press on a row starts the reorder mode, not the iOS callout */
+.item.ord{position:relative;transition:transform .12s}
+.item.ord.drag{background:var(--green2);border-radius:10px;transition:none;z-index:2;box-shadow:0 2px 8px var(--shadow-menu)}
+@media (prefers-reduced-motion:reduce){.item.ord{transition:none}}
+#items .item{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none} /* a long press on a row starts the reorder mode: no iOS callout, no text selection */
+#items .item input{-webkit-user-select:text;user-select:text} /* a long press on a row starts the reorder mode, not the iOS callout */
 .x{background:none;border:0;color:var(--mute);font-size:18px;width:40px;height:40px;padding:0;margin:0 -6px 0 auto}
 .emojis{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
 .emojis button{font-size:26px;border:2px solid transparent;background:var(--bg);border-radius:10px;padding:2px 6px}

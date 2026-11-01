@@ -193,8 +193,7 @@ let aisleOver = sanitizeOverrides(LS.get('aisleOver', {}));
 let reorder = false;
 function orderRowHtml(i) {
   const id = esc(i.id), nm = esc(shortName(i.title));
-  return `<div class="item ord"><div class="t">${i.amount > 1 ? `${esc(i.amount)}${i.unit ? ' ' + esc(i.unit) : '×'} ` : ''}${esc(i.title)}</div>
-    <button type="button" class="ordh" data-ordh="${id}" aria-label="${t('ariaDragItem', { name: nm })}"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 8h14M5 12h14M5 16h14"/></svg></button></div>`;
+  return `<div class="item ord"><button type="button" class="ordh" data-ordh="${id}" aria-label="${t('ariaDragItem', { name: nm })}"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 8h14M5 12h14M5 16h14"/></svg></button><div class="t">${i.amount > 1 ? `${esc(i.amount)}${i.unit ? ' ' + esc(i.unit) : '×'} ` : ''}${esc(i.title)}</div></div>`;
 }
 function itemHtml(i) {
   const by = !isLocal() && i.checked && i.checkedBy ? `<span class="badge">${esc(i.checkedBy)}</span>` : '';
@@ -348,31 +347,34 @@ function moveItem(id, dir) {
   applyPlan(id, planMove(open, id, dir, visible));
 }
 let dragging = false;
+// Dragging moves nothing in the DOM (a node that is taken out and put back loses the pointer capture, which made the drag stop
+// after one step): the held row follows the finger with a transform, the rows it passes slide by one row height, and the
+// order is decided and written once, on drop.
 $('#items').addEventListener('pointerdown', e => {
   const h = e.target.closest('[data-ordh]');
   if (!h || e.button > 0 || readOnly()) return;
   e.preventDefault();
   const row = h.closest('.item'), id = h.dataset.ordh;
+  let first = row; // the rows of the same section: neighbours with class ord, up to the next heading
+  while (first.previousElementSibling && first.previousElementSibling.classList.contains('ord')) first = first.previousElementSibling;
+  const rows = []; for (let n = first; n && n.classList.contains('ord'); n = n.nextElementSibling) rows.push(n);
+  const rects = rows.map(r => r.getBoundingClientRect()), i0 = rows.indexOf(row), r0 = rects[i0], step = r0.height;
+  const startY = e.clientY, lo = rects[0].top - r0.top, hi = rects[rows.length - 1].top - r0.top;
+  let target = i0;
   dragging = true; row.classList.add('drag'); h.setPointerCapture(e.pointerId);
-  const siblings = () => { // the rows of the same section (everything between two section headings, or the whole list)
-    const out = []; let n = row;
-    while (n.previousElementSibling && n.previousElementSibling.classList.contains('ord')) n = n.previousElementSibling;
-    for (; n && n.classList.contains('ord'); n = n.nextElementSibling) out.push(n);
-    return out;
-  };
   const move = ev => {
-    for (const r of siblings()) {
-      if (r === row) continue;
-      const b = r.getBoundingClientRect(), before = row.compareDocumentPosition(r) & Node.DOCUMENT_POSITION_FOLLOWING;
-      if (before && ev.clientY > b.top + b.height / 2) r.after(row);
-      else if (!before && ev.clientY < b.top + b.height / 2) r.before(row);
-    }
+    const dy = Math.min(hi, Math.max(lo, ev.clientY - startY));
+    row.style.transform = `translateY(${dy}px)`;
+    const centre = r0.top + step / 2 + dy;
+    target = rects.filter((r, i) => i !== i0 && r.top + r.height / 2 < centre).length;
+    rows.forEach((r, i) => { if (i !== i0) r.style.transform = (i > i0 && i <= target ? `translateY(${-step}px)` : i < i0 && i >= target ? `translateY(${step}px)` : ''); });
   };
   const end = ev => {
     h.removeEventListener('pointermove', move); h.removeEventListener('pointerup', end); h.removeEventListener('pointercancel', end);
     row.classList.remove('drag'); dragging = false;
-    const id2 = (n) => n && n.classList.contains('ord') ? n.querySelector('[data-ordh]').dataset.ordh : null;
-    if (ev.type === 'pointerup') applyPlan(id, planDrop(openItems(), id, id2(row.previousElementSibling), id2(row.nextElementSibling)));
+    const order = rows.filter(r => r !== row); order.splice(target, 0, row);
+    const idOf = n => (n ? n.querySelector('[data-ordh]').dataset.ordh : null);
+    if (ev.type === 'pointerup' && target !== i0) applyPlan(id, planDrop(openItems(), id, idOf(order[target - 1]), idOf(order[target + 1])));
     render();
   };
   h.addEventListener('pointermove', move); h.addEventListener('pointerup', end); h.addEventListener('pointercancel', end);
