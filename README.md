@@ -17,7 +17,7 @@ No server of your own needed: a static site (GitHub Pages) plus a Firebase Realt
 - Add items by text (name suggestions), VG number (from three digits a tappable list of products from the VG master data) or barcode scanner (Open Food Facts)
 - Import of lists from the original VG app (share link, in the menu)
 - Checking off puts an item in the basket; on shared lists everyone sees who did it
-- Reset: tick what to remove, open items, checked-off items and/or empties; points stay as they are. On a shared list the reset applies to everyone
+- Reset: tick what to remove, open items (the button turns red then), items in the basket and/or empties; on a shared list also "Reset the ranking to 0 (new round)" (off by default). Points otherwise stay as they are. On a shared list the reset applies to everyone
 - Tabs: Empties (count deposit pieces), Checkout (only items with a VG number, bakery items separate, plus empties; the screen stays on) and, on shared lists only, Ranking (points for checking off and per empties piece)
 - Shared lists can be deleted for everyone and expire after 30 days without activity ([retention](docs/retention.md))
 - Installable as a PWA; demo mode without Firebase

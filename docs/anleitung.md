@@ -32,18 +32,19 @@ Den Kreis links neben dem Artikel antippen: Der Artikel wandert nach unten zu �
 Im Reiter **♻️ Leergut** bei der passenden Pfand-Sorte **+** tippen, für jede Flasche oder jedes Glas, das du mitbringst. Auf einer geteilten Liste gibt jedes Stück einen Punkt. **−** zieht ein Stück wieder ab.
 
 ## Kasse
-Im Reiter **🧾 Kasse** stehen die Artikel im Korb, die eine VG-Nummer haben, damit du sie an der Kasse schnell eintippen kannst; Backwaren (Nummern unter 1000) stehen in einer eigenen Gruppe, dazu das Leergut. Artikel ohne Nummer erscheinen hier nicht. Ein Tipp auf eine Zeile streicht sie durch (nur auf deinem Handy, nach dem Neuladen ist es weg). Der Bildschirm bleibt dort an.
+Im Reiter **🧾 Kasse** stehen die Artikel im Korb, die eine VG-Nummer haben, damit du sie an der Kasse schnell eintippen kannst; Backwaren (Nummern unter 1000) stehen in einer eigenen Gruppe, dazu das Leergut. Artikel ohne Nummer erscheinen hier nicht. Ein Tipp auf eine Zeile streicht sie durch und schiebt sie in den Block **Schon getippt** (nur auf deinem Handy, bis zu 24 Stunden gemerkt, auch nach dem Neuladen). Der Bildschirm bleibt dort an.
 
 ## Rangliste
 Den Reiter **🏆 Rangliste** gibt es nur auf geteilten Listen. Er zeigt das Podest und alle Punkte. Bei gleich vielen Punkten teilt man sich den Platz. Mit **Neue Runde** (mit Rückfrage) werden die Zähler einfach auf null gesetzt. Was schon im Korb liegt, zählt für niemanden.
 
 ## Nach dem Einkauf: Zurücksetzen
 Oben rechts das **⋯-Menü** öffnen und **Liste zurücksetzen** wählen. Dort hakst du an, was weg soll:
-- **Offene Artikel:** was noch nicht im Korb ist (mit Rückfrage).
-- **Erledigte Artikel** (voreingestellt): alles Abgehakte.
+- **Offene Artikel:** was noch nicht im Korb ist (mit Rückfrage; der Knopf wird dann rot).
+- **Artikel im Korb** (voreingestellt): alles, was schon im Korb liegt.
 - **Leergut** (voreingestellt): setzt die Leergut-Zähler zurück.
+- **Rangliste auf 0 setzen (neue Runde)** (nur bei geteilten Listen, aus): wie **Neue Runde** im Reiter Rangliste.
 
-Auf einer geteilten Liste gilt das für alle. Die Punkte bleiben immer erhalten. Im selben Menü gibt es **Liste verlassen** (nur bei geteilten Listen): Du landest dann auf einer leeren lokalen Liste, die geteilte bleibt für die anderen unverändert. Mit Code oder Link kannst du wieder beitreten.
+Auf einer geteilten Liste gilt das für alle. Die Punkte bleiben sonst erhalten. Im selben Menü gibt es **Liste verlassen** (nur bei geteilten Listen): Du landest dann auf einer leeren lokalen Liste, die geteilte bleibt für die anderen unverändert. Die Rückfrage zeigt den Code der Liste, notiere ihn dir; mit Code oder Link kannst du wieder beitreten.
 
 ## Liste löschen
 Auf einer geteilten Liste im Teilen-Fenster **Liste für alle löschen** (mit Rückfrage): Die Liste ist dann für alle endgültig weg, auch Punkte und Leergut. Alle, die sie noch offen haben, landen automatisch wieder auf ihrer lokalen Liste. Ohne Zutun werden geteilte Listen nach 30 Tagen ohne Aktivität gelöscht.
@@ -58,4 +59,4 @@ Der Knopf **?** oben öffnet ein Menü mit der Hilfeseite und den Datenschutzhin
 Dann öffnet sich die Liste wie eine normale App.
 
 ## Schlechtes Netz
-Die lokale Liste braucht kein Netz. Auf einer geteilten Liste zeigt der Punkt oben links die Verbindung: grün = verbunden, rot = keine. Ohne Verbindung sind deine Änderungen zunächst nur auf deinem Handy zu sehen und werden gesendet, sobald das Netz zurück ist. Bleib dafür in der App und lade sie nicht neu. Eine Liste zu teilen oder ihr beizutreten, geht nur mit Netz; Produktnamen per Barcode und der Import aus der VG-App ebenfalls. Schon geladene VG-Daten (Vorschläge, Leergut-Sorten) stehen auch ohne Netz zur Verfügung.
+Die lokale Liste braucht kein Netz. Auf einer geteilten Liste zeigt der Punkt oben links die Verbindung: grün = verbunden, rot = keine. Ohne Verbindung sind deine Änderungen zunächst nur auf deinem Handy zu sehen und werden gesendet, sobald das Netz zurück ist. Bleib dafür in der App und lade sie nicht neu. Eine Liste zu teilen oder ihr beizutreten, geht nur mit Netz; Produktnamen per Barcode und der Import aus der VG-App ebenfalls. Schon geladene VG-Daten (Vorschläge, Leergut-Sorten) stehen auch ohne Netz zur Verfügung. Sind die VG-Daten nicht erreichbar, steht im Reiter Leergut **VG-Daten nicht erreichbar** mit einem Knopf **Nochmal versuchen**; die App läuft währenddessen normal weiter.
