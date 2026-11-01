@@ -202,7 +202,7 @@ function render() {
     else editingId = null; // the item is gone
   }
 
-  const rank = Object.entries(state.scores).sort((a, b) => b[1] - a[1]);
+  const rank = Object.entries(state.scores).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])); // ties by name, so the order never jumps between updates
   // same points = same place (1, 1, 3, …), no medal without points
   const placed = rank.map(([k, n]) => ({ k, n, place: 1 + rank.findIndex(r => r[1] === n) }));
   const MEDAL = { 1: '🥇', 2: '🥈', 3: '🥉' };
