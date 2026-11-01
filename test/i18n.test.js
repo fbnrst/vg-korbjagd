@@ -51,3 +51,11 @@ test('static text selectors are exact: no generic .muted selectors, root ids exi
     if (root) assert.equal(html.split(`id="${root[1]}"`).length - 1, 1, `id ${root[1]} must exist exactly once`);
   }
 });
+
+test('dev share buttons are created from JS behind IS_DEV only, never in the static HTML', async () => {
+  const fs = await import('node:fs');
+  const html = fs.readFileSync(new URL('../public/index.html', import.meta.url), 'utf8');
+  const src = fs.readFileSync(new URL('../public/app.js', import.meta.url), 'utf8');
+  assert.ok(!/devShare/i.test(html));
+  assert.match(src, /if \(IS_DEV\) \{\s*const devBtn[\s\S]*?devShareCreate[\s\S]*?devShareBack/);
+});
