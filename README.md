@@ -22,7 +22,7 @@ No server of your own needed: a static site (GitHub Pages) plus a Firebase Realt
 - Shared lists can be deleted for everyone and expire after 30 days without activity ([retention](docs/retention.md))
 - Installable as a PWA; demo mode without Firebase
 
-Documentation: [help page in the app](https://fbnrst.github.io/kober/docs/) · [privacy notice](public/privacy.html) · [guide for parents and kids](docs/anleitung.md) (German) · [architecture](docs/architecture.md) (German) · [retention and deletion](docs/retention.md) (German) · [security](docs/security.md) (German) · [VG endpoints](docs/vg-api.md) (German)
+Documentation: [help page in the app](https://fbnrst.github.io/kober/docs/) (end users, source in `public/docs/`, served with the app) · [privacy notice](public/privacy.html) · [architecture](docs/architecture.md) (German) · [retention and deletion](docs/retention.md) (German) · [security](docs/security.md) (German) · [VG endpoints](docs/vg-api.md) (German). The Markdown files in `docs/` are for maintainers and are not deployed.
 
 ## Try it locally (demo mode)
     npm start      # http://localhost:3000
