@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, createVgLoader, uploadLocalList, TICK_TTL, TICK_MAX } from '../public/flows.js';
+import { isIosLike, isStandalone, shouldShowBrowserHint, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, createVgLoader, uploadLocalList, TICK_TTL, TICK_MAX } from '../public/flows.js';
 import { createStore, localAdapter, userKey } from '../public/store.js';
 import { createSim, createClock } from '../public/sim.js';
 import { STRINGS } from '../public/i18n.js';
@@ -133,4 +133,39 @@ test('index.html: the reset dialog has the ranking box (off by default), the sha
   assert.match(html, /<input type="checkbox" id="resetScores">/);
   assert.match(html, /class="dangerZone"[^>]*><button[^>]*id="deleteBtn"/);
   assert.match(html, /\.dangerZone\{[^}]*border-top/);
+});
+
+test('browser hint: only on iOS-like devices, in the browser, once per list code', () => {
+  const iphone = { userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_8 like Mac OS X)', platform: 'iPhone', maxTouchPoints: 5 };
+  const ipad = { userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)', platform: 'MacIntel', maxTouchPoints: 5 };
+  const mac = { userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)', platform: 'MacIntel', maxTouchPoints: 0 };
+  const android = { userAgent: 'Mozilla/5.0 (Linux; Android 14)', platform: 'Linux armv8l', maxTouchPoints: 5 };
+  const browser = () => ({ matches: false });
+  const installed = q => ({ matches: q === '(display-mode: standalone)' });
+  assert.equal(isIosLike(iphone), true);
+  assert.equal(isIosLike(ipad), true);
+  assert.equal(isIosLike(mac), false);
+  assert.equal(isIosLike(android), false);
+  assert.equal(isIosLike(null), false);
+  assert.equal(isStandalone({ standalone: true }, browser), true);
+  assert.equal(isStandalone(iphone, installed), true);
+  assert.equal(isStandalone(iphone, browser), false);
+  assert.equal(isStandalone(iphone, () => { throw new Error('no'); }), false);
+  assert.equal(shouldShowBrowserHint(iphone, browser, '4ALVUE', []), true);
+  assert.equal(shouldShowBrowserHint(ipad, browser, '4ALVUE', []), true);
+  assert.equal(shouldShowBrowserHint({ ...iphone, standalone: true }, browser, '4ALVUE', []), false);
+  assert.equal(shouldShowBrowserHint(iphone, installed, '4ALVUE', []), false);
+  assert.equal(shouldShowBrowserHint(mac, browser, '4ALVUE', []), false);
+  assert.equal(shouldShowBrowserHint(android, browser, '4ALVUE', []), false);
+  assert.equal(shouldShowBrowserHint(iphone, browser, '4ALVUE', ['4ALVUE']), false);
+  assert.equal(shouldShowBrowserHint(iphone, browser, '<b>', []), false);
+});
+
+test('browser hint: the stored list of seen codes is validated and bounded', () => {
+  assert.deepEqual(sanitizeHintSeen('x'), []);
+  assert.deepEqual(sanitizeHintSeen(['4ALVUE', 'bad', 7, '<img>']), ['4ALVUE']);
+  let s = [];
+  for (let i = 0; i < 30; i++) s = addHintSeen(s, 'AAAA' + String(10 + i));
+  assert.equal(s.length, 20);
+  assert.deepEqual(addHintSeen(['4ALVUE'], '4ALVUE'), ['4ALVUE']);
 });

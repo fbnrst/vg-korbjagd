@@ -72,3 +72,28 @@ export async function uploadLocalList(remote, data, user) {
   await remote.importList(code, data, user);
   return code;
 }
+
+/* ---------- Browser hint (iOS) ---------- */
+// On iOS an installed web app cannot take over links: the camera app opens a scanned `?list=` link in Safari, and Safari and the
+// installed app have separate storage. Only there the hint makes sense. `nav` and `mm` are navigator and matchMedia (fakes in tests).
+export function isIosLike(nav) {
+  if (!nav) return false;
+  if (/iPhone|iPad|iPod/.test(String(nav.userAgent || ''))) return true;
+  return nav.platform === 'MacIntel' && nav.maxTouchPoints > 1; // iPadOS pretends to be a Mac
+}
+export function isStandalone(nav, mm) {
+  if (nav && nav.standalone === true) return true;
+  try { return !!(mm && mm('(display-mode: standalone)').matches); } catch (e) { return false; }
+}
+// `seen` is the array of list codes the hint was already shown for
+export function shouldShowBrowserHint(nav, mm, code, seen) {
+  return isIosLike(nav) && !isStandalone(nav, mm) && /^[A-Z0-9]{6}$/.test(String(code)) && !(Array.isArray(seen) && seen.includes(code));
+}
+// Stored list of codes (localStorage is user-writable): only valid codes, at most 20, newest last
+export function sanitizeHintSeen(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter(c => typeof c === 'string' && /^[A-Z0-9]{6}$/.test(c)).slice(-20);
+}
+export function addHintSeen(seen, code) {
+  return seen.includes(code) ? seen : [...seen, code].slice(-20);
+}

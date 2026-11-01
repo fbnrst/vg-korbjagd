@@ -6,7 +6,7 @@ import { saveSnapshot, loadSnapshot, dropSnapshot } from './cache.js';
 import { IS_DEV, NS } from './env.js';
 import { loadVg, parseShareLink, fetchSharedList, vgNumFromCode, similarNames } from './vg.js';
 import { t, applyStatic } from './i18n.js';
-import { tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, createVgLoader, uploadLocalList } from './flows.js';
+import { shouldShowBrowserHint, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, createVgLoader, uploadLocalList } from './flows.js';
 import { initDialogs, shortName, menuIndex, visibleFocusables } from './a11y.js';
 
 const $ = s => document.querySelector(s);
@@ -510,6 +510,12 @@ const closeShareDialog = () => $('#shareDlg').classList.add('hide');
 $('#shareBtn').onclick = () => openShareDialog();
 $('#menuShare').onclick = () => openShareDialog(); // the same dialog from the ⋯ menu, where people also look for it
 $('#shareClose').onclick = closeShareDialog;
+// Copy the list code; without clipboard access the code text is selected so it can be copied by hand
+$('#copyCode').onclick = async () => {
+  const el = $('#shareCode');
+  try { await navigator.clipboard.writeText(el.textContent); toast(t('codeCopied')); }
+  catch (e) { const r = document.createRange(); r.selectNodeContents(el); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); toast(t('codeSelected')); }
+};
 $('#shareDlg').onclick = e => { if (e.target.id === 'shareDlg') closeShareDialog(); };
 $('#shareStart').onclick = () => { closeShareDialog(); me.name ? shareLocalList() : askIdentity(shareLocalList, backToList); };
 // Dev site only (the elements do not exist in the release): switch into a fresh shared test list without a code from another
@@ -821,11 +827,18 @@ function buildEmojis() {
 }
 // Name and emoji are only needed once there are other people (sharing or joining).
 // Cancel puts back the name and emoji from before (the emoji buttons change `me` right away) and calls onCancel.
+// iOS only: a link opened in Safari does not reach the installed app (separate storage), so say where the list can be joined there
+let nameScreenHint = false;
+const browserHintDue = c => shouldShowBrowserHint(navigator, q => matchMedia(q), c, sanitizeHintSeen(LS.get('hintSeen', [])));
+function browserHintDone(c) { LS.set('hintSeen', addHintSeen(sanitizeHintSeen(LS.get('hintSeen', [])), c)); }
 function askIdentity(next, onCancel = null, joining = null) { // `joining`: the (validated) list code shown as a note
   const before = { ...me };
   pending = next; pendingCancel = onCancel && (() => { me.name = before.name; me.emoji = before.emoji; buildEmojis(); onCancel(); });
   $('#nameCancel').classList.toggle('hide', !onCancel);
   $('#joinNote').textContent = joining ? t('joiningList', { code: joining }) : ''; $('#joinNote').classList.toggle('hide', !joining);
+  const hint = joining && browserHintDue(joining);
+  $('#browserNote').textContent = hint ? t('browserHint', { code: joining }) : ''; $('#browserNote').classList.toggle('hide', !hint);
+  nameScreenHint = !!hint;
   $('#welcomeErr').textContent = ''; $('#nameIn').value = me.name;
   for (const v of ['vList', 'vDeposit', 'vCheckout', 'vScore']) $('#' + v).classList.add('hide');
   $('#tabs').classList.add('hide'); $('#addBar').classList.add('hide'); $('#vWelcome').classList.remove('hide');
@@ -870,7 +883,12 @@ async function joinShared(c) {
     try {
       if (!(await (await getRemote()).exists(c))) { toast(t('noList')); return startLocal(); }
     } catch (e) { toast(noDbMsg(e)); return startLocal(); }
-    try { await startShared(c); } catch (e) { toast(noDbMsg(e)); startLocal(); }
+    try { await startShared(c); } catch (e) { toast(noDbMsg(e)); startLocal(); return; }
+    if (browserHintDue(c)) { // once per list code: on the name screen already, otherwise as a calm note now
+      if (!nameScreenHint) toast(t('browserHint', { code: c }), { label: t('close'), run: () => {} });
+      browserHintDone(c);
+    }
+    nameScreenHint = false;
   };
   // cancel: back to the list on screen, or (a join link opened the app) to the local list
   me.name ? go() : askIdentity(go, () => { history.replaceState(null, '', location.pathname); store ? backToList() : startLocal(); }, c);

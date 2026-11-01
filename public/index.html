@@ -168,7 +168,8 @@ body.typing .tabs{display:none}
       <h2 style="margin:0 0 4px">Scan with your phone</h2>
       <p id="shareHint" class="muted" style="margin:0 0 10px">Others scan the code with their camera and join the list.</p>
       <div id="qr"></div>
-      <p class="big" id="shareCode" style="margin:10px 0"></p>
+      <p class="big" id="shareCode" style="margin:10px 0 6px"></p>
+      <div class="row" style="justify-content:center;margin-bottom:10px"><button class="btn sec" id="copyCode" type="button">Copy code</button></div>
       <div class="row" style="justify-content:center"><button class="btn" id="shareLink" type="button">Send link</button></div>
       <div class="dangerZone"><button class="btn sec danger" id="deleteBtn" type="button">Delete this list for everyone</button></div>
     </div>
@@ -235,6 +236,7 @@ body.typing .tabs{display:none}
     <div class="card">
       <h2 style="margin:0 0 6px">Your name for the ranking</h2>
       <p id="joinNote" class="muted hide" style="margin:0 0 8px"></p>
+      <p id="browserNote" class="muted hide" style="margin:0 0 8px"></p>
       <input type="text" id="nameIn" placeholder="Your name" maxlength="20" autocomplete="off">
       <div class="emojis" id="emojis"></div>
       <p class="muted" style="font-size:13px;margin:6px 0 0"><span id="privacyNoteName"></span> <a href="privacy.html" class="privacyLink">Privacy</a></p>
