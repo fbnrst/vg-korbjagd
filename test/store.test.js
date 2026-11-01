@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { createStore, localAdapter, userKey, isUserKey, parseListCode } from '../public/store.js';
+import fs from 'node:fs';
+import { createStore, localAdapter, userKey, isUserKey, parseListCode, isTypeId, intIn, strMax, isPlaceholderTitle } from '../public/store.js';
 
 const mem = () => { const m = {}; return { getItem: k => m[k] ?? null, setItem: (k, v) => { m[k] = v; } }; };
 const setup = () => { const db = localAdapter(mem(), false); return { db, s: createStore(db) }; };
@@ -435,4 +436,19 @@ test('claim: setNum/setEan with checkToo clear it, restore keeps it, rename move
   const B2 = userKey('🐯', 'Ben');
   await s.renameUser(c, B, B2);
   assert.equal((await db.get(c, 'items/b')).claimedBy, B2);
+});
+
+test('shared validators: intIn, strMax, isTypeId, isPlaceholderTitle', () => {
+  for (const v of [null, '', undefined, NaN, Infinity, 'x', {}, '1e99']) assert.equal(intIn(v, 1, 999), null, String(v));
+  assert.equal(intIn(0, 0, 5), 0); assert.equal(intIn(5, 0, 5), 5, 'bounds are inclusive'); assert.equal(intIn(6, 0, 5), null); assert.equal(intIn(-1, 0, 5), null);
+  assert.equal(intIn(2.4, 1, 9), 2); assert.equal(intIn(2.5, 1, 9), 3); assert.equal(intIn(' 7 ', 1, 9), 7); assert.equal(intIn(0.4, 1, 9), null, 'rounds before the bounds');
+  assert.equal(strMax('abc', 2), 'ab'); assert.equal(strMax('', 5), null); assert.equal(strMax(5, 5), null); assert.equal(strMax(null, 5), null);
+  for (const v of ['1', '12', 'abc_DEF-9', 'x'.repeat(20)]) assert.ok(isTypeId(v), v);
+  assert.ok(isTypeId(12), 'numbers as object keys');
+  for (const v of ['', 'a b', '../x', 'x'.repeat(21), 'ä', 'a.b']) assert.ok(!isTypeId(v), String(v));
+  // the same pattern as the rules for deposit/$typ
+  const rules = fs.readFileSync(new URL('../database.rules.json', import.meta.url), 'utf8');
+  assert.ok(rules.includes('$typ.matches(/^[A-Za-z0-9_-]{1,20}$/)'));
+  assert.ok(isPlaceholderTitle('VG-Nr. 123')); assert.ok(isPlaceholderTitle('VG no. 7'));
+  for (const v of ['VG-Nr. ', 'VG-Nr. 12a', 'Milch', 'xVG no. 1', null]) assert.ok(!isPlaceholderTitle(v), String(v));
 });

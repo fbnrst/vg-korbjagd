@@ -24,7 +24,16 @@ export function parseListCode(text) {
   return isListCode(s) ? s : null;
 }
 export const isId = k => typeof k === 'string' && /^[A-Za-z0-9_-]{1,40}$/.test(k);
-const toNum = v => { const n = Math.round(Number(v)); return Number.isFinite(n) && n >= 1 && n <= 9999999 ? n : null; };
+// Shared validators (also used by outbox.js and cache.js for what comes back from localStorage); in line with database.rules.json.
+// Empties type ids (deposit/<type>), as in the rules
+export const isTypeId = v => /^[A-Za-z0-9_-]{1,20}$/.test(String(v));
+// A whole number in [lo, hi] (rounded; inclusive) or null; null, '' and undefined are null, not 0
+export const intIn = (v, lo, hi) => { const n = Math.round(Number(v)); return v !== null && v !== '' && v !== undefined && Number.isFinite(n) && n >= lo && n <= hi ? n : null; };
+// A non-empty string cut to max characters, or null
+export const strMax = (v, max) => (typeof v === 'string' && v ? v.slice(0, max) : null);
+// The placeholder title of an item added by number before the VG data had loaded ("VG-Nr. 123" / "VG no. 123")
+export const isPlaceholderTitle = t => /^VG(-Nr\.| no\.) \d+$/.test(t);
+const toNum = v => intIn(v, 1, 9999999);
 
 export async function firebaseAdapter(cfg) {
   const V = '10.14.1';
@@ -244,7 +253,7 @@ export function createStore(rawDb, guardOpts = {}) {
         if (!old) return undefined;
         const next = { ...old, vgNum };
         if (extra.info) next.info = String(extra.info).slice(0, 200);
-        if (extra.title && /^VG(-Nr\.| no\.) \d+$/.test(old.title)) next.title = String(extra.title).slice(0, 120);
+        if (extra.title && isPlaceholderTitle(old.title)) next.title = String(extra.title).slice(0, 120);
         if (checkToo && !old.checked) { next.checked = true; next.checkedBy = user; next.checkedAt = Date.now(); next.claimedBy = null; newlyChecked = true; }
         return next;
       }), () => newlyChecked && point(code, user, 1));
@@ -275,12 +284,12 @@ export function createStore(rawDb, guardOpts = {}) {
     },
     // Deposit: deposit/<type>/<user> = pieces. Each piece gives the person who enters it one point.
     async depositAdd(code, typeId, user) {
-      if (!/^[A-Za-z0-9_-]{1,20}$/.test(String(typeId)) || !isUserKey(user)) return;
+      if (!isTypeId(typeId) || !isUserKey(user)) return;
       await followUp(db.update(code, `deposit/${typeId}/${user}`, n => (n || 0) + 1), r => r.committed && point(code, user, 1));
     },
     // Fewer: own pieces first, otherwise those of the largest contributor (the point is deducted there)
     async depositRemove(code, typeId, user) {
-      if (!/^[A-Za-z0-9_-]{1,20}$/.test(String(typeId))) return;
+      if (!isTypeId(typeId)) return;
       const group = (await db.get(code, `deposit/${typeId}`)) || {};
       const victim = group[user] > 0 ? user : Object.keys(group).sort((a, b) => group[b] - group[a])[0];
       if (!victim) return;
@@ -301,7 +310,7 @@ export function createStore(rawDb, guardOpts = {}) {
       }
       for (const [typeId, group] of Object.entries(deposit || {})) {
         const n = Math.round(Object.values(group || {}).reduce((sum, v) => sum + (Number(v) || 0), 0));
-        if (n > 0 && /^[A-Za-z0-9_-]{1,20}$/.test(typeId)) await db.set(code, `deposit/${typeId}/${user}`, Math.min(100000, n));
+        if (n > 0 && isTypeId(typeId)) await db.set(code, `deposit/${typeId}/${user}`, Math.min(100000, n));
       }
       await db.update(code, `scores/${user}`, n => (n == null ? 0 : undefined));
     },

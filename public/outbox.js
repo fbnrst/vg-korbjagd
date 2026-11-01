@@ -16,12 +16,9 @@
 // again with the same rules as store.js, invalid ones are dropped.
 import { NS } from './env.js';
 import { toPos } from './order.js';
-import { isId, isUserKey, isPending, restoredItem, isListCode } from './store.js';
+import { isId, isUserKey, isPending, restoredItem, isListCode, isTypeId, intIn as num, strMax as str, isPlaceholderTitle } from './store.js';
 
 export const MAX_ENTRIES = 200, MAX_AGE = 24 * 3600e3, MAX_TRIES = 3;
-const TYPE = /^[A-Za-z0-9_-]{1,20}$/;
-const num = (v, lo, hi) => { const n = Math.round(Number(v)); return v !== null && v !== '' && v !== undefined && Number.isFinite(n) && n >= lo && n <= hi ? n : null; };
-const str = (v, max) => (typeof v === 'string' && v ? v.slice(0, max) : null);
 
 // Argument validators per operation: return the normalised argument list, or null for an invalid one
 const VALID = {
@@ -48,8 +45,8 @@ const VALID = {
   setEan: ([id, user, ean, checkToo]) => isId(id) && isUserKey(user) && /^\d{8,14}$/.test(String(ean)) ? [id, user, String(ean), !!checkToo] : null,
   remove: ([id]) => isId(id) ? [id] : null,
   restore: ([item, user]) => { const r = isUserKey(user) && restoredItem(item, user); return r ? [r, user] : null; },
-  depositAdd: ([typeId, user]) => TYPE.test(String(typeId)) && isUserKey(user) ? [String(typeId), user] : null,
-  depositRemove: ([typeId, user]) => TYPE.test(String(typeId)) && isUserKey(user) ? [String(typeId), user] : null,
+  depositAdd: ([typeId, user]) => isTypeId(typeId) && isUserKey(user) ? [String(typeId), user] : null,
+  depositRemove: ([typeId, user]) => isTypeId(typeId) && isUserKey(user) ? [String(typeId), user] : null,
   bump: ([key, d]) => isUserKey(key) && (d === 1 || d === -1) ? [key, d] : null,
 };
 export const QUEUEABLE = Object.keys(VALID).filter(op => op !== 'bump');
@@ -89,7 +86,7 @@ export function overlay(state, entries) {
       const n = { ...i };
       if (e.op === 'setNum') {
         n.vgNum = c;
-        if (e.args[4].title && /^VG(-Nr\.| no\.) \d+$/.test(i.title)) n.title = e.args[4].title;
+        if (e.args[4].title && isPlaceholderTitle(i.title)) n.title = e.args[4].title;
         if (e.args[4].info) n.info = e.args[4].info;
       } else n.ean = c;
       if (d && !i.checked) { n.checked = true; n.checkedBy = b; n.checkedAt = e.ts; n.claimedBy = null; }
