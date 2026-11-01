@@ -850,8 +850,13 @@ function buildEmojis() {
 // Cancel puts back the name and emoji from before (the emoji buttons change `me` right away) and calls onCancel.
 // iOS only: a link opened in Safari does not reach the installed app (separate storage), so say where the list can be joined there
 let nameScreenHint = false;
-const browserHintDue = c => shouldShowBrowserHint(navigator, q => matchMedia(q), c, sanitizeHintSeen(LS.get('hintSeen', [])));
-function browserHintDone(c) { LS.set('hintSeen', addHintSeen(sanitizeHintSeen(LS.get('hintSeen', [])), c)); }
+// Shown once per list code and browser tab session (sessionStorage), not once forever: every time someone opens a list link in the
+// iPhone browser the hint is due again, because the two storages never meet.
+const hintSeenRead = () => { try { return sanitizeHintSeen(JSON.parse(sessionStorage.getItem(NS + 'hintSeen') || '[]')); } catch (e) { return []; } };
+const browserHintDue = c => shouldShowBrowserHint(navigator, q => matchMedia(q), c, hintSeenRead());
+function browserHintDone(c) { try { sessionStorage.setItem(NS + 'hintSeen', JSON.stringify(addHintSeen(hintSeenRead(), c))); } catch (e) { /* private mode: shown again next time */ } }
+function showBrowserBar(c) { $('#browserBarText').textContent = t('browserHint', { code: c }); $('#browserBar').classList.remove('hide'); browserHintDone(c); }
+$('#browserBarClose').onclick = () => $('#browserBar').classList.add('hide');
 function askIdentity(next, onCancel = null, joining = null) { // `joining`: the (validated) list code shown as a note
   const before = { ...me };
   pending = next; pendingCancel = onCancel && (() => { me.name = before.name; me.emoji = before.emoji; buildEmojis(); onCancel(); });
@@ -889,6 +894,7 @@ function enterApp() {
   connect();
 }
 function startLocal() {
+  $('#browserBar').classList.add('hide');
   code = LOCAL; store = localStore;
   enterApp();
 }
@@ -906,8 +912,7 @@ async function joinShared(c) {
     } catch (e) { toast(noDbMsg(e)); return startLocal(); }
     try { await startShared(c); } catch (e) { toast(noDbMsg(e)); startLocal(); return; }
     if (browserHintDue(c)) { // once per list code: on the name screen already, otherwise as a calm note now
-      if (!nameScreenHint) toast(t('browserHint', { code: c }), { label: t('close'), run: () => {} });
-      browserHintDone(c);
+      if (!nameScreenHint) showBrowserBar(c); else browserHintDone(c);
     }
     nameScreenHint = false;
   };
@@ -959,7 +964,7 @@ async function init() {
   if (urlList && !urlCode) toast(t('notAList'));
   const savedCode = LS.get('code', '');
   if (urlCode && urlCode !== savedCode) joinShared(urlCode);
-  else if (savedCode && me.name) startShared(savedCode).catch(e => { toast(noDbMsg(e)); startLocal(); }); // offline: local list, saved code is kept
+  else if (savedCode && me.name) startShared(savedCode).then(() => { if (urlCode && browserHintDue(urlCode)) showBrowserBar(urlCode); }).catch(e => { toast(noDbMsg(e)); startLocal(); }); // offline: local list, saved code is kept
   else startLocal();
 }
 init();

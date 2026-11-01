@@ -31,6 +31,8 @@ header .ibtn::after{content:'';position:absolute;inset:-2px} /* 40px button, 44p
 header .ibtn.hide{display:none}
 #devTag{background:var(--devtag-bg);color:var(--devtag-fg);border-radius:999px;padding:1px 9px;font-size:12px;font-weight:800;letter-spacing:.5px}
 /* Connection notice: a bar that hangs under the header over the top of the list, so showing or hiding it never changes the height of the shell or moves anything. It is only text (no taps), so taps go through to the list. Shared lists only. */
+#browserBar{flex:none;display:flex;gap:10px;align-items:center;margin:8px 12px 0;padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--fg);font-size:14px;line-height:1.3}
+#browserBar button{flex:none;min-height:40px}
 #connBanner{position:absolute;left:0;right:0;top:100%;z-index:4;pointer-events:none;background:var(--conn-bg);color:var(--conn-fg);border-bottom:2px solid var(--orange);padding:6px 16px;font-size:13px;line-height:1.3;text-align:center;box-shadow:0 2px 6px var(--shadow-banner)}
 .stuck{text-align:center;padding:28px 8px}.stuck p{margin:0 0 14px}
 main{flex:1;min-height:0;width:100%;max-width:640px;margin:0 auto;padding:8px 16px 16px;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch} /* compat-ok: ignored before Safari 16, only the scroll chaining at the end of the list differs */
@@ -241,6 +243,7 @@ body.typing .tabs{display:none}
   </div>
   <div id="connBanner" class="hide" role="status" aria-live="polite"></div>
 </header>
+<div id="browserBar" class="hide" role="note"><span id="browserBarText"></span><button id="browserBarClose" class="btn sec" type="button">Close</button></div>
 <main>
   <p id="demoBanner" class="card hide" style="background:var(--green2)">Demo mode: no database set up yet, the list is only visible in this browser (see README).</p>
   <!-- Welcome -->
