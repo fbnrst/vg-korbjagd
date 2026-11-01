@@ -37,6 +37,8 @@ const rejects = async (name, f) => {
 
 // The normal flow, the same as in test/rules.test.js
 const c = await s.create();
+// The app always listens to its list; a transaction first runs against the local cache, which stays empty without a listener.
+raw.subscribe(c, () => {});
 await s.join(c, U); await s.join(c, B);
 await s.add(c, { id: 'a', title: 'Milch', amount: 2, unit: 'Liter', info: 'Bio', vgNum: 4711, ean: '4012345678901' }, U);
 await s.add(c, { id: 'b', title: 'VG no. 1234', vgNum: '1234' }, B);
@@ -53,6 +55,41 @@ await rejects('XSS item id', () => raw.set(c, 'items/"><img onerror=x>', { title
 await rejects('score is not a number', () => raw.set(c, `scores/${U}`, 'a'));
 await rejects('unknown field on the list', () => raw.set(c, 'evil', 1));
 await rejects('title too long', () => raw.set(c, 'items/z', { title: 'x'.repeat(5000), amount: 1, checked: false }));
+
+// Two phones at once: transactions must not lose or double a point. Real transactions retry on conflict, the local adapter
+// used by the other tests cannot show that.
+const score = async u => (await raw.get(c, `scores/${u}`)) || 0;
+await s.resetScores(c);
+for (const id of ['r1', 'r2', 'r3']) await s.add(c, { id, title: id }, U);
+await Promise.all([s.check(c, 'r1', U, true), s.check(c, 'r1', B, true)]);
+assert.equal(await score(U) + await score(B), 1, 'the same item checked twice at once gives exactly one point');
+const first = (await raw.get(c, 'items/r1')).checkedBy;
+pass('the same item checked on two phones at once: one point');
+await Promise.all([s.check(c, 'r2', U, true), s.check(c, 'r3', B, true)]);
+assert.equal(await score(first) + await score(first === U ? B : U), 3, 'two different items at once give two points');
+assert.equal(await score(U) + await score(B), 3);
+pass('two different items checked at once: both points arrive');
+await s.check(c, 'r1', first === U ? B : U, false); // the other person unchecks: the point goes back to who got it
+assert.equal(await score(U) + await score(B), 2);
+for (const u of [U, B]) assert.ok(await score(u) >= 0, 'never below zero');
+pass('unchecking by someone else takes the point from the one who checked');
+await s.resetScores(c);
+await Promise.all(Array.from({ length: 20 }, (_, i) => s.depositAdd(c, '13', i % 2 ? U : B)));
+assert.equal(await raw.get(c, `deposit/13/${U}`), 10);
+assert.equal(await raw.get(c, `deposit/13/${B}`), 10);
+assert.equal(await score(U), 10);
+assert.equal(await score(B), 10);
+pass('20 empties added at once from two phones: counts and points add up');
+await Promise.all(Array.from({ length: 30 }, () => s.depositRemove(c, '13', U)));
+// depositRemove reads who holds pieces before its transaction, so a removal can find nothing left and do nothing. What must
+// hold is that the points always match the pieces that are left, and that nothing goes below zero.
+const left = Object.values((await raw.get(c, 'deposit/13')) || {}).reduce((a, n) => a + n, 0);
+assert.equal(await score(U) + await score(B), left, 'points match the pieces that are left');
+assert.ok(await score(U) >= 0 && await score(B) >= 0);
+for (let i = 0; i < left; i++) await s.depositRemove(c, '13', U);
+assert.equal(await raw.get(c, 'deposit/13'), null);
+assert.equal(await score(U) + await score(B), 0);
+pass('30 removals at once from 20 pieces: points match the rest, none lost, all pieces removable afterwards');
 
 // Deleting a whole list is the one write allowed at list level
 await raw.remove(c, '');
