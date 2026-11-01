@@ -67,6 +67,35 @@ export function rankPlaces(scores) {
   return { placed, podium: [...at(2), ...at(1), ...at(3), ...placed.filter(x => x.n === 0)], max: Math.max(1, placed[0] ? placed[0].n : 1) };
 }
 
+// Badges, derived from what the list already stores (no new fields, no writes). `items` are the list items (checkedBy/
+// checkedAt), `deposit` is {typeId: {user: pieces}}. Only for lists with at least two players, otherwise nobody competes.
+// - 'empties': most empties pieces on the list (at least BADGE_MIN_EMPTIES; ties share it)
+// - 'basket':  most items in the basket (at least BADGE_MIN_BASKET; ties share it)
+// - 'first':   checked off the earliest item that is in the basket (one person)
+// Returns {user: [badge ids]} in a fixed order, only for users with at least one badge.
+export const BADGE_MIN_EMPTIES = 3, BADGE_MIN_BASKET = 3;
+export function computeBadges({ scores, items, deposit } = {}) {
+  const players = Object.keys(scores || {});
+  if (players.length < 2) return {};
+  const out = {};
+  const give = (user, id) => { if (players.includes(user)) (out[user] = out[user] || []).push(id); };
+  const leaders = (count, min) => { const top = Math.max(0, ...Object.values(count)); return top >= min ? Object.keys(count).filter(u => count[u] === top) : []; };
+  const empties = {};
+  for (const group of Object.values(deposit || {})) for (const [u, n] of Object.entries(group || {})) empties[u] = (empties[u] || 0) + (Number(n) || 0);
+  const basket = {};
+  let first = null;
+  for (const i of Object.values(items || {})) {
+    if (!i || !i.checked || !i.checkedBy) continue;
+    basket[i.checkedBy] = (basket[i.checkedBy] || 0) + 1;
+    const at = Number(i.checkedAt) || 0;
+    if (at > 0 && (!first || at < first.at || (at === first.at && i.checkedBy < first.user))) first = { at, user: i.checkedBy };
+  }
+  leaders(empties, BADGE_MIN_EMPTIES).forEach(u => give(u, 'empties'));
+  leaders(basket, BADGE_MIN_BASKET).forEach(u => give(u, 'basket'));
+  if (first) give(first.user, 'first');
+  return out;
+}
+
 /* ---------- Scanning ---------- */
 // What a scanned (or typed) code means. While joining only a list code or join link counts. A VG shelf label carries the
 // VG number (vgNumFromCode), whether or not the VG data has loaded; any other run of 8-14 digits is a product barcode;
@@ -154,4 +183,52 @@ export function sanitizeHintSeen(raw) {
 }
 export function addHintSeen(seen, code) {
   return seen.includes(code) ? seen : [...seen, code].slice(-20);
+}
+
+/* ---------- Own item history (suggestions) ---------- */
+// For all lists together: the names the person added or checked off, with a count and the last use. `{ ALL: [{ t, n, ts, v? }] }` in
+// localStorage (user-writable: everything is validated again). Bounded: HISTORY_MAX names.
+export const HISTORY_MAX = 1000;
+export const HISTORY_TITLE_MAX = 60;
+export const HISTORY_KEY = 'ALL'; // one table for every list on this phone
+const historyCode = c => c === HISTORY_KEY;
+const historyKey = title => String(title).trim().toLowerCase();
+const cleanTitle = s => typeof s === 'string' ? s.replace(/\s+/g, ' ').trim().slice(0, HISTORY_TITLE_MAX) : '';
+export function sanitizeHistory(raw, now = Date.now()) {
+  const out = {};
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return out;
+  for (const code of Object.keys(raw).filter(historyCode)) {
+    const seen = new Set(), list = [];
+    for (const e of Array.isArray(raw[code]) ? raw[code] : []) {
+      if (!e || typeof e !== 'object') continue;
+      const t = cleanTitle(e.t), k = historyKey(t);
+      if (!t || seen.has(k) || !Number.isInteger(e.n) || e.n < 1 || !Number.isFinite(e.ts) || e.ts > now + 60000) continue;
+      seen.add(k);
+      list.push({ t, n: Math.min(e.n, 9999), ts: e.ts, ...(Number.isInteger(e.v) && e.v > 0 && e.v < 10000 ? { v: e.v } : {}) });
+    }
+    if (list.length) out[code] = list.sort((a, b) => b.ts - a.ts).slice(0, HISTORY_MAX);
+  }
+  return out;
+}
+// Count one use of `title` on list `code` (a VG number, when the item has one, is remembered). Returns a new table; the oldest
+// lists and the least used old names fall out when the bounds are hit.
+export function recordHistory(table, code, title, vgNum, now = Date.now()) {
+  const t = cleanTitle(title); if (!t || !historyCode(code)) return table;
+  const list = [...(table[code] || [])], k = historyKey(t), i = list.findIndex(e => historyKey(e.t) === k);
+  const v = Number.isInteger(vgNum) && vgNum > 0 && vgNum < 10000 ? vgNum : null;
+  if (i >= 0) { const e = list[i]; list[i] = { t: e.t, n: Math.min(e.n + 1, 9999), ts: now, ...(v ? { v } : e.v ? { v: e.v } : {}) }; }
+  else list.push({ t, n: 1, ts: now, ...(v ? { v } : {}) });
+  list.sort((a, b) => b.ts - a.ts);
+  const next = { ...table }; delete next[code]; next[code] = list.slice(0, HISTORY_MAX); // the newest list is last
+  return next;
+}
+// Matching names for what is typed (every word is a prefix of a word or a part of the name), most used first, then most recent.
+// Names that equal the typed text exactly are left out (nothing to suggest).
+export function historyMatches(list, q, limit = 4) {
+  const words = String(q).toLowerCase().split(/\s+/).filter(Boolean);
+  if (!words.length || words.join(' ').length < 2) return [];
+  const typed = words.join(' ');
+  return (list || []).filter(e => { const k = historyKey(e.t); return k !== typed && words.every(w => k.includes(w)); })
+    .sort((a, b) => (historyKey(b.t).startsWith(words[0]) - historyKey(a.t).startsWith(words[0])) || b.n - a.n || b.ts - a.ts)
+    .slice(0, limit);
 }

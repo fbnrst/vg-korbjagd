@@ -93,6 +93,7 @@ body.typing .tabs{display:none}
 #addSuggest{position:absolute;left:12px;right:12px;bottom:100%;margin:0 auto 6px;max-width:640px;display:flex;flex-direction:column;gap:6px;padding:6px;background:var(--bg);border:1px solid var(--line);border-radius:12px;box-shadow:0 -6px 18px var(--shadow-suggest);max-height:min(360px,calc(var(--app-h,100vh) - 150px));overflow:auto;z-index:8}
 #addSuggest .sug,#scanSuggest .sug{display:flex;gap:12px;align-items:baseline;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;color:var(--fg);font:inherit}
 #addSuggest .sug b,#scanSuggest .sug b{min-width:48px;color:var(--green);font-variant-numeric:tabular-nums}
+#addSuggest .sug i{font-style:normal;margin-left:auto;color:var(--mute)}
 #addSuggest .miss,#scanSuggest .miss{padding:6px 4px;color:var(--mute);font-size:14px}
 .dep{display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid var(--line)}.dep:last-child{border:0}.dep .t{flex:1}.dep .n{min-width:28px;text-align:center;font-weight:500;font-size:16px;font-variant-numeric:tabular-nums}.dep button{position:relative;flex:0 0 30px;box-sizing:border-box;width:30px;height:30px;min-width:30px;max-width:30px;padding:0;-webkit-appearance:none;appearance:none;border-radius:50%;border:1.5px solid var(--tone-bd);background:none;color:var(--tone-fg);font-size:20px;line-height:1}.dep button::after{content:'';position:absolute;inset:-7px}.dep button.add{background:var(--tone-bg)}
 .ks{margin-bottom:8px;padding:8px 12px}.ks h3{margin:0 0 2px;font-size:14px;color:var(--mute);text-transform:uppercase;letter-spacing:.5px}
@@ -137,6 +138,8 @@ body.typing .tabs{display:none}
 .pod .e{font-size:34px}
 .rank{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
 .rank b{margin-left:auto;font-size:20px}
+.rank .who{min-width:0;display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;overflow-wrap:anywhere}
+.badge{font-size:14px;line-height:1.3;padding:1px 8px;border-radius:10px;background:var(--tone-bg);color:var(--tone-fg);white-space:nowrap}
 #toast{position:fixed;top:calc(60px + var(--vvtop,0px));left:50%;transform:translateX(-50%) translateY(-16px);background:var(--toast-bg);color:var(--toast-fg);border-radius:12px;padding:10px 16px;z-index:40;max-width:90vw;text-align:center;pointer-events:none;
   opacity:0;visibility:hidden;transition:opacity .25s,transform .25s,visibility 0s .25s} /* hidden = invisible, whatever the text height (no edge may peek out); above the dialogs and the scanner (z-index 30), whose errors it reports */
 #toast.act.show{pointer-events:auto}

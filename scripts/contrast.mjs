@@ -29,6 +29,7 @@ export const PAIRS = [
   ['green', 'card', 4.5, 'links and the active tab on cards'],
   ['ctl-bd', 'bg', 3, 'input border on the page background'], ['ctl-bd', 'card', 3, 'input border on cards'],
   ['tone-bd', 'card', 3, 'unchecked check ring on cards'], ['tone-bd', 'bg', 3, 'unchecked check ring on the page'],
+  ['tone-fg', 'tone-bg', 4.5, 'badge chip text'],
   ['focus', 'bg', 3, 'focus ring on the page'], ['focus', 'card', 3, 'focus ring on cards'],
 ];
 export function measure(css = fs.readFileSync(new URL('../public/theme.css', import.meta.url), 'utf8')) {

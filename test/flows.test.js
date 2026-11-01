@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { isIosLike, isStandalone, shouldShowBrowserHint, shouldShowInstallHint, shouldShowAndroidInstall, isAndroid, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, createVgLoader, uploadLocalList, checkoutSections, rankPlaces, classifyScan, TICK_TTL, TICK_MAX } from '../public/flows.js';
+import { isIosLike, isStandalone, shouldShowBrowserHint, shouldShowInstallHint, shouldShowAndroidInstall, isAndroid, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, createVgLoader, uploadLocalList, checkoutSections, rankPlaces, computeBadges, classifyScan, TICK_TTL, TICK_MAX } from '../public/flows.js';
 import { createStore, localAdapter, userKey } from '../public/store.js';
 import { createSim, createClock } from '../public/sim.js';
 import { STRINGS } from '../public/i18n.js';
@@ -245,4 +245,24 @@ test('scanned codes: VG labels with or without VG data, barcodes, list codes onl
   assert.deepEqual(classifyScan('https://example.com/'), { kind: 'unknown' });
   assert.deepEqual(classifyScan('https://x/?list=K7M2QXAB', { join: true }), { kind: 'list', code: 'K7M2QXAB' });
   assert.deepEqual(classifyScan('4006040123458', { join: true }), { kind: 'unknown' });
+});
+
+test('computeBadges: empties, basket and first derived from stored data', () => {
+  const A = '🦊 Mia', B = '🐼 Ben', C = '🦈 Ada';
+  const scores = { [A]: 4, [B]: 2, [C]: 0 };
+  const items = {
+    a: { checked: true, checkedBy: A, checkedAt: 300 }, b: { checked: true, checkedBy: A, checkedAt: 200 },
+    c: { checked: true, checkedBy: A, checkedAt: 500 }, d: { checked: true, checkedBy: B, checkedAt: 100 }, e: { checked: false },
+  };
+  const deposit = { 1: { [B]: 2, [C]: 1 }, 2: { [B]: 1 } };
+  assert.deepEqual(computeBadges({ scores, items, deposit }), { [A]: ['basket'], [B]: ['empties', 'first'] });
+});
+
+test('computeBadges: ties share, thresholds apply, nothing for a single player or odd data', () => {
+  const A = '🦊 Mia', B = '🐼 Ben';
+  assert.deepEqual(computeBadges({ scores: { [A]: 1 }, deposit: { 1: { [A]: 9 } } }), {});
+  assert.deepEqual(computeBadges({ scores: { [A]: 1, [B]: 1 }, deposit: { 1: { [A]: 2, [B]: 2 } } }), {}); // below the minimum
+  assert.deepEqual(computeBadges({ scores: { [A]: 1, [B]: 1 }, deposit: { 1: { [A]: 3, [B]: 3 } } }), { [A]: ['empties'], [B]: ['empties'] });
+  assert.deepEqual(computeBadges({ scores: { [A]: 1, [B]: 1 }, items: { x: { checked: true, checkedBy: '👻 Gone', checkedAt: 1 } }, deposit: { 1: null } }), {});
+  assert.deepEqual(computeBadges(), {});
 });
