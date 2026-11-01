@@ -54,4 +54,4 @@ Code checks run locally as a git hook through [prek](https://github.com/j178/pre
 
 BSD 3-Clause, see [LICENSE](LICENSE.md). The VG data (see `docs/vg-api.md`) belongs to VG Dresden and is not part of this license.
 
-Bundled third-party software (MIT, notices in the file headers): `public/vendor/qrcode.js` (qrcode-generator 1.4.4), `public/vendor/crypto-js.js` (CryptoJS 4.2.0).
+Bundled third-party software: `public/vendor/qrcode.js` (qrcode-generator 1.4.4, MIT) and `public/vendor/crypto-js.js` (CryptoJS 4.2.0, MIT), notices in the file headers; `public/vendor/zxing.min.js` (@zxing/library 0.21.3, Apache License 2.0, see `public/vendor/zxing-LICENSE.txt`).

@@ -674,7 +674,7 @@ function loadZxing() {
   if (window.ZXing) return Promise.resolve();
   return new Promise((res, rej) => {
     const s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js';
+    s.src = new URL('vendor/zxing.min.js', import.meta.url).href; // @zxing/library 0.21.3, bundled (no CDN)
     s.onload = res; s.onerror = rej; document.head.appendChild(s);
   });
 }

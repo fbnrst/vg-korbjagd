@@ -24,9 +24,9 @@ Kober ist eine statische Seite ohne Server und ohne Build-Schritt (ES-Module, Gi
 | `firebase-config.js`, `firebase-config.dev.js` | Firebase-Webkonfiguration (öffentlich); `null` = Demo-Modus |
 | `privacy.html`, `docs/index.html`, `legal-config.js` | Datenschutzseite, Hilfeseite (beide zweisprachig), Kontaktangabe |
 | `manifest.json`, `icon.svg`, `logo.svg`, `icons/` | PWA-Metadaten und Icons (`npm run icons`) |
-| `vendor/` | Fremdbibliotheken (QR-Code, CryptoJS), von den Prüfungen ausgenommen |
+| `vendor/` | Fremdbibliotheken (QR-Code, CryptoJS, zxing), von den Prüfungen ausgenommen |
 
-Der Firebase-SDK (10.14.1) wird erst bei Bedarf von `gstatic.com` geladen, der Scanner auf iOS/Safari lädt zxing von jsDelivr (`@zxing/library@0.21.3`); Chrome/Android nutzt den eingebauten `BarcodeDetector`. Unbekannte EANs werden bei Open Food Facts nachgeschlagen.
+Der Firebase-SDK (10.14.1) wird erst bei Bedarf von `gstatic.com` geladen, der Scanner auf iOS/Safari lädt bei Bedarf `vendor/zxing.min.js` (`@zxing/library@0.21.3`); Chrome/Android nutzt den eingebauten `BarcodeDetector`. Unbekannte EANs werden bei Open Food Facts nachgeschlagen.
 
 ## Datenmodell
 
