@@ -1,3 +1,5 @@
-/* the dev site is blue all over (the release is green): same blue as the app header */
-body.dev{--bg:#eceefb;--green:#3b479e;--line:#cdd2f0;--hdr:#7d8de6;--hdr-fg:#0d1138}
-@media(prefers-color-scheme:dark){body.dev{--bg:#12142b;--card:#1b1f3d;--fg:#e4e7fb;--mute:#a4a9d3;--green:#9aa7ff;--line:#2d3263;--hdr:#2a3170;--hdr-fg:#e4e7fb}}
+/* the dev site is blue all over (the release is green): same blue as the app header. Every green variable of the pages is
+   overridden here, light and dark; keep both in sync with the :root blocks of index.html, privacy.html and docs/index.html. */
+body.dev{--bg:#eceefb;--green:#3b479e;--fill:#3b479e;--accent:#4a58c4;--green2:#e1e5f8;--line:#cdd2f0;--hdr:#7d8de6;--hdr-fg:#0d1138}
+@media(prefers-color-scheme:dark){body.dev{--bg:#12142b;--card:#1b1f3d;--fg:#e4e7fb;--mute:#a4a9d3;--green:#9aa7ff;--fill:#3b479e;--accent:#9aa7ff;--green2:#262b57;--line:#2d3263;--hdr:#2a3170;--hdr-fg:#e4e7fb}}
+body.dev #scanFrame{border-color:#8fa0ff} /* scanner frame: light green in the release */
