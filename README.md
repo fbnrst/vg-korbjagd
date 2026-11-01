@@ -8,11 +8,9 @@
 An independent, unofficial shopping list app. The list lives on your phone first; once you share it, phones sync live and a leaderboard ("who puts the most in the basket") starts. Idea and product data: the [VG app](https://gitlab.com/pyfox/vg-app) of VG Dresden. This project is not affiliated with VG Dresden.
 
 ## Features
-- Local first: the list lives on the phone (no account, works offline). Sharing it adds live sync (QR code, link or 6-character code) and the leaderboard
-- Add items by name, VG number (with suggestions from the VG master data) or barcode scanner; import lists from the VG app
-- Checking off puts an item in the basket, with Undo for deletes; tabs for empties, checkout and (shared lists) ranking
-- German and English UI, installable PWA, demo mode without Firebase
-- Shared lists can be deleted for everyone and expire after 30 days without activity
+- A shared shopping list: everyone with the code (QR code, link or 6 characters) sees changes live and who put what in the basket
+- A leaderboard on top: points for checking off items and returning empties, so shopping becomes a little game
+- Works without account or server first: the list stays on your phone until you share it
 
 ## Documentation
 [Help page](https://fbnrst.github.io/kober/docs/) (end users) · [privacy notice](public/privacy.html) · for maintainers (German, not deployed): [architecture, build, release and Firebase setup](docs/architecture.md) · [retention and deletion](docs/retention.md) · [security](docs/security.md) · [VG endpoints](docs/vg-api.md)
