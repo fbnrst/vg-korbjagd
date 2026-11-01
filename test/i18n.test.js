@@ -55,8 +55,11 @@ test('dev share buttons are created from JS behind IS_DEV only, never in the sta
   const fs = await import('node:fs');
   const html = fs.readFileSync(new URL('../public/index.html', import.meta.url), 'utf8');
   const src = fs.readFileSync(new URL('../public/app.js', import.meta.url), 'utf8');
+  const dev = fs.readFileSync(new URL('../public/dev.js', import.meta.url), 'utf8');
   assert.ok(!/devShare/i.test(html));
-  assert.match(src, /if \(IS_DEV\) \{\s*const devBtn[\s\S]*?devShareCreate[\s\S]*?devShareBack/);
+  assert.ok(!/devShare/.test(src), 'app.js leaves the dev buttons to dev.js');
+  assert.match(src, /if \(IS_DEV\) import\('\.\/dev\.js'\)/, 'dev.js is loaded only on the dev site');
+  assert.match(dev, /devShareCreate[\s\S]*?devShareBack/);
 });
 
 // Keys that are never written out in full in the code because it builds them (t(`prefix${x}`)): list each with the place

@@ -5,7 +5,9 @@ import { createOutbox } from './outbox.js';
 import { saveSnapshot, loadSnapshot, dropSnapshot, sanitize } from './cache.js';
 import { IS_DEV, NS } from './env.js';
 import { BUILD } from './version.js';
-import { loadVg, similarNames, timeoutSignal } from './vg.js';
+import { loadVg, similarNames } from './vg.js';
+import { toast, ask, asking, dismissKeyboard, loadScript, copyText } from './ui.js';
+import { createCamera, productName } from './scan.js';
 import { t, applyStatic } from './i18n.js';
 import { shouldShowAndroidInstall, shouldShowInstallHint, shouldShowBrowserHint, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, sanitizeHistory, recordHistory, historyMatches, HISTORY_KEY, createVgLoader, uploadLocalList, checkoutSections, rankPlaces, computeBadges, classifyScan } from './flows.js';
 import { planMove, planDrop, sortOpen } from './order.js';
@@ -50,62 +52,6 @@ const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(
 const myKey = () => userKey(me.emoji, me.name || 'Me');
 const splitKey = k => { const i = k.indexOf(' '); return { emoji: k.slice(0, i), name: k.slice(i + 1) }; };
 
-// Opening a dialog, menu or the scanner while a field has focus: the keyboard must go away first (iOS keeps it open
-// when a button is tapped)
-function dismissKeyboard() {
-  const el = document.activeElement;
-  if (el && el !== document.body && typeof el.blur === 'function') el.blur();
-}
-
-// A toast is click-through. With an action ({label, aria, run}) it gets one button (the undo offer) and stays 8 s; a new offer
-// replaces the previous one, so there is only ever one. A plain toast never pushes an offer away: it waits until the offer is
-// gone (only the latest one waits). Plain toasts stay longer the longer the text is, and pointer or keyboard focus on the
-// toast stops the clock until it leaves. Texts go in as text, never as HTML.
-const toastMs = (msg, action) => (action ? 8000 : Math.min(8000, 2000 + 50 * String(msg).length));
-let toastWaiting = null;
-function toast(msg, action) {
-  const el = $('#toast');
-  if (!action && el.classList.contains('act') && el.classList.contains('show')) { toastWaiting = msg; return; }
-  el.classList.toggle('act', !!action); el.classList.add('show');
-  void el.offsetHeight; // the region is rendered (not visibility:hidden) before its text changes, so screen readers announce it
-  el.textContent = msg;
-  if (action) {
-    const b = document.createElement('button');
-    b.type = 'button'; b.className = 'toastAct'; b.textContent = action.label; b.setAttribute('aria-label', action.aria || action.label);
-    b.onclick = () => { hideToast(); action.run(); };
-    el.append(b);
-  }
-  toastClock(toastMs(msg, action));
-}
-function toastClock(ms) { clearTimeout(toast.t); toast.t = setTimeout(hideToast, ms); }
-function hideToast() {
-  clearTimeout(toast.t); $('#toast').classList.remove('show', 'act');
-  if (toastWaiting) { const m = toastWaiting; toastWaiting = null; toast(m); }
-}
-{
-  const el = $('#toast'), hold = () => clearTimeout(toast.t);
-  const go = () => { if (el.classList.contains('show') && !el.contains(document.activeElement)) toastClock(3000); };
-  el.addEventListener('pointerenter', hold); el.addEventListener('focusin', hold);
-  el.addEventListener('pointerleave', go); el.addEventListener('focusout', () => setTimeout(go, 0));
-}
-// A question before an action, in the app's own dialog (#askDlg) instead of the browser's confirm(): styled, in the app's
-// language, accessible through initDialogs, and it does not freeze the page (the camera keeps running behind it).
-// Resolves true for `yes`, false for Cancel, Escape or a tap beside it. `danger`: the yes button is the red one.
-// `no: null` shows only the yes button (a message). A new question answers an open one with false.
-let askDone = null;
-function ask(msg, { yes = t('ok'), no = t('cancel'), danger = false } = {}) {
-  dismissKeyboard();
-  if (askDone) askDone(false);
-  return new Promise(resolve => {
-    askDone = v => { askDone = null; $('#askDlg').classList.add('hide'); resolve(v); };
-    $('#askText').textContent = msg;
-    $('#askYes').textContent = yes; $('#askYes').classList.toggle('destroy', danger);
-    $('#askNo').textContent = no ?? ''; $('#askNo').classList.toggle('hide', no === null);
-    $('#askDlg').classList.remove('hide');
-  });
-}
-$('#askYes').onclick = () => { if (askDone) askDone(true); };
-$('#askNo').onclick = () => { if (askDone) askDone(false); };
 // The cached list of an earlier visit is only for reading: every flow that changes the list asks this first, so it neither
 // shows a success that did not happen nor throws away what was typed
 const readOnly = () => { if (!stale) return false; toast(t('connCached')); return true; };
@@ -568,7 +514,7 @@ document.addEventListener('submit', async e => {
 // Leaving the edit field (blur) or pressing Escape cancels the edit
 document.addEventListener('focusout', e => {
   if (!e.target.closest('[data-vgedit]')) return;
-  setTimeout(() => { if (editingId && !document.activeElement?.closest('[data-vgedit]') && $('#scanner').classList.contains('hide') && $('#askDlg').classList.contains('hide')) { editingId = null; render(); } }, 350);
+  setTimeout(() => { if (editingId && !document.activeElement?.closest('[data-vgedit]') && $('#scanner').classList.contains('hide') && !asking()) { editingId = null; render(); } }, 350);
 });
 // The rows waited while a number field had focus (see render): rebuild them once focus has left the rows' fields
 document.addEventListener('focusout', e => {
@@ -668,18 +614,7 @@ $('#addIn').oninput = () => {
 $('#resetBtn').onclick = async () => { if (await ask(t('confirmReset'), { yes: t('newRound') })) bg.resetScores(code); };
 /* ---------- Sharing (QR code + link) ---------- */
 const shareUrl = () => new URL(`?list=${code}`, location.href.split('?')[0]).href;
-// A bundled third-party script (vendor/), loaded on first use; `ready` says whether it is there already
-const loadScript = (url, ready) => ready() ? Promise.resolve() : new Promise((res, rej) => {
-  const el = document.createElement('script');
-  el.src = url.href;
-  el.onload = res; el.onerror = rej; document.head.appendChild(el);
-});
 const loadQr = () => loadScript(new URL('vendor/qrcode.js', import.meta.url), () => window.qrcode);
-// Copy a text; without clipboard access the text of `el` is selected so it can be copied by hand
-async function copyText(el, text, copied = 'codeCopied', selected = 'codeSelected') {
-  try { await navigator.clipboard.writeText(text); toast(t(copied)); }
-  catch (e) { const r = document.createRange(); r.selectNodeContents(el); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); toast(t(selected)); }
-}
 async function openShareDialog(error = '') { // `error`: the first upload failed, the dialog stays open with a retry
   dismissKeyboard();
   $('#shareErr').textContent = error; $('#shareErr').classList.toggle('hide', !error);
@@ -701,56 +636,11 @@ $('#menuShare').onclick = () => openShareDialog(); // the same dialog from the �
 $('#shareClose').onclick = closeShareDialog;
 $('#copyCode').onclick = () => copyText($('#shareCode'), $('#shareCode').textContent);
 $('#shareStart').onclick = () => { closeShareDialog(); me.name ? shareLocalList() : askIdentity(shareLocalList, backToList); };
-// Dev site only (the elements do not exist in the release): switch into a fresh shared test list without a code from another
-// device, and back. The local list stays untouched; its items are copied (no points) into the new list.
-if (IS_DEV) {
-  const devBtn = (box, key, fn) => {
-    const b = document.createElement('button');
-    b.type = 'button'; b.className = 'btn sec'; b.textContent = t(key); b.onclick = fn;
-    const p = document.createElement('p'); p.style.margin = '12px 0 0'; p.appendChild(b);
-    $(box).appendChild(p);
-  };
-  devBtn('#shareLocalBox', 'devShareCreate', async () => {
-    closeShareDialog();
-    if (!me.name) { me.name = 'Tester'; LS.set('me', me); }
-    try {
-      const data = { items: (await localDb.get(LOCAL, 'items')) || {}, deposit: (await localDb.get(LOCAL, 'deposit')) || {} };
-      const remote = await getRemote();
-      const c = await remote.create();
-      await remote.importList(c, data, myKey());
-      await startShared(c);
-    } catch (e) { toast(noDbMsg(e)); startLocal(); }
-  });
-  devBtn('#shareSharedBox', 'devShareBack', () => { closeShareDialog(); forgetShared(); startLocal(); });
-  // Diagnostics for what only a phone can show (status bar colour, service worker, caches); plain text, never HTML
-  const diag = async out => {
-    const meta = h => (h.match(/<meta[^>]*name="theme-color"[^>]*>/g) || []).join(' ') || '(none)';
-    const lines = [];
-    try { lines.push('server meta: ' + meta(await (await fetch(location.href, { cache: 'reload' })).text())); } catch (e) { lines.push('server meta: ' + e.message); }
-    lines.push('live meta: ' + [...document.querySelectorAll('meta[name=theme-color]')].map(m => m.content).join(', '));
-    lines.push('header: ' + getComputedStyle($('header')).backgroundColor + ', html: ' + getComputedStyle(document.documentElement).backgroundColor);
-    lines.push('standalone: ' + (navigator.standalone === true) + ', dark: ' + matchMedia('(prefers-color-scheme: dark)').matches);
-    try { lines.push('caches: ' + (await caches.keys()).join(', ')); } catch (e) { lines.push('caches: ' + e.message); }
-    try { const r = await navigator.serviceWorker.getRegistration(); lines.push('sw: ' + (r && r.active ? r.active.scriptURL : 'none') + ', controlled: ' + !!navigator.serviceWorker.controller); } catch (e) { lines.push('sw: ' + e.message); }
-    lines.push('url: ' + location.href);
-    out.textContent = lines.join('\n');
-  };
-  // Entry in the "…" menu that opens the diagnostics in a small dialog (built here, so the release has no trace of it)
-  const dlg = document.createElement('div');
-  dlg.id = 'diagDlg'; dlg.className = 'hide';
-  const card = document.createElement('div'); card.className = 'card'; card.style.cssText = 'max-width:340px;width:100%';
-  const h = document.createElement('h2'); h.style.margin = '0 0 8px'; h.textContent = t('devDiag');
-  const pre = document.createElement('pre'); pre.style.cssText = 'font-size:12px;white-space:pre-wrap;word-break:break-all;text-align:left;margin:0 0 12px';
-  const close = document.createElement('button'); close.type = 'button'; close.className = 'btn sec'; close.setAttribute('data-dialog-close', ''); close.textContent = t('close'); close.onclick = () => dlg.classList.add('hide');
-  const copy = document.createElement('button'); copy.type = 'button'; copy.className = 'btn sec'; copy.textContent = t('devDiagCopy'); copy.style.marginRight = '8px';
-  copy.onclick = () => copyText(pre, pre.textContent, 'devDiagCopied', 'devDiagSelected');
-  dlg.setAttribute('data-backdrop-close', '');
-  card.append(h, pre, copy, close); dlg.appendChild(card); document.body.appendChild(dlg);
-  const item = document.createElement('button');
-  item.type = 'button'; item.setAttribute('role', 'menuitem'); item.textContent = t('devDiag');
-  item.onclick = () => { dismissKeyboard(); pre.textContent = '…'; dlg.classList.remove('hide'); diag(pre); };
-  $('#menu').appendChild(item); // last entry
-}
+
+// Dev site only: test-list buttons in the share dialog and a diagnostics dialog (dev.js; the release never loads it)
+if (IS_DEV) import('./dev.js').then(m => m.initDev({ closeShareDialog, getRemote, myKey, startShared, startLocal, forgetShared, noDbMsg,
+  ensureName: () => { if (!me.name) { me.name = 'Tester'; LS.set('me', me); } },
+  localData: async () => ({ items: (await localDb.get(LOCAL, 'items')) || {}, deposit: (await localDb.get(LOCAL, 'deposit')) || {} }) })).catch(() => {});
 $('#menuVersion').textContent = t('version', { v: BUILD });
 // Join dialog (menu on the local list): type the code, or scan the QR code
 const closeJoin = () => { $('#joinDlg').classList.add('hide'); $('#codeIn').value = ''; };
@@ -857,25 +747,14 @@ function show(id) {
 }
 
 /* ---------- Barcode scanner ---------- */
-let zxingReader = null, scanStream = null, scanBusy = false;
+let scanBusy = false;
 let scanTarget = null; // {id, checkToo} while the scanner was opened for one list item
 let scanSession = 0; // counts the closes: a lookup that comes back after the scanner was closed is dropped
-const loadZxing = () => loadScript(new URL('vendor/zxing.min.js', import.meta.url), () => window.ZXing); // @zxing/library 0.21.3, bundled (no CDN)
 // The line under the camera; a passing complaint ("not recognised") goes back to the aiming hint after a moment
 let scanMsgTimer = 0;
 function scanMsg(text, passing = false) {
   $('#scanMsg').textContent = text; clearTimeout(scanMsgTimer);
   if (passing) scanMsgTimer = setTimeout(() => { const sc = $('#scanner'); if (!sc.classList.contains('hide')) $('#scanMsg').textContent = t(sc.classList.contains('join') ? 'scanQrHint' : 'scanHint'); }, 2500);
-}
-// Weak signal in a shop: after a few seconds the scan goes on without the name instead of blocking the scanner
-async function productName(ean) {
-  try {
-    const r = await fetch(`https://world.openfoodfacts.org/api/v2/product/${ean}.json?fields=product_name,product_name_de,brands`, { signal: timeoutSignal(5000) });
-    const j = await r.json();
-    if (j.status !== 1) return null;
-    const p = j.product, name = p.product_name_de || p.product_name;
-    return name ? (p.brands ? `${name} (${p.brands.split(',')[0]})` : name) : null;
-  } catch (e) { return null; }
 }
 // Scan for one list item (button on the row): a VG label sets its number, an ordinary barcode is remembered on the item.
 // If the scanned product is named completely differently, ask first. `c` is what classifyScan made of the code.
@@ -942,39 +821,9 @@ async function handleCode(raw) {
     closeScanner();
   } finally { scanBusy = false; }
 }
-// The camera can be stopped while it is still starting (typing a number): a token invalidates pending starts.
-let camToken = 0;
-function stopCamera() {
-  camToken++;
-  if (zxingReader) { zxingReader.reset(); zxingReader = null; }
-  if (scanStream) { scanStream.getTracks().forEach(track => track.stop()); scanStream = null; }
-  $('#cam').srcObject = null;
-}
-async function startCamera() {
-  const my = ++camToken, video = $('#cam');
-  try {
-    const join = $('#scanner').classList.contains('join'); // QR codes of lists instead of product barcodes
-    if ('BarcodeDetector' in window && (!join || (await BarcodeDetector.getSupportedFormats()).includes('qr_code'))) { // compat-ok: guarded by 'in window' (Chrome/Android: built in, iOS uses zxing)
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-      if (my !== camToken) { stream.getTracks().forEach(track => track.stop()); return; }
-      scanStream = stream; video.srcObject = stream; await video.play();
-      const det = new BarcodeDetector({ formats: join ? ['qr_code'] : ['ean_13', 'ean_8', 'upc_a', 'upc_e'] }); // compat-ok: only reached when the guard above found the detector (iOS uses zxing)
-      const loop = async () => {
-        if (!scanStream || my !== camToken) return;
-        try { const r = await det.detect(video); if (r[0]) { await handleCode(r[0].rawValue); if (!scanStream || my !== camToken) return; } } catch (e) {}
-        setTimeout(loop, 200);
-      };
-      loop();
-    } else { // iOS/Safari etc.: load zxing on demand
-      await loadZxing();
-      if (my !== camToken) return;
-      zxingReader = new ZXing.BrowserMultiFormatReader();
-      zxingReader.decodeFromConstraints({ video: { facingMode: 'environment' } }, video, r => { if (r) handleCode(r.getText()); });
-    }
-  } catch (e) {
-    if (my === camToken) scanMsg(t('cameraFail'));
-  }
-}
+// The camera of the scanner dialog (scan.js); every code it reads goes to handleCode
+const camera = createCamera($('#cam'), { onCode: text => handleCode(text), onFail: () => scanMsg(t('cameraFail')) });
+const startCamera = () => camera.start($('#scanner').classList.contains('join')), stopCamera = () => camera.stop();
 function openScanner(join = false) {
   dismissKeyboard();
   $('#scanner').classList.remove('hide', 'manual'); $('#scanner').classList.toggle('join', join);
