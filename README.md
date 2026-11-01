@@ -13,7 +13,8 @@ An independent, unofficial shopping list app. The list lives on your phone first
 - Works without account or server first: the list stays on your phone until you share it
 
 ## Documentation
-[Help page](https://fbnrst.github.io/kober/docs/) (end users) · [privacy notice](public/privacy.html) · for maintainers (German, not deployed): [architecture, build, release and Firebase setup](docs/architecture.md) · [retention and deletion](docs/retention.md) · [security](docs/security.md) · [VG endpoints](docs/vg-api.md)
+- [Help page](https://fbnrst.github.io/kober/docs/) (for users) and [privacy notice](public/privacy.html)
+- For maintainers (German, not deployed): [architecture, build, release and Firebase setup](docs/architecture.md), [retention and deletion](docs/retention.md), [security](docs/security.md), [VG endpoints](docs/vg-api.md)
 
 The site has two versions: the root is the latest release, [`/dev/`](https://fbnrst.github.io/kober/dev/) is the current `main`.
 
