@@ -24,7 +24,9 @@
   --conn-bg:#f7a642;     /* connection banner background */
   --conn-fg:#3a2300;     /* connection banner text */
   --tone-bg:#e8edde;     /* checked items, ticked options */
-  --tone-bd:#8bad73;     /* ring of items and options */
+  --tone-bd:#6b8a50;     /* ring of items and options (at least 3:1 against cards and the page, WCAG 1.4.11) */
+  --ctl-bd:#74866a;      /* border of input fields and unticked options (at least 3:1 against cards and the page) */
+  --focus:#3f5c04;       /* keyboard focus ring (at least 3:1 against cards and the page) */
   --tone-fg:#3f5c04;     /* mark inside the ring */
   --tick:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233f5c04' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7'/%3E%3C/svg%3E"); /* check mark image, stroke = --tone-fg */
   --toast-bg:#222;       /* toast */
@@ -65,6 +67,8 @@
   --conn-fg:#f6dcae;
   --tone-bg:#2a3323;
   --tone-bd:#5f7a4c;
+  --ctl-bd:#6c7f5f;
+  --focus:#b9d1a3;
   --tone-fg:#b9d1a3;
   --tick:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23b9d1a3' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7'/%3E%3C/svg%3E");
   --toast-bg:#222;
