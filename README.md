@@ -1,9 +1,9 @@
 # Kober – a shared shopping list with a leaderboard
 
-[![Checks](https://github.com/fbnrst/kober/actions/workflows/autofix.yml/badge.svg)](https://github.com/fbnrst/kober/actions/workflows/autofix.yml)
-[![Deploy](https://github.com/fbnrst/kober/actions/workflows/pages.yml/badge.svg)](https://github.com/fbnrst/kober/actions/workflows/pages.yml)
 [![Release](https://img.shields.io/github/v/release/fbnrst/kober)](https://github.com/fbnrst/kober/releases)
 [![Last commit](https://img.shields.io/github/last-commit/fbnrst/kober)](https://github.com/fbnrst/kober/commits/main)
+[![Checks](https://github.com/fbnrst/kober/actions/workflows/autofix.yml/badge.svg)](https://github.com/fbnrst/kober/actions/workflows/autofix.yml)
+[![Deploy](https://github.com/fbnrst/kober/actions/workflows/pages.yml/badge.svg)](https://github.com/fbnrst/kober/actions/workflows/pages.yml)
 [![License](https://img.shields.io/github/license/fbnrst/kober)](LICENSE.md)
 ![PWA installable](https://img.shields.io/badge/PWA-installable-669c03)
 
