@@ -21,8 +21,4 @@ Do not open a public issue for a vulnerability.
 - Exhausting the free Firebase quota (for example by creating many lists).
 - The Firebase web configuration in `public/firebase-config.js` being public. That is by design.
 
-## Supported versions
-
-The latest release (the site root) and the current development version (`/dev/`).
-
 More detail: [docs/security.md](docs/security.md).
