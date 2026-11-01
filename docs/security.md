@@ -53,7 +53,7 @@ Deleting (`null`) is not validated. The rules only check new writes, not data th
 - Dependabot proposes new versions of the GitHub Actions weekly. prek hooks run locally and in CI; gitleaks deliberately scans only staged changes, so in CI it finds nothing.
 - All actions are pinned to commit hashes (version tag as a comment, Dependabot updates both). In `cleanup.yml` only the two steps that need it get the secret `FIREBASE_SERVICE_ACCOUNT`, not the third-party actions; `checkout` runs there without a stored token.
 - List codes come from `crypto.getRandomValues` (`store.js`), not from `Math.random`.
-- `public/vendor/` (crypto-js, qrcode, zxing) is excluded from the checks. zxing is byte-identical to `umd/index.min.js` from the npm package `@zxing/library@0.21.3`; an update replaces the file from the npm package and compares the hash.
+- `public/vendor/` (qrcode, zxing) is excluded from the checks. zxing is byte-identical to `umd/index.min.js` from the npm package `@zxing/library@0.21.3`; an update replaces the file from the npm package and compares the hash.
 
 ## Publishing the rules
 

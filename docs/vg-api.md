@@ -38,7 +38,7 @@ The original app shares lists as a link `https://app.vg-dresden.de/list?shareId=
 - The text is encrypted with CryptoJS AES (passphrase mode). The key sits only in the link fragment (`#…`) and never goes to the server.
 - Decrypted, it is a JSON array of `{title, id, amount, unit?, vgNum?, country?, checked, date, hasVgNum, order}`.
 
-Kober imports such links (menu "Import list" or pasting the link into the input field), see `parseShareLink`, `fetchSharedList` and `decryptShared` in `public/vg.js`.
+Kober no longer uses these links: the former import (menu "Import list", `parseShareLink`, `decryptShared`, CryptoJS) was removed. The description stays as documentation of the format.
 
 ## Other endpoints (not queried)
 
