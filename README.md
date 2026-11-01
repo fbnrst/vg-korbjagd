@@ -7,48 +7,23 @@
 
 An independent, unofficial shopping list app. The list lives on your phone first; once you share it, phones sync live and a leaderboard ("who puts the most in the basket") starts. Idea and product data: the [VG app](https://gitlab.com/pyfox/vg-app) of VG Dresden. This project is not affiliated with VG Dresden.
 
-No server of your own needed: a static site (GitHub Pages) plus a Firebase Realtime Database (free tier).
-
 ## Features
-- The list lives on the phone first (no account, no name, works offline). Only when you share it does it go through the server, with live sync, joining by QR code, link or 6-character code, and the game starts. Name and emoji are asked for only then
-- UI in the system language (German or English)
-- Header with the fox logo, a share button and a "…" menu: reset list, import list (from the VG app), join list (local list), leave list (shared lists only), help and privacy
-- A short hint on the empty list explains how to start; deleting an item has no confirmation but an Undo in the toast
-- Add items by text (name suggestions), VG number (from three digits a tappable list of products from the VG master data) or barcode scanner (Open Food Facts)
-- Import of lists from the original VG app (share link, in the menu)
-- Checking off puts an item in the basket; on shared lists everyone sees who did it
-- Reset: tick what to remove, open items (the button turns red then), items in the basket and/or empties; on a shared list also "Reset the ranking to 0 (new round)" (off by default). Points otherwise stay as they are. On a shared list the reset applies to everyone
-- Tabs: Empties (count deposit pieces), Checkout (only items with a VG number, bakery items separate, plus empties; the screen stays on) and, on shared lists only, Ranking (points for checking off and per empties piece)
-- Shared lists can be deleted for everyone and expire after 30 days without activity ([retention](docs/retention.md))
-- Installable as a PWA; demo mode without Firebase
+- Local first: the list lives on the phone (no account, works offline). Sharing it adds live sync (QR code, link or 6-character code) and the leaderboard
+- Add items by name, VG number (with suggestions from the VG master data) or barcode scanner; import lists from the VG app
+- Checking off puts an item in the basket, with Undo for deletes; tabs for empties, checkout and (shared lists) ranking
+- German and English UI, installable PWA, demo mode without Firebase
+- Shared lists can be deleted for everyone and expire after 30 days without activity
 
-Documentation: [help page in the app](https://fbnrst.github.io/kober/docs/) (end users, source in `public/docs/`, served with the app) · [privacy notice](public/privacy.html) · [architecture](docs/architecture.md) (German) · [retention and deletion](docs/retention.md) (German) · [security](docs/security.md) (German) · [VG endpoints](docs/vg-api.md) (German). The Markdown files in `docs/` are for maintainers and are not deployed.
+## Documentation
+[Help page](https://fbnrst.github.io/kober/docs/) (end users) · [privacy notice](public/privacy.html) · for maintainers (German, not deployed): [architecture, build, release and Firebase setup](docs/architecture.md) · [retention and deletion](docs/retention.md) · [security](docs/security.md) · [VG endpoints](docs/vg-api.md)
 
-## Try it locally (demo mode)
-    npm start      # http://localhost:3000
-    npm test       # store, rules, vg, i18n, cleanup tests, Safari 15 compatibility scan
-    npm run test:screens   # layout at 320px (iPhone SE) and other phone sizes, needs Chrome (see AGENTS.md)
-
-Without a Firebase configuration the app runs in demo mode: shared lists live in the browser only, and tabs in the same browser sync with each other. Testing with several phones needs Firebase.
-
-## Setup with Firebase (once, free)
-1. Create a project in the [Firebase console](https://console.firebase.google.com) and create a **Realtime Database** there (region Europe).
-2. Under *Realtime Database → Rules* paste the contents of `database.rules.json` and publish. Lists are reachable only through their 6-character code and cannot be listed; anyone who knows the code can read, change and delete the list.
-3. Under *Project settings → General → Add web app* copy the configuration into `public/firebase-config.js` (public identifiers, no secrets).
-4. Optional, but needed for the promised deletion after 30 days: set up the cleanup job (secret `FIREBASE_SERVICE_ACCOUNT`, see [docs/retention.md](docs/retention.md)).
-5. On GitHub set *Settings → Pages → Source: GitHub Actions*. Every push to `main` tests and publishes `public/` (`.github/workflows/pages.yml`).
-
-Technical details, data model and offline behaviour: [docs/architecture.md](docs/architecture.md). The VG data is loaded directly from the VG server, endpoints in [docs/vg-api.md](docs/vg-api.md).
-
-## Releases and the dev site
-
-The site has two versions: the root shows the latest release (the newest git tag `v*`), [`/dev/`](https://fbnrst.github.io/kober/dev/) shows the current `main`. Everyday work goes to `main` and only changes `/dev/`; a release is a tag (for example `gh release create v1.2.0`) followed by `gh workflow run pages.yml --ref main`. `/dev/` is its own app (same look with a DEV tag, own blue icon, own storage) with a second Firebase project (`public/firebase-config.dev.js`), so trying things never touches real lists.
+The site has two versions: the root is the latest release, [`/dev/`](https://fbnrst.github.io/kober/dev/) is the current `main`.
 
 ## Development
+    npm start      # http://localhost:3000, demo mode without Firebase
+    npm test
 
-Conventions for humans and agents are in [AGENTS.md](AGENTS.md): source code and comments are English, the UI follows the system language.
-
-Code checks run locally as a git hook through [prek](https://github.com/j178/prek) (configuration: `prek.toml`): file hygiene, JSON/YAML, JavaScript syntax, tests and gitleaks (secrets; the public Firebase configuration is allowed in `.gitleaks.toml`). Run `prek install` once, `prek run --all-files` manually. The screenshots of the help page are built locally from the real app (`npm install`, then `npm run docs:screenshots`; needs Chrome, sample data instead of real VG data) and only on explicit request. Every image is looked at before it is committed. The same checks run in GitHub Actions (`.github/workflows/autofix.yml`) as a single prek job through [autofix.ci](https://autofix.ci): gitleaks is part of prek (the standard hook, staged changes only), there is no separate secrets job, and what the fixing hooks can repair (whitespace, end of files) is committed back automatically.
+Conventions for humans and agents (language rules, checks with [prek](https://github.com/j178/prek), screenshots, release flow) are in [AGENTS.md](AGENTS.md).
 
 ## License
 

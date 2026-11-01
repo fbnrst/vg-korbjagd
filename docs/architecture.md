@@ -83,6 +83,16 @@ lists/<CODE>/
 - `.github/workflows/autofix.yml` führt dieselben Prüfungen wie lokal aus (`prek.toml`); `cleanup.yml` ist der Aufräum-Job.
 - Die Datenbankregeln werden nicht mitveröffentlicht, sondern von Hand eingespielt (zuerst dev).
 
+## Eigenes Firebase-Projekt einrichten
+
+Nur nötig, wenn jemand die App unter eigener Adresse betreibt (kein Fork-Betrieb vorgesehen; Produktion und dev sind bereits eingerichtet).
+
+1. In der [Firebase console](https://console.firebase.google.com) ein Projekt und eine **Realtime Database** anlegen (Region Europe).
+2. *Realtime Database → Rules*: Inhalt von `database.rules.json` einfügen und veröffentlichen ([security.md](security.md#regeln-veröffentlichen)).
+3. *Project settings → General → Your apps → Add app (Web)*: die Konfiguration in `public/firebase-config.js` eintragen (öffentliche Kennungen, keine Geheimnisse). Dev nutzt `public/firebase-config.dev.js`.
+4. Für das Löschen nach 30 Tagen den Aufräum-Job einrichten (Secret `FIREBASE_SERVICE_ACCOUNT`, [retention.md](retention.md)).
+5. GitHub: *Settings → Pages → Source: GitHub Actions*. Jeder Push auf `main` testet und veröffentlicht `public/` (`pages.yml`).
+
 ## Wo liegt was
 
 - **Farben:** nur `public/theme.css` (Tokens, hell/dunkel); die Seiten binden die Datei ein. Kontrastgrenzen in `scripts/contrast.mjs`.
