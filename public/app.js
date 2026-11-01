@@ -530,7 +530,7 @@ if (IS_DEV) {
       const c = await remote.create();
       await remote.importList(c, data, myKey());
       await startShared(c);
-    } catch (e) { toast(t('noDb')); startLocal(); }
+    } catch (e) { toast(noDbMsg(e)); startLocal(); }
   });
   devBtn('#shareSharedBox', 'devShareBack', () => { closeShareDialog(); forgetShared(); startLocal(); });
   // Diagnostics for what only a phone can show (status bar colour, service worker, caches); plain text, never HTML
