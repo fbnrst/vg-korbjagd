@@ -1,0 +1,29 @@
+name: Firebase rules (emulator)
+
+# Runs the real store.js against database.rules.json in the Firebase Realtime Database emulator (scripts/emulator-check.mjs).
+# Only when the rules or the code that writes to the database change: the emulator is a download of about 100 MB.
+
+on:
+  pull_request:
+    paths: [database.rules.json, public/store.js, scripts/emulator-check.mjs, firebase.json, package-lock.json, .github/workflows/emulator.yml]
+  push:
+    branches: [main]
+    paths: [database.rules.json, public/store.js, scripts/emulator-check.mjs, firebase.json, package-lock.json, .github/workflows/emulator.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  emulator:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - run: npm ci
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/firebase/emulators
+          key: firebase-emulators-${{ hashFiles('package.json') }}
+      - name: Test the rules
+        run: |
+          export JAVA_HOME="$JAVA_HOME_21_X64" PATH="$JAVA_HOME_21_X64/bin:$PATH"
+          npm run test:emulator
