@@ -225,7 +225,7 @@ function checkoutRow(key, title, amount, unit, no) {
   return { key, html: `<div class="kr${checkoutDone.has(key) ? ' off' : ''}" data-checkout="${esc(key)}"><div class="nm">${esc(title)}${mid}</div><div class="no">${times}${esc(no || '–')}</div></div>` };
 }
 function renderCheckout() {
-  if (!stale && !(first && !isLocal()) && checkoutDone.size) { // ticks of rows that are gone are dropped (not while the list or the VG data is still loading)
+  if (!first && !stale && checkoutDone.size) { // ticks of rows that are gone are dropped (not while the list or the VG data is still loading)
     const live = new Set(Object.keys(state.items));
     if (vg) vg.deposits.filter(d => depSum(d.id) > 0).forEach(d => live.add('d' + d.id)); else for (const k of checkoutDone) if (k[0] === 'd') live.add(k);
     const kept = pruneTicks(checkoutDone, live);

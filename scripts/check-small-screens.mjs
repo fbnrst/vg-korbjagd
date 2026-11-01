@@ -177,8 +177,8 @@ async function runContext(browser, base, [w, h], lang, scheme, violations) {
   await check('suggest-number');
   await page.fill('#addIn', 'ro'); await page.waitForTimeout(100);
   await check('suggest-name');
-  await page.fill('#addIn', '12345'); await page.press('#addIn', 'Enter');
-  await check('toast'); // "VG numbers have 3-4 digits"
+  await page.fill('#addIn', '12345'); await page.waitForSelector('#addSuggest .miss');
+  await check('suggest-too-long'); // "+" muted, "VG numbers have 3 to 4 digits" in the suggestion area
   await page.fill('#addIn', ''); await blur();
   // empties and checkout
   await tab('vDeposit');
@@ -213,6 +213,8 @@ async function runContext(browser, base, [w, h], lang, scheme, violations) {
   await check('list-shared');
   await tab('vDeposit'); await page.click('[data-dep-add="1"]'); await check('empties-shared');
   await menu(); await check('menu-shared'); await page.keyboard.press('Escape'); await page.click('header h1').catch(() => {});
+  await menu(); await page.click('#menuReset'); await page.check('#resetScores'); await page.check('#resetOpen'); await page.waitForTimeout(100);
+  await check('reset-dialog-shared'); await page.click('#resetCancel'); // four options, the button is red
   for (const [who, emoji, item] of [['Ben', '🐼', 'Vollkornbrot'], ['Bartholomäus-Friedrich', '🦖', 'Hafer']]) {
     await page.evaluate(([name, e]) => localStorage.setItem('me', JSON.stringify({ name, emoji: e })), [who, emoji]);
     await open(); await tab('vList');
