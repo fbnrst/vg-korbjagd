@@ -34,6 +34,8 @@ The source of truth is `database.rules.json` and `test/rules.test.js` (a small e
 | `scores`, `deposit` | integers (0 and 1 to 100000 respectively) |
 | User key | `"<emoji> <name>"`, ≤ 60 characters, none of the characters < > & " ' and backtick |
 
+**Claims:** `items/<id>/claimedBy` ("I'll get this") is an optional user key, validated like `checkedBy`. It is a plain label without authority: anybody who knows the code may set or replace it (last tap wins), so it carries no security meaning. It is rendered through `esc()` like every user key and sanitised in `cache.js`. **Publish the updated rules (both projects, dev first) before this client reaches a site:** under the old rules the unknown field `claimedBy` is rejected by `$other` and the whole item write fails.
+
 Deleting (`null`) is not validated; an empty object counts as a deletion in the Realtime Database, so emptying `items`, `scores` or `deposit` stays allowed (clear the list, last item, new round). The rules only check new writes, not data that is already stored. `store.js` validates the mirror image (`isUserKey`, `userKey()`, `isId`) so that legitimate clients never write data that would be rejected; both must be changed together.
 
 ## Trust boundaries
