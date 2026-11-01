@@ -6,9 +6,8 @@
 <title>Help</title>
 <meta name="theme-color" content="#8bad73">
 <link rel="icon" href="../icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../theme.css">
 <style>
-:root{--bg:#f1f4ea;--card:#fff;--fg:#2b2f26;--mute:#666;--green:#587f06;--line:#d4dac8;--hdr:#8bad73;--hdr-fg:#17210f}
-@media(prefers-color-scheme:dark){:root{--bg:#12170e;--card:#1b2216;--fg:#e8edde;--mute:#a3b09a;--green:#8bad73;--line:#2e3828;--hdr:#232d1b;--hdr-fg:#e8edde}}
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans-serif}
@@ -16,7 +15,7 @@ header{position:sticky;top:0;z-index:10;background:var(--hdr);color:var(--hdr-fg
 header.away{transform:translateY(-100%)} /* scrolling down hides the header, a little scrolling up brings it back */
 .sec{scroll-margin-top:56px}
 header a{color:var(--hdr-fg);text-decoration:none;font-weight:600}
-.devtag{margin-left:10px;background:#12163f;color:#d8defe;border-radius:999px;padding:1px 9px;font-size:12px;font-weight:800;letter-spacing:.5px}
+.devtag{margin-left:10px;background:var(--devtag-bg);color:var(--devtag-fg);border-radius:999px;padding:1px 9px;font-size:12px;font-weight:800;letter-spacing:.5px}
 main{max-width:1000px;margin:0 auto;padding:16px 16px 8px;overflow-wrap:anywhere}
 h1{font-size:28px;margin:8px 0 4px}
 h2{font-size:21px;margin:0 0 8px}
@@ -35,8 +34,8 @@ dt{font-weight:600;margin-top:12px}
 dd{margin:2px 0 0}
 footer{border-top:1px solid var(--line);margin-top:24px;padding:12px 0 24px;text-align:center}
 figure.phone{margin:0;flex:1 1 0;max-width:230px;min-width:0;text-align:center}
-figure.phone .frame{position:relative;background:#111;border:8px solid #111;border-radius:30px;box-shadow:0 6px 18px rgba(0,0,0,.28),0 0 0 1px rgba(255,255,255,.12);overflow:hidden}
-figure.phone .frame::before{content:"";position:absolute;top:3px;left:50%;width:22%;height:5px;margin-left:-11%;background:#111;border-radius:6px;z-index:1}
+figure.phone .frame{position:relative;background:var(--device);border:8px solid var(--device);border-radius:30px;box-shadow:0 6px 18px var(--device-shadow),0 0 0 1px var(--device-ring);overflow:hidden}
+figure.phone .frame::before{content:"";position:absolute;top:3px;left:50%;width:22%;height:5px;margin-left:-11%;background:var(--device);border-radius:6px;z-index:1}
 figure.phone img{display:block;width:100%;height:auto;border-radius:22px}
 figure.phone figcaption{margin-top:8px;color:var(--mute);font-size:13px;line-height:1.35}
 @media(min-width:820px){
@@ -52,7 +51,7 @@ code{font-size:13px;overflow-wrap:anywhere}
 .how summary{cursor:pointer;font-weight:600;padding:10px 0}
 .how ol{margin:4px 0 8px}
 .qrbox{text-align:center;padding:4px 0}
-.qr svg{width:220px;height:220px;background:#fff;padding:10px;border-radius:12px;border:1px solid var(--line)}
+.qr svg{width:220px;height:220px;background:var(--qr-bg);padding:10px;border-radius:12px;border:1px solid var(--line)}
 @media(max-width:819px){.sec .figs.qrcol{display:none}}
 html[lang=de] [lang=en],html[lang=en] [lang=de]{display:none}
 </style>

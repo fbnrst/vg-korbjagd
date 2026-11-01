@@ -1,0 +1,82 @@
+/* Colour tokens of the app: the single source of truth for the release palette (VG Dresden colours, see AGENTS.md).
+   Layering:
+     theme.css      release palette, light and dark (this file), linked by index.html, privacy.html and docs/index.html
+     dev-theme.css  the blue dev override; overrides these tokens under `body.dev` and is linked AFTER this file
+     build-site.mjs static things CSS cannot reach: <meta name="theme-color"> and the manifest of the dev site
+   Every token is defined in both blocks (a test checks that); keep light and dark in sync. */
+:root{
+  --bg:#f1f4ea;          /* page background, input fields */
+  --card:#fff;           /* cards, menus, tab bar */
+  --fg:#2b2f26;          /* text */
+  --mute:#666;           /* secondary text, quiet icons */
+  --green:#587f06;       /* links, active tab, outlined toggle (text-safe green) */
+  --fill:#8bad73;        /* filled action buttons */
+  --on-fill:#17210f;     /* text on --fill */
+  --accent:#669c03;      /* "can be executed now" accent */
+  --green2:#e8edde;      /* light green surface: secondary buttons, disabled buttons */
+  --line:#d4dac8;        /* borders and separators */
+  --red:#b3322a;         /* danger text */
+  --hdr:#8bad73;         /* header background */
+  --hdr-fg:#17210f;      /* header text and icons */
+  --hdr-btn:rgba(0,0,0,.1);   /* header button background */
+  --orange:#f7a642;      /* warning accent (connection banner border) */
+  --conn-bg:#f7a642;     /* connection banner background */
+  --conn-fg:#3a2300;     /* connection banner text */
+  --tone-bg:#e8edde;     /* checked items, ticked options */
+  --tone-bd:#8bad73;     /* ring of items and options */
+  --tone-fg:#3f5c04;     /* mark inside the ring */
+  --tick:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233f5c04' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7'/%3E%3C/svg%3E"); /* check mark image, stroke = --tone-fg */
+  --toast-bg:#222;       /* toast */
+  --toast-fg:#fff;       /* toast text */
+  --scrim:rgba(0,0,0,.6);     /* dimmed background behind dialogs */
+  --shadow-banner:rgba(0,0,0,.18);   /* shadow of the connection banner */
+  --shadow-suggest:rgba(0,0,0,.25);  /* shadow of the suggestion list */
+  --shadow-menu:rgba(0,0,0,.3);      /* shadow of the "..." menu */
+  --qr-bg:#fff;          /* behind QR codes: must stay white to be scannable */
+  --scanner-bg:#000;     /* scanner dialog */
+  --scanner-fg:#fff;     /* scanner dialog text */
+  --scan-frame:#8cff6a;  /* frame in the camera view */
+  --devtag-bg:#12163f;   /* "DEV" tag (only visible on the dev site, same in both modes) */
+  --devtag-fg:#d8defe;   /* text of the "DEV" tag */
+  --device:#111;         /* help page: phone frame around screenshots */
+  --device-shadow:rgba(0,0,0,.28);   /* help page: phone frame shadow */
+  --device-ring:rgba(255,255,255,.12); /* help page: phone frame outline */
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#12170e;
+  --card:#1b2216;
+  --fg:#e8edde;
+  --mute:#a3b09a;
+  --green:#8bad73;
+  --fill:#8bad73;
+  --on-fill:#17210f;
+  --accent:#8bad73;
+  --green2:#2a3323;
+  --line:#2e3828;
+  --red:#e46a5c;
+  --hdr:#232d1b;
+  --hdr-fg:#e8edde;
+  --hdr-btn:rgba(255,255,255,.12);
+  --orange:#f7a642;
+  --conn-bg:#3b2c14;
+  --conn-fg:#f6dcae;
+  --tone-bg:#2a3323;
+  --tone-bd:#5f7a4c;
+  --tone-fg:#b9d1a3;
+  --tick:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23b9d1a3' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7'/%3E%3C/svg%3E");
+  --toast-bg:#222;
+  --toast-fg:#fff;
+  --scrim:rgba(0,0,0,.6);
+  --shadow-banner:rgba(0,0,0,.18);
+  --shadow-suggest:rgba(0,0,0,.25);
+  --shadow-menu:rgba(0,0,0,.3);
+  --qr-bg:#fff;
+  --scanner-bg:#000;
+  --scanner-fg:#fff;
+  --scan-frame:#8cff6a;
+  --devtag-bg:#12163f;
+  --devtag-fg:#d8defe;
+  --device:#111;
+  --device-shadow:rgba(0,0,0,.28);
+  --device-ring:rgba(255,255,255,.12);
+}}

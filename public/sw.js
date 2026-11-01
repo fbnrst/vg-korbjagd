@@ -1,8 +1,8 @@
-const VERSION = 'v102';
+const VERSION = 'v103';
 // The release (/) and the dev build (/dev/) share one origin and so one cache storage: each keeps to its own cache names
 const PREFIX = 'kober-' + (self.registration.scope.includes('/dev/') ? 'dev-' : '') + 'v';
 const CACHE = PREFIX + VERSION.slice(1);
-const FILES = ['./', './index.html', './app.js', './store.js', './conn.js', './outbox.js', './cache.js', './sim.js', './vg.js', './i18n.js', './env.js', './legal-config.js', './privacy.html', './dev-theme.css', './docs/index.html', './firebase-config.js', './manifest.json', './icon.svg', './logo.svg',
+const FILES = ['./', './index.html', './app.js', './store.js', './conn.js', './outbox.js', './cache.js', './sim.js', './vg.js', './i18n.js', './env.js', './legal-config.js', './privacy.html', './theme.css', './dev-theme.css', './docs/index.html', './firebase-config.js', './manifest.json', './icon.svg', './logo.svg',
   './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png', './icons/apple-touch-icon.png',
   './vendor/qrcode.js', './vendor/crypto-js.js'];
 

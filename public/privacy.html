@@ -6,15 +6,14 @@
 <title>Privacy</title>
 <meta name="theme-color" content="#8bad73">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="theme.css">
 <style>
-:root{--bg:#f1f4ea;--card:#fff;--fg:#2b2f26;--mute:#666;--green:#587f06;--line:#d4dac8;--hdr:#8bad73;--hdr-fg:#17210f}
-@media(prefers-color-scheme:dark){:root{--bg:#12170e;--card:#1b2216;--fg:#e8edde;--mute:#a3b09a;--green:#8bad73;--line:#2e3828;--hdr:#232d1b;--hdr-fg:#e8edde}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans-serif}
 header{position:sticky;top:0;z-index:10;background:var(--hdr);color:var(--hdr-fg);padding:12px 16px;transition:transform .2s}
 header.away{transform:translateY(-100%)} /* scrolling down hides the header, a little scrolling up brings it back */
 header a{color:var(--hdr-fg);text-decoration:none;font-weight:600}
-.devtag{margin-left:10px;background:#12163f;color:#d8defe;border-radius:999px;padding:1px 9px;font-size:12px;font-weight:800;letter-spacing:.5px}
+.devtag{margin-left:10px;background:var(--devtag-bg);color:var(--devtag-fg);border-radius:999px;padding:1px 9px;font-size:12px;font-weight:800;letter-spacing:.5px}
 main{max-width:720px;margin:0 auto;padding:16px}
 h1{font-size:24px;margin:8px 0 4px}h2{font-size:18px;margin:26px 0 6px}
 a{color:var(--green)}
