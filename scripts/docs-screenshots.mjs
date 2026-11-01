@@ -4,6 +4,9 @@
 //   npm run docs:screenshots          # writes public/docs/img/<lang>-<scene>.jpg
 //   npm run docs:screenshots -- /tmp/out   # another output folder
 //
+// The README picture `en-readme.png` comes from the same run: the English list (with more items) in a rounded phone frame like the one
+// on the help page (transparent corners, so it also works on GitHub's dark theme).
+//
 // Needs Google Chrome (or set CHROME_PATH, or run `npx playwright install chromium`).
 // The app is served from public/ with Firebase switched off (demo mode: a "shared" list lives in the browser only),
 // and the VG server is replaced by the invented demo data in scripts/fixtures/vg/, so the images do not depend on the
@@ -14,6 +17,7 @@ import path from 'node:path';
 
 const OUT = path.resolve(process.argv[2] || path.join(PUBLIC, 'docs/img'));
 const LANGS = ['en', 'de'];
+let readmeShot = null; // the English list with more items, framed afterwards for the README
 
 async function scenes(browser, base, lang) {
   const context = await browser.newContext({
@@ -66,6 +70,7 @@ async function scenes(browser, base, lang) {
   await shot('checkout');
   // 5) reset dialog (opened from the menu)
   await tab('vList');
+  if (lang === 'en') { await page.waitForTimeout(250); readmeShot = await page.screenshot({ type: 'jpeg', quality: 90 }); } // fuller list for the README picture
   await page.click('#menuBtn'); await page.click('#menuReset'); await shot('reset'); await page.click('#resetCancel');
   // 6) share (demo mode keeps the shared list in the browser), the dialog with the QR code, then the menu
   await page.click('#shareBtn'); await page.click('#shareStart');
@@ -88,10 +93,21 @@ async function scenes(browser, base, lang) {
   if (errors.length) throw new Error(`page errors in ${lang}: ${errors.join('; ')}`);
 }
 
+// README picture: the English list screenshot inside a dark rounded frame (same look as figure.phone in the help page), PNG with transparent corners
+async function phoneFrame(browser) {
+  const jpg = readmeShot.toString('base64');
+  const page = await browser.newPage({ viewport: { width: 700, height: 1500 } });
+  await page.setContent(`<body style="margin:0;background:transparent"><div id="f" style="display:inline-block;background:#111;padding:8px;border-radius:30px;box-shadow:0 0 0 1px rgba(255,255,255,.12)"><img style="display:block;width:600px;border-radius:22px" src="data:image/jpeg;base64,${jpg}"></div></body>`);
+  await page.locator('#f').screenshot({ path: path.join(OUT, 'en-readme.png'), omitBackground: true });
+  await page.close();
+  console.log('  en-readme.png');
+}
+
 fs.mkdirSync(OUT, { recursive: true });
 const { server, base } = await serve();
 const browser = await launch();
 try {
   for (const lang of LANGS) { console.log(lang); await scenes(browser, base, lang); }
+  await phoneFrame(browser);
   console.log(`done: ${OUT}`);
 } finally { await browser.close(); server.close(); }
