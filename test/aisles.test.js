@@ -6,11 +6,17 @@ import { guessAisle, aisleOf, aisleKey, groupByAisle, sanitizeOverrides, withCho
 test('everyday items land in the aisle a shopper expects', () => {
   const expect = {
     produce: ['Äpfel', 'Rote Bete', 'Chicorée', 'Weißkohl', 'Zuckerschoten', 'Gurke', 'Mais'],
-    dairy: ['Milch', 'Eier', 'Eier Freiland', 'Ei', 'Rührei', 'Hafer Barista', 'Frischkäse', 'Haferdrink'],
+    dairy: ['Tofu', 'Milch', 'Eier', 'Eier Freiland', 'Ei', 'Rührei', 'Hafer Barista', 'Frischkäse', 'Haferdrink'],
     bakery: ['Brötchen', 'Vollkornbrot', 'Käsekuchen', 'Laugenbrezel'],
-    meat: ['Hackfleisch', 'Räucherlachs', 'Tofu', 'Bratwurst', 'Hühnerbrust'],
-    frozen: ['Tiefkühlpizza', 'Pommes', 'Eis'],
-    dry: ['Nudeln', 'Tomaten Dose', 'Gurken Glas', 'Gemüsebrühe', 'Paprikapulver', 'Apfelmus', 'Gemüsesuppe', 'Sonnenblumenöl', 'Kaffeebohnen', 'Kräutertee', 'Puddingpulver'],
+    meat: ['Hackfleisch', 'Räucherlachs', 'Bratwurst', 'Hühnerbrust'],
+    frozen: ['Tiefkühlpizza', 'Pommes', 'Eis', 'Beeren TK'],
+    spreads: ['Bionella', 'Zwergenwiese', 'Erdnussmuß', 'Honig', 'Marmelade'],
+    cereal: ['Müsli', 'Haferflocken', 'Cornflakes', 'Granola'],
+    baking: ['Mehl', 'Zucker', 'Dattelsüße', 'Backpulver', 'Puddingpulver'],
+    pasta: ['Nudeln', 'Tomaten Dose', 'Gurken Glas', 'Gemüsebrühe', 'Apfelmus', 'Gemüsesuppe', 'Sonnenblumenöl', 'Balsamico', 'Olivenöl', 'Zwergensauce', 'Hot Sauce'],
+    spices: ['Paprikapulver', 'Kurkuma', 'Salz', 'Zimt'],
+    coffee: ['Kaffee', 'Kaffeebohnen', 'Kräutertee'],
+    snacks: ['Paranusskerne', 'Datteln', 'Mandeln', 'Schokolade', 'Rosinen'],
     drinks: ['Apfelsaft', 'Mineralwasser', 'Bier', 'Eistee', 'Wein'],
     household: ['Spülmittel', 'Toilettenpapier', 'Kaffeefilter', 'Blumen', 'Zahnpasta'],
   };
@@ -20,8 +26,8 @@ test('everyday items land in the aisle a shopper expects', () => {
 test('compounds follow their last word, so a modifier does not decide', () => {
   assert.equal(guessAisle('Apfelsaft'), 'drinks');
   assert.equal(guessAisle('Apfel'), 'produce');
-  assert.equal(guessAisle('Sonnenblumenöl'), 'dry'); // not "Blumen"
-  assert.equal(guessAisle('Reis'), 'dry'); // "ei" inside a word means nothing
+  assert.equal(guessAisle('Sonnenblumenöl'), 'pasta'); // not "Blumen"
+  assert.equal(guessAisle('Reis'), 'pasta'); // "ei" inside a word means nothing
   assert.equal(guessAisle('Seife'), 'household');
 });
 
@@ -47,9 +53,10 @@ test('groups come in walking order, only non-empty ones, other last, order insid
 test('stored choices are validated and bounded', () => {
   assert.deepEqual(sanitizeOverrides(null), {});
   assert.deepEqual(sanitizeOverrides([1]), {});
+  assert.deepEqual(sanitizeOverrides({ reis: 'dry' }), {}, 'the former pantry group is gone, its choices fall back to automatic');
   assert.deepEqual(sanitizeOverrides({ milch: 'dairy', Bad: 'dairy', x: 'nope', 'a b': 'other' }), { milch: 'dairy', 'a b': 'other' });
   let o = {};
-  for (let n = 0; n < MAX_OVERRIDES + 20; n++) o = withChoice(o, 'item ' + 'abcdefghij'[n % 10] + n, 'dry');
+  for (let n = 0; n < MAX_OVERRIDES + 20; n++) o = withChoice(o, 'item ' + 'abcdefghij'[n % 10] + n, 'pasta');
   assert.equal(Object.keys(o).length, MAX_OVERRIDES);
   assert.ok(!('item a0' in o), 'the oldest choice made room');
 });

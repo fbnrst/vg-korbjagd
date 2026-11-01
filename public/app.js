@@ -157,7 +157,7 @@ function connect() {
 
 /* ---------- Rendering ---------- */
 // Aisle grouping of the open items: a switch in the "..." menu, off by default; what the person moves is remembered on this phone
-const AISLE_NAME = { produce: 'aisleProduce', bakery: 'aisleBakery', dairy: 'aisleDairy', meat: 'aisleMeat', frozen: 'aisleFrozen', dry: 'aisleDry', drinks: 'aisleDrinks', household: 'aisleHousehold', other: 'aisleOther' };
+const AISLE_NAME = { produce: 'aisleProduce', bakery: 'aisleBakery', dairy: 'aisleDairy', meat: 'aisleMeat', frozen: 'aisleFrozen', spreads: 'aisleSpreads', cereal: 'aisleCereal', baking: 'aisleBaking', pasta: 'aislePasta', spices: 'aisleSpices', coffee: 'aisleCoffee', snacks: 'aisleSnacks', drinks: 'aisleDrinks', household: 'aisleHousehold', other: 'aisleOther' };
 let aisleOn = LS.get('aisles', false) === true;
 let aisleOver = sanitizeOverrides(LS.get('aisleOver', {}));
 // Reorder mode (long press on an open item): the rows stay exactly as they are, only the check box of each open row becomes a
