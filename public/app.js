@@ -6,6 +6,7 @@ import { saveSnapshot, loadSnapshot, dropSnapshot } from './cache.js';
 import { IS_DEV, NS } from './env.js';
 import { loadVg, parseShareLink, fetchSharedList, vgNumFromCode, similarNames } from './vg.js';
 import { t, applyStatic } from './i18n.js';
+import { tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, createVgLoader, uploadLocalList } from './flows.js';
 
 const $ = s => document.querySelector(s);
 // Player emojis: single code points only (no skin tones or joined sequences, those render differently across phones)
@@ -23,6 +24,9 @@ let raw = { items: {}, scores: {}, deposit: {} };
 let stale = false; // `raw` comes from the cache of an earlier visit: read-only until a live snapshot arrives
 let store = null, localDb = null, localStore = null, remotePromise = null, pending = null, pendingCancel = null;
 let unsub = null, first = true, vg = null;
+// VG data for suggestions, number checks and the Empties tab: loads in the background, never blocks the app. After ~10 s
+// without data the Empties tab offers "Try again" (also retried on `online` and when that tab is opened).
+const vgLoader = createVgLoader({ load: () => loadVg(), onChange: (s, d) => { if (d) vg = d; render(); } });
 let loadingStuck = false, emptyPending = false, watchdog = 0; // first snapshot of a shared list did not arrive in time / only an empty one so far
 let editingId = null; // item whose VG number is being edited
 
@@ -102,7 +106,7 @@ conn.subscribe((s, prev) => {
   }
 });
 document.addEventListener('visibilitychange', () => conn.setHidden(document.hidden));
-addEventListener('online', () => conn.wake());
+addEventListener('online', () => { conn.wake(); vgLoader.start(); });
 
 /* ---------- Sync ---------- */
 function onSnapshot(s) {
@@ -134,7 +138,7 @@ let cacheTimer = 0;
 function connect() {
   if (unsub) unsub();
   clearTimeout(watchdog); loadingStuck = false; emptyPending = false;
-  first = true;
+  first = true; loadTicks();
   stale = false; raw = { items: {}, scores: {}, deposit: {} };
   if (!isLocal()) { const c = loadSnapshot(localStorage, code); if (c) { raw = c; stale = true; } } // shown read-only until live data arrives
   render();
@@ -209,7 +213,10 @@ function render() {
 }
 
 /* ---------- Checkout ---------- */
-const checkoutDone = new Set(); // rows marked done at the checkout: local to this phone and not saved (gone after a reload)
+const checkoutDone = new Set(); // rows ticked at the checkout (typed in at the till): local to this phone, kept per list for 24 h
+const loadTicks = () => { checkoutDone.clear(); for (const k of sanitizeTicks(LS.get('checkoutTicks', null), code, Date.now())) checkoutDone.add(k); };
+const saveTicks = () => LS.set('checkoutTicks', packTicks(code, checkoutDone, Date.now()));
+const setTicks = keys => { checkoutDone.clear(); keys.forEach(k => checkoutDone.add(k)); saveTicks(); };
 const byTitle = (a, b) => a.title.localeCompare(b.title, 'de');
 function checkoutRow(key, title, amount, unit, no) {
   const weight = ['g', 'kg', 'Liter'].includes(unit) || amount === 1;
@@ -218,6 +225,12 @@ function checkoutRow(key, title, amount, unit, no) {
   return { key, html: `<div class="kr${checkoutDone.has(key) ? ' off' : ''}" data-checkout="${esc(key)}"><div class="nm">${esc(title)}${mid}</div><div class="no">${times}${esc(no || '–')}</div></div>` };
 }
 function renderCheckout() {
+  if (!stale && !(first && !isLocal()) && checkoutDone.size) { // ticks of rows that are gone are dropped (not while the list or the VG data is still loading)
+    const live = new Set(Object.keys(state.items));
+    if (vg) vg.deposits.filter(d => depSum(d.id) > 0).forEach(d => live.add('d' + d.id)); else for (const k of checkoutDone) if (k[0] === 'd') live.add(k);
+    const kept = pruneTicks(checkoutDone, live);
+    if (kept.length !== checkoutDone.size) setTicks(kept);
+  }
   const inBasket = Object.values(state.items).filter(i => i.checked).sort(byTitle);
   const sec = (head, rows) => rows.length ? `<div class="card ks"><h3>${head}</h3>${rows.join('')}</div>` : '';
   const row = i => checkoutRow(i.id, i.title, i.amount, i.unit, i.vgNum);
@@ -241,13 +254,16 @@ async function setWake(on) {
 const depSum = id => Object.values(state.deposit[id] || {}).reduce((s, n) => s + (Number(n) || 0), 0);
 function renderDeposit() {
   const types = vg ? vg.deposits : null;
-  $('#depItems').innerHTML = !types ? `<p class="muted" style="text-align:center">${t('loadingVg')}</p>`
+  $('#depItems').innerHTML = !types ? (vgLoader.state === 'unreachable'
+      ? `<div class="stuck"><p class="muted">${esc(t('vgUnreachable'))}</p><button type="button" class="btn sec" id="vgRetry">${esc(t('tryAgain'))}</button></div>`
+      : `<p class="muted" style="text-align:center">${t('loadingVg')}</p>`)
     : types.map(d => `<div class="dep"><div class="t">${esc(d.name)}<small>${esc(d.vgNum)}</small></div>
         <button data-dep-sub="${esc(d.id)}" aria-label="${t('ariaLess')}">−</button><span class="n">${depSum(d.id)}</span><button class="add" data-dep-add="${esc(d.id)}" aria-label="${t('ariaMore')}">+</button></div>`).join('');
 }
 
 /* ---------- Events ---------- */
 document.addEventListener('click', e => {
+  if (e.target.closest('#vgRetry')) { vgLoader.start(); return; }
   if (e.target.closest('#useLocal')) { startLocal(); return; } // the saved list code stays, the next start tries it again
   const chk = e.target.closest('[data-chk]');
   if (chk) { const it = state.items[chk.dataset.chk]; if (it) bg.check(code, it.id, myKey(), !it.checked); return; }
@@ -265,7 +281,7 @@ document.addEventListener('click', e => {
     return;
   }
   const kr = e.target.closest('[data-checkout]');
-  if (kr) { const k = kr.dataset.checkout; checkoutDone.has(k) ? checkoutDone.delete(k) : checkoutDone.add(k); renderCheckout(); return; }
+  if (kr) { const k = kr.dataset.checkout; checkoutDone.has(k) ? checkoutDone.delete(k) : checkoutDone.add(k); saveTicks(); renderCheckout(); return; }
   const ss = e.target.closest('[data-scansug]');
   if (ss) { $('#eanIn').value = ''; $('#eanIn').dispatchEvent(new Event('input')); handleCode(`VG ${ss.dataset.scansug}`, { manualNumber: true }); return; }
   const sr = e.target.closest('[data-scanrow]');
@@ -326,7 +342,7 @@ $('#addForm').onsubmit = e => {
   const v = $('#addIn').value.trim(); if (!v) return;
   const isNum = /^\d+$/.test(v);
   const p = vg && isNum ? vg.lookup(v) : null; // names are added as typed, without a number
-  if (isNum && v.length > 4) { toast(t('vgTooLong')); return; } // VG numbers have 3-4 digits; the typed number stays in the field
+  if (tooLongNumber(v)) return; // VG numbers have 3-4 digits: the "+" is muted and the suggestion area says so; the typed number stays in the field
   if (p && p.placeholder && !numberFits(p, v, null)) return; // declined: the typed number stays in the field
   $('#addIn').value = ''; $('#addSuggest').classList.add('hide'); syncAddButton();
   if (parseShareLink(v)) return openImport(v); // a share link from the original app was pasted
@@ -388,7 +404,7 @@ applyMode(false);
 
 // While typing: tappable suggestions (names without numbers, or products for typed digits)
 // The add button is only in the accent colour (and tappable) when there is something to add
-const syncAddButton = () => { $('#addGo').disabled = !$('#addIn').value.trim(); };
+const syncAddButton = () => { const q = $('#addIn').value.trim(); $('#addGo').disabled = !q || tooLongNumber(q); };
 $('#addIn').oninput = () => {
   if (numMode) $('#addIn').value = $('#addIn').value.replace(/\D/g, '');
   syncAddButton();
@@ -397,11 +413,13 @@ $('#addIn').oninput = () => {
   // Tappable list, tap = add the item: from three digits on for numbers, from two letters on for names (no duplicates)
   const nums = vg && isNum && q.length >= 3 ? vg.searchByNumber(q) : [];
   const names = vg && !isNum && q.length >= 2 ? vg.searchNames(q) : [];
-  const miss = vg && isNum && q.length >= 4 && !nums.length && !vg.lookup(q); // an exact placeholder number is accepted silently
-  box.classList.toggle('hide', !nums.length && !names.length && !miss);
+  const long = tooLongNumber(q); // more than 4 digits can never be a VG number: say so here instead of after the tap
+  const miss = vg && isNum && !long && q.length >= 4 && !nums.length && !vg.lookup(q); // an exact placeholder number is accepted silently
+  box.classList.toggle('hide', !nums.length && !names.length && !miss && !long);
   box.innerHTML = nums.map(p => `<button type="button" class="sug" data-sug="${esc(p.vgNum)}"><b>${esc(p.vgNum)}</b><span>${esc(p.title)}</span></button>`).join('')
     + names.map(p => `<button type="button" class="sug" data-sugname="${esc(p.title)}"><span>${esc(p.title)}</span></button>`).join('')
-    + (miss ? `<span class="miss">${esc(t('noVgMatch'))}</span>` : '');
+    + (miss ? `<span class="miss">${esc(t('noVgMatch'))}</span>` : '')
+    + (long ? `<span class="miss">${esc(t('vgTooLong'))}</span>` : '');
 };
 
 /* ---------- Import from the original VG app ---------- */
@@ -469,8 +487,10 @@ function loadQr() {
     s.onload = res; s.onerror = rej; document.head.appendChild(s);
   });
 }
-async function openShareDialog() {
+async function openShareDialog(error = '') { // `error`: the first upload failed, the dialog stays open with a retry
   dismissKeyboard();
+  $('#shareErr').textContent = error; $('#shareErr').classList.toggle('hide', !error);
+  $('#shareStart').textContent = t(error ? 'tryAgain' : 'shareStart');
   $('#shareLocalBox').classList.toggle('hide', !isLocal());
   $('#shareSharedBox').classList.toggle('hide', isLocal());
   $('#shareDlg').classList.remove('hide');
@@ -483,8 +503,8 @@ async function openShareDialog() {
   } catch (e) { $('#qr').textContent = t('qrFail'); }
 }
 const closeShareDialog = () => $('#shareDlg').classList.add('hide');
-$('#shareBtn').onclick = openShareDialog;
-$('#menuShare').onclick = openShareDialog; // the same dialog from the ⋯ menu, where people also look for it
+$('#shareBtn').onclick = () => openShareDialog();
+$('#menuShare').onclick = () => openShareDialog(); // the same dialog from the ⋯ menu, where people also look for it
 $('#shareClose').onclick = closeShareDialog;
 $('#shareDlg').onclick = e => { if (e.target.id === 'shareDlg') closeShareDialog(); };
 $('#shareStart').onclick = () => { closeShareDialog(); me.name ? shareLocalList() : askIdentity(shareLocalList, backToList); };
@@ -567,13 +587,17 @@ const forgetShared = () => {
   document.addEventListener('keydown', e => { if (e.key === 'Escape') setOpen(false); });
 }
 
-// Reset dialog (menu): three check boxes for what to clear (default: checked-off items and empties)
+// Reset dialog (menu): check boxes for what to clear (default: items in the basket and empties; the ranking only on a
+// shared list and off by default). The button turns red while the open items are ticked.
 const closeReset = () => $('#resetDlg').classList.add('hide');
-const syncResetButton = () => { $('#resetGo').disabled = !['#resetOpen', '#resetDone', '#resetEmpties'].some(s => $(s).checked); };
+const syncResetButton = () => {
+  $('#resetGo').disabled = !['#resetOpen', '#resetDone', '#resetEmpties', '#resetScores'].some(s => $(s).checked);
+  $('#resetGo').classList.toggle('destroy', $('#resetOpen').checked);
+};
 $('#menuReset').onclick = () => {
   dismissKeyboard();
-  $('#resetOpen').checked = false; $('#resetDone').checked = true; $('#resetEmpties').checked = true; syncResetButton();
-  $('#resetShared').classList.toggle('hide', isLocal());
+  $('#resetOpen').checked = false; $('#resetDone').checked = true; $('#resetEmpties').checked = true; $('#resetScores').checked = false; syncResetButton();
+  $('#resetShared').classList.toggle('hide', isLocal()); $('#resetScoresOpt').classList.toggle('hide', isLocal());
   $('#resetDlg').classList.remove('hide');
 };
 $('#resetDlg').addEventListener('change', syncResetButton);
@@ -581,19 +605,17 @@ $('#resetCancel').onclick = closeReset;
 $('#resetDlg').onclick = e => { if (e.target.id === 'resetDlg') closeReset(); };
 $('#resetGo').onclick = async () => {
   const open = $('#resetOpen').checked, done = $('#resetDone').checked;
+  const plan = resetPlan({ open, done, empties: $('#resetEmpties').checked, scores: $('#resetScores').checked }, !isLocal());
   // open items are still to be bought: removing them is asked once more
   if (open && Object.values(state.items).some(i => !i.checked) && !confirm(t(isLocal() ? 'confirmClearOpen' : 'confirmClearOpenShared'))) return;
   closeReset();
   try {
-    if (open && done) await store.clearAll(code);
-    else if (open) await store.clearOpen(code);
-    else if (done) await store.clearChecked(code);
-    if ($('#resetEmpties').checked) await store.clearDeposit(code);
+    for (const op of plan) await store[op](code);
   } catch (e) { if (!isPending(e)) toast(noDbMsg(e)); }
 };
 $('#menuImport').onclick = () => openImport();
 $('#menuLeave').onclick = () => {
-  if (!confirm(t('confirmLeave'))) return;
+  if (!confirm(`${t('confirmLeave')}\n\n${t('leaveCode', { code })}`)) return; // the code is shown so the person can come back
   forgetShared(); startLocal();
 };
 $('#deleteBtn').onclick = async () => {
@@ -616,6 +638,7 @@ function show(id) {
   for (const v of ['vList', 'vDeposit', 'vCheckout', 'vScore']) $('#' + v).classList.toggle('hide', v !== id);
   $('#addBar').classList.toggle('hide', id !== 'vList'); // the input bar belongs to the list tab
   setWake(id === 'vCheckout');
+  if (id === 'vDeposit') vgLoader.start(); // no-op once the data is there; otherwise a retry
 }
 
 /* ---------- Barcode scanner ---------- */
@@ -778,10 +801,11 @@ function buildEmojis() {
 }
 // Name and emoji are only needed once there are other people (sharing or joining).
 // Cancel puts back the name and emoji from before (the emoji buttons change `me` right away) and calls onCancel.
-function askIdentity(next, onCancel = null) {
+function askIdentity(next, onCancel = null, joining = null) { // `joining`: the (validated) list code shown as a note
   const before = { ...me };
   pending = next; pendingCancel = onCancel && (() => { me.name = before.name; me.emoji = before.emoji; buildEmojis(); onCancel(); });
   $('#nameCancel').classList.toggle('hide', !onCancel);
+  $('#joinNote').textContent = joining ? t('joiningList', { code: joining }) : ''; $('#joinNote').classList.toggle('hide', !joining);
   $('#welcomeErr').textContent = ''; $('#nameIn').value = me.name;
   for (const v of ['vList', 'vDeposit', 'vCheckout', 'vScore']) $('#' + v).classList.add('hide');
   $('#tabs').classList.add('hide'); $('#addBar').classList.add('hide'); $('#vWelcome').classList.remove('hide');
@@ -829,7 +853,7 @@ async function joinShared(c) {
     try { await startShared(c); } catch (e) { toast(noDbMsg(e)); startLocal(); }
   };
   // cancel: back to the list on screen, or (a join link opened the app) to the local list
-  me.name ? go() : askIdentity(go, () => { history.replaceState(null, '', location.pathname); store ? backToList() : startLocal(); });
+  me.name ? go() : askIdentity(go, () => { history.replaceState(null, '', location.pathname); store ? backToList() : startLocal(); }, c);
 }
 // Leave the name screen without changes
 function backToList() { $('#tabs').classList.remove('hide'); show('vList'); }
@@ -837,13 +861,14 @@ function backToList() { $('#tabs').classList.remove('hide'); show('vList'); }
 async function shareLocalList() {
   try {
     const data = { items: (await localDb.get(LOCAL, 'items')) || {}, deposit: (await localDb.get(LOCAL, 'deposit')) || {} };
-    const remote = await getRemote();
-    const c = await remote.create();
-    await remote.importList(c, data, myKey());
-    await localDb.remove(LOCAL, '');
-    await startShared(c);
-    openShareDialog();
-  } catch (e) { toast(noDbMsg(e)); startLocal(); }
+    await startShared(await uploadLocalList(await getRemote(), data, myKey()));
+  } catch (e) { // name and emoji are saved and the local list is untouched: keep the share flow open, one tap tries again
+    if (!$('#vWelcome').classList.contains('hide')) backToList();
+    openShareDialog(noDbMsg(e));
+    return;
+  }
+  try { await localDb.remove(LOCAL, ''); } catch (e) { /* the shared list is up; a leftover local copy is harmless */ }
+  openShareDialog();
 }
 
 // The Firebase SDK is only loaded when a shared list is needed, so the local list starts without any network.
@@ -869,7 +894,7 @@ async function init() {
   localDb = localAdapter(); localStore = createStore(localDb);
   if (!firebaseConfig) $('#demoBanner').classList.remove('hide');
   render();
-  loadVg().then(v => { vg = v; render(); }).catch(() => {});
+  vgLoader.start();
   const urlList = new URLSearchParams(location.search).get('list');
   const urlCode = parseListCode(urlList); // same check as typed and scanned codes
   if (urlList && !urlCode) toast(t('notAList'));

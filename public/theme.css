@@ -15,6 +15,8 @@
   --green2:#e8edde;      /* light green surface: secondary buttons, disabled buttons */
   --line:#d4dac8;        /* borders and separators */
   --red:#b3322a;         /* danger text */
+  --danger:#b3322a;      /* filled destructive button (reset dialog with open items ticked) */
+  --on-danger:#fff;      /* text on --danger */
   --hdr:#8bad73;         /* header background */
   --hdr-fg:#17210f;      /* header text and icons */
   --hdr-btn:rgba(0,0,0,.1);   /* header button background */
@@ -53,6 +55,8 @@
   --green2:#2a3323;
   --line:#2e3828;
   --red:#e46a5c;
+  --danger:#e46a5c;
+  --on-danger:#2a0a07;
   --hdr:#232d1b;
   --hdr-fg:#e8edde;
   --hdr-btn:rgba(255,255,255,.12);
