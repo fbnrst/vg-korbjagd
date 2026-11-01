@@ -7,19 +7,14 @@
 
 An independent, unofficial shopping list app. The list lives on your phone first; once you share it, phones sync live and a leaderboard ("who puts the most in the basket") starts. Idea and product data: the [VG app](https://gitlab.com/pyfox/vg-app) of VG Dresden. This project is not affiliated with VG Dresden.
 
-<table>
-<tr>
-<td valign="top">
+<img align="right" src="public/docs/img/en-ranking.jpg" alt="The ranking tab with two players" width="260">
 
 ## Features
 - A shared shopping list: everyone with the code (QR code, link or 6 characters) sees changes live and who put what in the basket
 - A leaderboard on top: points for checking off items and returning empties, so shopping becomes a little game
 - Works without account or server first: the list stays on your phone until you share it
 
-</td>
-<td valign="top"><img src="public/docs/img/en-ranking.jpg" alt="The ranking tab with two players" width="260"></td>
-</tr>
-</table>
+<br clear="right">
 
 ## Documentation
 - [Help page](https://fbnrst.github.io/kober/docs/) (for users) and [privacy notice](public/privacy.html)
