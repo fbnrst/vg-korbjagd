@@ -581,7 +581,7 @@ const forgetShared = () => {
 initDialogs(document, undefined, { fallbackFocus: el => (el.closest('#menu') ? $('#menuBtn') : null) });
 
 // Reset dialog (menu): check boxes for what to clear (default: items in the basket and empties; the ranking only on a
-// shared list and off by default). The button turns red while the open items are ticked.
+// shared list, on by default). The button turns red while the open items are ticked.
 const closeReset = () => $('#resetDlg').classList.add('hide');
 const syncResetButton = () => {
   $('#resetGo').disabled = !['#resetOpen', '#resetDone', '#resetEmpties', '#resetScores'].some(s => $(s).checked);
@@ -589,7 +589,7 @@ const syncResetButton = () => {
 };
 $('#menuReset').onclick = () => {
   dismissKeyboard();
-  $('#resetOpen').checked = false; $('#resetDone').checked = true; $('#resetEmpties').checked = true; $('#resetScores').checked = false; syncResetButton();
+  $('#resetOpen').checked = false; $('#resetDone').checked = true; $('#resetEmpties').checked = true; $('#resetScores').checked = !isLocal(); syncResetButton(); // ranking on by default, shared lists only
   $('#resetShared').classList.toggle('hide', isLocal()); $('#resetScoresOpt').classList.toggle('hide', isLocal());
   $('#resetDlg').classList.remove('hide');
 };
