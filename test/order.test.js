@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { planMove, sortOpen, effPos, toPos, MIN_GAP } from '../public/order.js';
+import { planMove, planDrop, sortOpen, effPos, toPos, MIN_GAP } from '../public/order.js';
 import { createStore, localAdapter, userKey } from '../public/store.js';
 import { createOutbox, validEntry, overlay } from '../public/outbox.js';
 
@@ -95,4 +95,18 @@ test('move is a queueable op: validated, shown ahead, replay is harmless', async
   await w.move(code, 'a', 3); await w.move(code, 'a', 3);
   assert.equal((await db.get(code, 'items/a')).pos, 3);
   assert.equal(ob.count(code), 0);
+});
+
+test('planDrop: dropped between two neighbours, first place, unchanged place, inside a section', () => {
+  const l = [it('a', 1), it('b', 2), it('c', 3), it('d', 4)];
+  const out = (id, p, n) => ids(apply(l, { ...planDrop(l, id, p, n), id }));
+  assert.deepEqual(out('d', 'a', 'b'), ['a', 'd', 'b', 'c']);
+  assert.deepEqual(out('c', null, 'a'), ['c', 'a', 'b', 'd']);
+  assert.deepEqual(out('a', 'd', null), ['b', 'c', 'd', 'a']);
+  assert.equal(planDrop(l, 'b', 'a', 'c'), null, 'dropped where it was');
+  assert.equal(planDrop(l, 'zz', 'a', 'b'), null);
+  const sec = [it('a1', 1), it('b1', 2), it('a2', 3), it('b2', 4)];
+  const r = ids(apply(sec, { ...planDrop(sec, 'a2', null, 'a1'), id: 'a2' }));
+  assert.deepEqual(r.filter(x => x[0] === 'a'), ['a2', 'a1']);
+  assert.deepEqual(r.filter(x => x[0] === 'b'), ['b1', 'b2']);
 });

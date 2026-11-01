@@ -18,18 +18,33 @@ export const effPos = i => (isPos(i.pos) ? i.pos : Number(i.addedAt) || 0);
 export const byOrder = (a, b) => effPos(a) - effPos(b) || (a.addedAt || 0) - (b.addedAt || 0) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
 export const sortOpen = items => items.slice().sort(byOrder);
 
-// One step up (dir -1) or down (+1) among the visible items `visible` (the section the item sits in, or the whole list).
-// `open` is every open item. Returns null (nothing to do), { pos } or { renumber: [[id, pos], ...] }.
+// Put `id` at insertion index `at` of the list without it. Returns { pos } (one write) or { renumber: [[id, pos], ...] }.
+function planInsert(all, id, at) {
+  const rest = all.filter(i => i.id !== id);
+  const a = at > 0 ? effPos(rest[at - 1]) : null, b = at < rest.length ? effPos(rest[at]) : null;
+  const pos = a === null ? (b === null ? 1 : b - 1) : b === null ? a + 1 : (a + b) / 2;
+  if (isPos(pos) && (a === null || b === null || (b - a >= MIN_GAP && pos > a && pos < b))) return { pos };
+  const moved = rest.slice(); moved.splice(at, 0, all.find(i => i.id === id));
+  return { renumber: moved.map((i, n) => [i.id, n + 1]) };
+}
+
+// One step up (dir -1) or down (+1) among the visible items `visible` (the section the item sits in, or the whole list), for
+// the keyboard. `open` is every open item. Returns null (nothing to do), { pos } or { renumber }.
 export function planMove(open, id, dir, visible = open) {
   const all = sortOpen(open), group = sortOpen(visible);
   const g = group.findIndex(i => i.id === id);
   if (g < 0 || (dir !== -1 && dir !== 1) || !group[g + dir]) return null;
-  const nb = group[g + dir], k = all.findIndex(i => i.id === nb.id);
-  const lo = dir < 0 ? all[k - 1] : nb, hi = dir < 0 ? nb : all[k + 1];
-  const a = lo ? effPos(lo) : null, b = hi ? effPos(hi) : null;
-  const pos = a === null ? b - 1 : b === null ? a + 1 : (a + b) / 2;
-  if (isPos(pos) && (a === null || b === null || (b - a >= MIN_GAP && pos > a && pos < b))) return { pos };
-  const moved = all.filter(i => i.id !== id), at = moved.findIndex(i => i.id === nb.id) + (dir > 0 ? 1 : 0);
-  moved.splice(at, 0, all.find(i => i.id === id));
-  return { renumber: moved.map((i, n) => [i.id, n + 1]) };
+  const rest = all.filter(i => i.id !== id), k = rest.findIndex(i => i.id === group[g + dir].id);
+  return planInsert(all, id, dir < 0 ? k : k + 1);
+}
+
+// A drag ended with `id` between `prevId` and `nextId` of its section (either may be null): place it right after the previous
+// one (or right before the next one when it is first). Returns null when it did not change place.
+export function planDrop(open, id, prevId, nextId) {
+  const all = sortOpen(open), rest = all.filter(i => i.id !== id);
+  if (!all.some(i => i.id === id)) return null;
+  const at = prevId ? rest.findIndex(i => i.id === prevId) + 1 : nextId ? rest.findIndex(i => i.id === nextId) : -1;
+  if (at < 0 || (prevId && at === 0)) return null;
+  if (all.findIndex(i => i.id === id) === at) return null;
+  return planInsert(all, id, at);
 }
