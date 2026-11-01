@@ -47,7 +47,7 @@ export async function firebaseAdapter(cfg) {
 // Local adapter: JSON in a storage (localStorage); tabs in the same browser see each other via the storage event.
 // Only for trying things out without a Firebase account and for tests (with their own storage object).
 export function localAdapter(storage = globalThis.localStorage, listen = true) {
-  const KEY = NS + 'korbjagd-local-db', subs = new Set();
+  const KEY = NS + 'kober-local-db', subs = new Set();
   const load = () => { try { return JSON.parse(storage.getItem(KEY)) || {}; } catch (e) { return {}; } };
   const notify = () => { const d = load(); subs.forEach(s => s.cb(d[s.code] ?? null)); };
   const save = d => { storage.setItem(KEY, JSON.stringify(d)); notify(); };

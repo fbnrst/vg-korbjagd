@@ -1,4 +1,4 @@
-# Anleitung: Korbjagd
+# Anleitung: Kober
 
 Eine Einkaufsliste für die Familie. Du sammelst die Wünsche die Woche über auf deinem Handy, ganz ohne Anmeldung. Wenn es zum Einkaufen geht, teilst du die Liste: Dann sehen alle sofort, was auf der Liste steht und wer etwas in den Korb gelegt hat. Wer am meisten einpackt, steht in der Rangliste oben.
 

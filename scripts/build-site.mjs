@@ -27,7 +27,7 @@ for (const d of [outDir, dev]) fs.rmSync(path.join(d, DEV_CONFIG), { force: true
 
 // Own name and icons
 const manifest = JSON.parse(read(dev, 'manifest.json'));
-Object.assign(manifest, { name: 'Korbjagd DEV', short_name: 'Korbjagd DEV', theme_color: '#7d8de6' });
+Object.assign(manifest, { name: 'Kober DEV', short_name: 'Kober DEV', theme_color: '#7d8de6' });
 manifest.icons = [
   { src: 'icons/dev-icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
   { src: 'icons/dev-icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
@@ -38,6 +38,6 @@ fs.writeFileSync(path.join(dev, 'manifest.json'), JSON.stringify(manifest, null,
 let html = read(dev, 'index.html');
 const swap = (from, to) => { if (!html.includes(from)) throw new Error(`index.html: "${from}" not found`); html = html.replace(from, to); };
 swap('icons/apple-touch-icon.png', 'icons/dev-apple-touch-icon.png');
-html = html.replace(/(<meta name="apple-mobile-web-app-title" content=")[^"]*/, '$1Korbjagd DEV');
+html = html.replace(/(<meta name="apple-mobile-web-app-title" content=")[^"]*/, '$1Kober DEV');
 fs.writeFileSync(path.join(dev, 'index.html'), html);
 console.log(`site written to ${outDir} (release from ${releaseDir}, dev from ${devDir})`);

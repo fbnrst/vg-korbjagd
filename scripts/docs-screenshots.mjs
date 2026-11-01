@@ -68,7 +68,7 @@ async function scenes(browser, base, lang) {
   const open = async () => {
     await page.goto(`${base}/?lang=${lang}`);
     await page.addStyleTag({ content: '#toast,#demoBanner{display:none!important}' }); // no hint bubbles and no demo-mode banner in the pictures
-    await page.waitForFunction(() => localStorage.getItem('korbjagd-vg-v2'));
+    await page.waitForFunction(() => localStorage.getItem('kober-vg-v2'));
     await page.waitForTimeout(300);
   };
   const shot = async name => {

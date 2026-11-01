@@ -1,4 +1,4 @@
-{"name":"Korbjagd","short_name":"Korbjagd","start_url":"./","scope":"./","display":"standalone","background_color":"#f1f4ea","theme_color":"#8bad73",
+{"name":"Kober","short_name":"Kober","start_url":"./","scope":"./","display":"standalone","background_color":"#f1f4ea","theme_color":"#8bad73",
 "icons":[
 {"src":"icons/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any"},
 {"src":"icons/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any"},

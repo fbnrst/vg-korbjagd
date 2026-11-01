@@ -243,7 +243,7 @@ test('after a new round old items score nothing and never push a counter below z
 test('parseListCode takes a typed code or the link of a shared list and nothing else', () => {
   assert.equal(parseListCode('k7m2qx'), 'K7M2QX');
   assert.equal(parseListCode('  K7M2QX '), 'K7M2QX');
-  assert.equal(parseListCode('https://fbnrst.github.io/vg-korbjagd/?list=ab12cd'), 'AB12CD');
+  assert.equal(parseListCode('https://fbnrst.github.io/kober/?list=ab12cd'), 'AB12CD');
   for (const bad of ['', 'K7M2Q', 'K7M2QXX', 'K7 M2Q', 'https://example.com/', 'VG 4455', '4455', null, undefined]) assert.equal(parseListCode(bad), null, String(bad));
 });
 

@@ -1,9 +1,9 @@
-# vg-korbjagd – a shared shopping list with a leaderboard
+# Kober – a shared shopping list with a leaderboard
 
-[![Checks](https://github.com/fbnrst/vg-korbjagd/actions/workflows/autofix.yml/badge.svg)](https://github.com/fbnrst/vg-korbjagd/actions/workflows/autofix.yml)
-[![Deploy](https://github.com/fbnrst/vg-korbjagd/actions/workflows/pages.yml/badge.svg)](https://github.com/fbnrst/vg-korbjagd/actions/workflows/pages.yml)
+[![Checks](https://github.com/fbnrst/kober/actions/workflows/autofix.yml/badge.svg)](https://github.com/fbnrst/kober/actions/workflows/autofix.yml)
+[![Deploy](https://github.com/fbnrst/kober/actions/workflows/pages.yml/badge.svg)](https://github.com/fbnrst/kober/actions/workflows/pages.yml)
 
-**App: <https://fbnrst.github.io/vg-korbjagd/>** · [Help](https://fbnrst.github.io/vg-korbjagd/docs/) · [Privacy](https://fbnrst.github.io/vg-korbjagd/privacy.html) · [Dev version](https://fbnrst.github.io/vg-korbjagd/dev/) (current `main`, see [Releases and the dev site](#releases-and-the-dev-site))
+**App: <https://fbnrst.github.io/kober/>** · [Help](https://fbnrst.github.io/kober/docs/) · [Privacy](https://fbnrst.github.io/kober/privacy.html) · [Dev version](https://fbnrst.github.io/kober/dev/) (current `main`, see [Releases and the dev site](#releases-and-the-dev-site))
 
 An independent, unofficial shopping list app. The list lives on your phone first; once you share it, phones sync live and a leaderboard ("who puts the most in the basket") starts. Idea and product data: the [VG app](https://gitlab.com/pyfox/vg-app) of VG Dresden. This project is not affiliated with VG Dresden.
 
@@ -21,7 +21,7 @@ No server of your own needed: a static site (GitHub Pages) plus a Firebase Realt
 - Shared lists can be deleted for everyone and expire after 30 days without activity ([retention](docs/retention.md))
 - Installable as a PWA; demo mode without Firebase
 
-Documentation: [help page in the app](https://fbnrst.github.io/vg-korbjagd/docs/) · [privacy notice](public/privacy.html) · [guide for parents and kids](docs/anleitung.md) (German) · [architecture](docs/architecture.md) (German) · [retention and deletion](docs/retention.md) (German) · [security](docs/security.md) (German) · [VG endpoints](docs/vg-api.md) (German)
+Documentation: [help page in the app](https://fbnrst.github.io/kober/docs/) · [privacy notice](public/privacy.html) · [guide for parents and kids](docs/anleitung.md) (German) · [architecture](docs/architecture.md) (German) · [retention and deletion](docs/retention.md) (German) · [security](docs/security.md) (German) · [VG endpoints](docs/vg-api.md) (German)
 
 ## Try it locally (demo mode)
     npm start      # http://localhost:3000

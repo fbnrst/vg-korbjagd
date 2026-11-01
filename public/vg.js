@@ -2,7 +2,7 @@
 // The endpoints answer with CORS "*", so no proxy is needed (see docs/vg-api.md).
 const BASE = 'https://app.vg-dresden.de/php/';
 import { NS } from './env.js';
-const CACHE_KEY = NS + 'korbjagd-vg-v2';
+const CACHE_KEY = NS + 'kober-vg-v2';
 
 const get = async (name, init) => {
   const r = await fetch(BASE + name, { ...init, signal: AbortSignal.timeout(20000) });

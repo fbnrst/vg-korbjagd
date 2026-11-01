@@ -38,8 +38,8 @@ Die Original-App teilt Listen als Link `https://app.vg-dresden.de/list?shareId=<
 - Der Text ist mit CryptoJS-AES (Passphrase-Modus) verschlüsselt. Der Schlüssel steht nur im Link-Fragment (`#…`) und geht nie an den Server.
 - Entschlüsselt ergibt sich ein JSON-Array von `{title, id, amount, unit?, vgNum?, country?, checked, date, hasVgNum, order}`.
 
-vg-korbjagd importiert solche Links (im Menü „Liste importieren“ oder Link ins Eingabefeld einfügen), siehe `fetchSharedList` / `decryptShared` in `public/vg.js`.
+Kober importiert solche Links (im Menü „Liste importieren“ oder Link ins Eingabefeld einfügen), siehe `fetchSharedList` / `decryptShared` in `public/vg.js`.
 
 ## Weitere Endpunkte (nicht abgefragt)
 
-`shareList.php` (Liste teilen, schreibt auf den VG-Server) und `sendFeedback.php` wurden bewusst nicht ausprobiert. Eine Liste aus vg-korbjagd an die Original-App zu schicken wäre über `shareList.php` technisch möglich, schreibt aber auf den VG-Server und ist deshalb nicht umgesetzt.
+`shareList.php` (Liste teilen, schreibt auf den VG-Server) und `sendFeedback.php` wurden bewusst nicht ausprobiert. Eine Liste aus Kober an die Original-App zu schicken wäre über `shareList.php` technisch möglich, schreibt aber auf den VG-Server und ist deshalb nicht umgesetzt.

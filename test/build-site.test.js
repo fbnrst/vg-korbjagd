@@ -9,18 +9,18 @@ import { execFileSync } from 'node:child_process';
 // and the release stayed untouched.
 test('build-site: release at the root, dev under /dev/ with its own config, name and icons', () => {
   const root = path.resolve(import.meta.dirname, '..');
-  const out = fs.mkdtempSync(path.join(os.tmpdir(), 'korbjagd-site-'));
+  const out = fs.mkdtempSync(path.join(os.tmpdir(), 'kober-site-'));
   try {
     execFileSync('node', [path.join(root, 'scripts/build-site.mjs'), path.join(root, 'public'), path.join(root, 'public'), out], { stdio: 'pipe' });
     const rel = f => fs.readFileSync(path.join(out, f), 'utf8');
-    assert.equal(JSON.parse(rel('manifest.json')).name, 'Korbjagd');
+    assert.equal(JSON.parse(rel('manifest.json')).name, 'Kober');
     assert.ok(rel('index.html').includes('icons/apple-touch-icon.png'));
     assert.equal(rel('firebase-config.js'), fs.readFileSync(path.join(root, 'public/firebase-config.js'), 'utf8'));
     const m = JSON.parse(rel('dev/manifest.json'));
-    assert.equal(m.name, 'Korbjagd DEV');
+    assert.equal(m.name, 'Kober DEV');
     assert.ok(m.icons.every(i => i.src.startsWith('icons/dev-')));
     assert.ok(rel('dev/index.html').includes('icons/dev-apple-touch-icon.png'));
-    assert.ok(rel('dev/index.html').includes('content="Korbjagd DEV"'));
+    assert.ok(rel('dev/index.html').includes('content="Kober DEV"'));
     assert.notEqual(rel('dev/firebase-config.js'), rel('firebase-config.js'), 'dev must not use the production database');
     assert.ok(!fs.existsSync(path.join(out, 'firebase-config.dev.js')) && !fs.existsSync(path.join(out, 'dev/firebase-config.dev.js')));
     for (const f of ['dev/sw.js', 'dev/env.js', 'dev/icons/dev-icon-192.png']) assert.ok(fs.existsSync(path.join(out, f)), f);
