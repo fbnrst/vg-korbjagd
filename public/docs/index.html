@@ -68,7 +68,7 @@ html[lang=de] [lang=en],html[lang=en] [lang=de]{display:none}
 <nav class="toc" aria-label="Contents"><a href="#en-install">Install</a><a href="#en-start">Getting started</a><a href="#en-share">Share and play</a><a href="#en-shop">Empties and checkout</a><a href="#en-tidy">Tidy up</a><a href="#en-more">Good to know</a></nav>
 <section class="sec" id="en-install"><div class="txt"><h2>Install</h2>
 <h3>1. Open the app</h3>
-<p>Open <a href="../">the app</a> (<code data-url></code>) on your phone.</p>
+<p>Open <a href="../">the app</a> on your phone.</p>
 <h3>2. Put it on your home screen</h3>
 <details class="how" data-os="ios"><summary>iPhone (Safari)</summary>
 <ol>
@@ -134,7 +134,7 @@ html[lang=de] [lang=en],html[lang=en] [lang=de]{display:none}
 <nav class="toc" aria-label="Inhalt"><a href="#de-install">Installieren</a><a href="#de-start">Loslegen</a><a href="#de-share">Teilen und mitspielen</a><a href="#de-shop">Leergut und Kasse</a><a href="#de-tidy">Aufräumen</a><a href="#de-more">Gut zu wissen</a></nav>
 <section class="sec" id="de-install"><div class="txt"><h2>Installieren</h2>
 <h3>1. App öffnen</h3>
-<p>Öffne <a href="../">die App</a> (<code data-url></code>) auf deinem Handy.</p>
+<p>Öffne <a href="../">die App</a> auf deinem Handy.</p>
 <h3>2. Auf den Home-Bildschirm legen</h3>
 <details class="how" data-os="ios"><summary>iPhone (Safari)</summary>
 <ol>
@@ -203,7 +203,6 @@ document.title = lang === 'de' ? 'Hilfe' : 'Help';
 document.getElementById('back').textContent = lang === 'de' ? '← Einkaufsliste' : '← Shopping list';
 // the install instructions all start folded: open the one for your device
 const appUrl = new URL('../', location.href).href;
-document.querySelectorAll('[data-url]').forEach(el => { el.textContent = appUrl.replace(/^https?:\/\//, '').replace(/\/$/, ''); });
 if (matchMedia('(min-width: 820px)').matches) {
   const sc = document.createElement('script'); sc.src = '../vendor/qrcode.js';
   sc.onload = () => { const q = window.qrcode(0, 'M'); q.addData(appUrl); q.make(); document.querySelectorAll('[data-qr]').forEach(el => { el.innerHTML = q.createSvgTag({ cellSize: 6, margin: 2, scalable: true }); }); };
