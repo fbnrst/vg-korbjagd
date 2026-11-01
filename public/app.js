@@ -1,5 +1,5 @@
 import firebaseConfig from './firebase-config.js';
-import { createStore, firebaseAdapter, localAdapter, userKey, parseListCode, isPending } from './store.js';
+import { createStore, firebaseAdapter, localAdapter, userKey, parseListCode, isPending, isEmptyList } from './store.js';
 import { createConn, shouldForgetList } from './conn.js';
 import { createOutbox } from './outbox.js';
 import { saveSnapshot, loadSnapshot, dropSnapshot } from './cache.js';
@@ -38,9 +38,25 @@ function dismissKeyboard() {
   if (el && el !== document.body && typeof el.blur === 'function') el.blur();
 }
 
-function toast(msg) {
-  const el = $('#toast'); el.textContent = msg; el.classList.add('show');
-  clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), 2600);
+// A toast is click-through. With an action ({label, aria, run}) it gets one button (the undo offer) and stays 5 s;
+// every new toast replaces the previous one, so there is only ever one offer. Texts go in as text, never as HTML.
+function toast(msg, action) {
+  const el = $('#toast'); el.textContent = msg;
+  el.classList.toggle('act', !!action); el.classList.add('show');
+  if (action) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'toastAct'; b.textContent = action.label; b.setAttribute('aria-label', action.aria || action.label);
+    b.onclick = () => { el.classList.remove('show', 'act'); clearTimeout(toast.t); action.run(); };
+    el.append(b);
+  }
+  clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), action ? 5000 : 2600);
+}
+// Delete without asking; the toast offers to bring the item back with all its data (same id, number, state)
+function deleteItem(it) {
+  const prev = { ...it }, c = code;
+  bg.remove(c, it.id);
+  const name = it.title.length > 40 ? it.title.slice(0, 39) + '…' : it.title;
+  toast(t('toastDeleted', { item: name }), { label: t('undo'), aria: t('ariaUndo', { item: name }), run: () => { if (c === code) bg.restore(c, prev, myKey()); } });
 }
 
 /* ---------- Connection ---------- */
@@ -138,13 +154,23 @@ function itemHtml(i) {
   const chip = i.vgNum ? esc(i.vgNum) : i.checked ? `＋ ${t('noShort')}` : '';
   const sub = chip && !editing ? `<button type="button" class="numedit" data-editnum="${id}" aria-label="${t('ariaEditNum')}">${chip}</button>` : '';
   // iPhones have no Return key on the number pad: every number field has a confirm button, plus a scan button
-  const buttons = (checkToo, disabled = false) => `<button class="rowbtn ok" type="submit"${disabled ? ' disabled' : ''} aria-label="${t('ariaConfirm')}">✓</button><button class="rowbtn" type="button" data-scanrow="${id}" data-checktoo="${checkToo}" aria-label="${t('scanBarcode')}"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M8 7v10"/><path d="M12 7v10"/><path d="M16 7v10"/></svg></button>`;
+  const buttons = checkToo => `<button class="rowbtn ok" type="submit" aria-label="${t('ariaConfirm')}">✓</button><button class="rowbtn" type="button" data-scanrow="${id}" data-checktoo="${checkToo}" aria-label="${t('scanBarcode')}"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M8 7v10"/><path d="M12 7v10"/><path d="M16 7v10"/></svg></button>`;
   const vgIn = editing ? `<form data-vgedit="${id}"><input class="vg" type="number" inputmode="numeric" enterkeyhint="done" value="${esc(i.vgNum || '')}" placeholder="${t('noShort')}">${buttons(0)}</form>`
-    : i.vgNum || i.checked ? '' : `<form data-vg="${id}"><input class="vg" type="number" inputmode="numeric" enterkeyhint="done" placeholder="${t('noShort')}">${buttons(1, true)}</form>`;
+    : i.vgNum || i.checked ? '' : `<form data-vg="${id}" class="quick"><input class="vg" type="number" inputmode="numeric" enterkeyhint="done" placeholder="${t('noShort')}">${buttons(1)}</form>`;
   return `<div class="item ${i.checked ? 'done' : ''}">
       <button class="chk" data-chk="${esc(i.id)}" aria-label="${t(i.checked ? 'ariaBack' : 'ariaCheck')}"></button>
       <div class="t">${i.amount > 1 ? `${esc(i.amount)}${i.unit ? ' ' + esc(i.unit) : '×'} ` : ''}${esc(i.title)}<small>${sub}</small></div>${by}${vgIn}
       <button class="x" data-del="${esc(i.id)}" aria-label="${t('ariaDelete')}">×</button></div>`;
+}
+// The start hint: shown only while the list has no item at all (open or checked off)
+function emptyHint() {
+  const svg = d => `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+  const share = svg('<path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/>');
+  const cam = svg('<path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M8 7v10"/><path d="M12 7v10"/><path d="M16 7v10"/>');
+  return `<div class="empty"><p><span class="eic">+</span><span>${esc(t('emptyAdd'))}</span></p>
+    <p><span class="eic">123</span><span>${esc(t('emptyShop'))}</span></p>
+    <p><span class="eic">${share}</span><span>${esc(t('emptyShare'))}</span></p>
+    <a href="docs/index.html" class="emptyHelp">${esc(t('emptyHelp'))}</a></div>`;
 }
 function render() {
   state = isLocal() ? raw : outbox.overlayFor(raw, code); // changes waiting to be sent show at once; a live snapshot replaces `raw`
@@ -154,7 +180,9 @@ function render() {
   const done = all.filter(i => i.checked).sort((a, b) => (b.checkedAt || 0) - (a.checkedAt || 0)); // most recently checked off first
   $('#items').innerHTML = first && loadingStuck && !stale && !isLocal() ? `<div class="stuck"><p class="muted">${esc(t('connLoadingList'))}</p><button type="button" class="btn sec" id="useLocal">${esc(t('connUseLocal'))}</button></div>`
     : open.length ? open.map(itemHtml).join('')
-    : `<p class="muted" style="text-align:center">${t(all.length ? 'allInBasket' : 'nothingYet')}</p>`;
+    : !isEmptyList(state.items) ? `<p class="muted" style="text-align:center">${t('allInBasket')}</p>`
+    : first && !isLocal() ? '' // the first snapshot of a shared list is still on its way
+    : emptyHint();
   $('#doneCard').classList.toggle('hide', !done.length);
   $('#doneHead').textContent = t('inBasketHead', { n: done.length });
   $('#doneItems').innerHTML = done.map(itemHtml).join('');
@@ -248,12 +276,12 @@ document.addEventListener('click', e => {
   if (dadd) { bg.depositAdd(code, dadd.dataset.depAdd, myKey()); return; }
   if (dsub) { bg.depositRemove(code, dsub.dataset.depSub, myKey()); return; }
   const del = e.target.closest('[data-del]');
-  if (del) { const it = state.items[del.dataset.del]; if (it && confirm(t('confirmDelete', { item: it.title }))) bg.remove(code, it.id); }
+  if (del) { const it = state.items[del.dataset.del]; if (it) deleteItem(it); }
 });
-// The quick number field: its confirm button only works with a valid number
+// The quick number field: its confirm button only shows while there is a number to confirm (Enter works either way)
 document.addEventListener('input', e => {
   const f = e.target.closest('[data-vg]');
-  if (f) f.querySelector('.rowbtn.ok').disabled = !(parseInt(e.target.value, 10) > 0);
+  if (f) f.classList.toggle('has', parseInt(e.target.value, 10) > 0);
 });
 // A typed number whose product has a completely different name than the item (apple vs. orange), or that the database
 // lists as unused ("unbesetzt"): ask first. The shop may still use it, so it can be confirmed.

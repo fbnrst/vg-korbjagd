@@ -278,3 +278,48 @@ test('renameUser moves points, empties and marks to the new name and leaves othe
   await s.renameUser(code, D, E);                                             // no points yet: the new name joins with 0
   assert.equal((await db.get(code, 'scores'))[E], 0);
 });
+
+test('undo of a delete restores the item with all its data and gives the point back (score ends where it was)', async () => {
+  const { s, db } = setup(); const c = await s.create();
+  await s.add(c, item('a', 'Milch', { amount: 2, unit: 'Liter', ean: '4012345678901', vgNum: 4711 }), B);
+  await s.check(c, 'a', A, true);
+  const before = await db.get(c, 'items/a');
+  assert.equal((await db.get(c, 'scores'))[A], 1);
+  await s.remove(c, 'a');
+  assert.equal((await db.get(c, 'scores'))[A], 0, 'delete took the point back');
+  await s.restore(c, before, B);
+  assert.deepEqual(await db.get(c, 'items/a'), before, 'same id, number, ean, amount, state, authorship and times');
+  assert.equal((await db.get(c, 'scores'))[A], 1, 'the person gets the point back, once');
+  await s.restore(c, before, B); // a second undo does nothing
+  assert.equal((await db.get(c, 'scores'))[A], 1);
+});
+
+test('undo of an open item gives no point; an id that exists again is not overwritten', async () => {
+  const { s, db } = setup(); const c = await s.create();
+  await s.add(c, item('a', 'Brot'), A);
+  const before = await db.get(c, 'items/a');
+  await s.remove(c, 'a');
+  await s.restore(c, before, B);
+  assert.deepEqual(await db.get(c, 'items/a'), before);
+  assert.deepEqual((await db.get(c, 'scores')) || {}, {}, 'no points for an open item');
+  await s.restore(c, { ...before, title: 'Other' }, B);
+  assert.equal((await db.get(c, 'items/a')).title, 'Brot');
+  assert.equal(await s.restore(c, { id: 'bad id', title: 'x' }, B), undefined);
+});
+
+test('undo works on the local list too (createStore over localAdapter)', async () => {
+  const { s, db } = setup();
+  await s.add('LOCAL', item('a', 'Käse'), A);
+  const before = await db.get('LOCAL', 'items/a');
+  await s.remove('LOCAL', 'a');
+  assert.equal(await db.get('LOCAL', 'items/a'), null);
+  await s.restore('LOCAL', before, A);
+  assert.deepEqual(await db.get('LOCAL', 'items/a'), before);
+});
+
+test('start hint shows only while the list has no item at all', async () => {
+  const { isEmptyList } = await import('../public/store.js');
+  assert.equal(isEmptyList(undefined), true);
+  assert.equal(isEmptyList({}), true);
+  assert.equal(isEmptyList({ a: { id: 'a', checked: true } }), false);
+});

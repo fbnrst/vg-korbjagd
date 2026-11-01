@@ -303,3 +303,14 @@ test('i18n: the outbox texts exist in both languages with the same placeholders'
   assert.equal(STRINGS.en.connScoreLater, 'Points are counted when the connection is back.');
   assert.equal(STRINGS.de.outboxFull, 'Zu viele wartende Änderungen; die ältesten wurden verworfen.');
 });
+
+test('a restore entry is validated and shows at once in the optimistic view', async () => {
+  const { validEntry, overlay } = await import('../public/outbox.js');
+  const e = validEntry({ code: 'ABCDEF', op: 'restore', args: [{ id: 'a', title: 'Milch', vgNum: 4711, checked: true, checkedBy: A, addedBy: A, addedAt: 5, checkedAt: 6 }, A], ts: 10 });
+  assert.ok(e);
+  assert.equal(e.args[0].vgNum, 4711);
+  assert.equal(validEntry({ code: 'ABCDEF', op: 'restore', args: [{ id: 'bad id', title: 'x' }, A], ts: 10 }), null);
+  const view = overlay({ items: {}, scores: {}, deposit: {} }, [e]);
+  assert.equal(view.items.a.checked, true);
+  assert.equal(view.items.a.title, 'Milch');
+});

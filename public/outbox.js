@@ -15,7 +15,7 @@
 // would both replay. Everything read from localStorage is untrusted (the user can edit it): every entry is validated
 // again with the same rules as store.js, invalid ones are dropped.
 import { NS } from './env.js';
-import { isId, isUserKey, isPending } from './store.js';
+import { isId, isUserKey, isPending, restoredItem } from './store.js';
 
 export const MAX_ENTRIES = 200, MAX_AGE = 24 * 3600e3, MAX_TRIES = 3;
 const TYPE = /^[A-Za-z0-9_-]{1,20}$/;
@@ -44,6 +44,7 @@ const VALID = {
   },
   setEan: ([id, user, ean, checkToo]) => isId(id) && isUserKey(user) && /^\d{8,14}$/.test(String(ean)) ? [id, user, String(ean), !!checkToo] : null,
   remove: ([id]) => isId(id) ? [id] : null,
+  restore: ([item, user]) => { const r = isUserKey(user) && restoredItem(item, user); return r ? [r, user] : null; },
   depositAdd: ([typeId, user]) => TYPE.test(String(typeId)) && isUserKey(user) ? [String(typeId), user] : null,
   depositRemove: ([typeId, user]) => TYPE.test(String(typeId)) && isUserKey(user) ? [String(typeId), user] : null,
   bump: ([key, d]) => isUserKey(key) && (d === 1 || d === -1) ? [key, d] : null,
@@ -68,6 +69,8 @@ export function overlay(state, entries) {
     const [a, b, c, d] = e.args;
     if (e.op === 'add') {
       if (!items[a.id]) items[a.id] = { id: a.id, title: a.title, amount: a.amount || 1, unit: a.unit || null, info: a.info || null, vgNum: a.vgNum || null, ean: a.ean || null, checked: false, checkedBy: null, checkedAt: null, addedBy: b, addedAt: e.ts };
+    } else if (e.op === 'restore') {
+      if (!items[a.id]) items[a.id] = a;
     } else if (e.op === 'check') {
       const i = items[a];
       if (i && !!i.checked !== c) items[a] = { ...i, checked: c, checkedBy: c ? b : null, checkedAt: c ? e.ts : null };

@@ -98,6 +98,17 @@ const makeItem = (i, user) => ({
   vgNum: toNum(i.vgNum), ean: /^\d{8,14}$/.test(i.ean) ? i.ean : null,
   checked: false, checkedBy: null, checkedAt: null, addedBy: user, addedAt: Date.now() });
 
+// An item as it was (id, number, ean, amount, state), for putting a deleted item back. Pure; null for an unusable item.
+export function restoredItem(i, user) {
+  if (!i || !isId(i.id) || !String(i.title || '').trim()) return null;
+  const item = makeItem(i, isUserKey(i.addedBy) ? i.addedBy : user);
+  if (Number(i.addedAt) > 0) item.addedAt = Number(i.addedAt);
+  if (i.checked) { item.checked = true; item.checkedBy = isUserKey(i.checkedBy) ? i.checkedBy : user; item.checkedAt = Number(i.checkedAt) || Date.now(); }
+  return item;
+}
+// Nothing on the list at all (open or checked off): the start hint is shown
+export const isEmptyList = items => !items || !Object.keys(items).length;
+
 // A write that does not answer in time. The operation itself is not cancelled (Firebase keeps transactions queued and
 // runs them when the connection is back): `late` settles with its real outcome, so callers can continue then.
 export class PendingError extends Error {
@@ -221,6 +232,14 @@ export function createStore(rawDb, guardOpts = {}) {
       let prev;
       await followUp(db.update(code, `items/${id}`, old => { prev = old; return old ? null : undefined; }), () => prev && prev.checked && point(code, prev.checkedBy, -1));
     },
+    // Undo of remove: the item comes back under the same id with its old data. Deleting a checked item took the point back
+    // from the person who got it, so restoring gives it back: the score ends up where it was, nothing is counted twice.
+    // If the id exists again meanwhile (somebody re-added it) nothing happens.
+    async restore(code, item, user) {
+      const full = restoredItem(item, user);
+      if (!full) return;
+      await followUp(db.update(code, `items/${full.id}`, old => old ? undefined : full), r => r.committed && full.checked && point(code, full.checkedBy, 1));
+    },
     // Deposit: deposit/<type>/<user> = pieces. Each piece gives the person who enters it one point.
     async depositAdd(code, typeId, user) {
       if (!/^[A-Za-z0-9_-]{1,20}$/.test(String(typeId)) || !isUserKey(user)) return;
@@ -282,7 +301,7 @@ export function createStore(rawDb, guardOpts = {}) {
     touched[code] = now;
     return touch0(code);
   };
-  for (const name of ['join', 'bump', 'add', 'check', 'setNum', 'setEan', 'remove', 'depositAdd', 'depositRemove', 'clearDeposit', 'clearChecked', 'clearOpen', 'clearAll', 'resetScores', 'importList', 'renameUser']) {
+  for (const name of ['join', 'bump', 'add', 'check', 'setNum', 'setEan', 'remove', 'restore', 'depositAdd', 'depositRemove', 'clearDeposit', 'clearChecked', 'clearOpen', 'clearAll', 'resetScores', 'importList', 'renameUser']) {
     const fn = store[name];
     store[name] = async (code, ...args) => { const r = await fn(code, ...args); touch(code); return r; };
   }
