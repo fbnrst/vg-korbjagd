@@ -345,3 +345,25 @@ test('cache: a primitive where an object belongs is dropped, and at most MAX_ITE
   for (let i = 0; i < MAX_ITEMS + 50; i++) items['i' + i] = { title: 'Item ' + i };
   assert.equal(Object.keys(sanitize({ items }).items).length, MAX_ITEMS);
 });
+
+test('claim is a queueable op: validated, shown ahead, replay is harmless', async () => {
+  assert.ok(validEntry({ code: CODE, op: 'claim', args: ['a', A, true], ts: 1 }));
+  assert.equal(validEntry({ code: CODE, op: 'claim', args: ['a', A, 'yes'], ts: 1 }), null);
+  assert.equal(validEntry({ code: CODE, op: 'claim', args: ['bad id', A, true], ts: 1 }), null);
+  const state = { items: { a: { id: 'a', title: 'Milch', checked: false, claimedBy: null }, b: { id: 'b', title: 'Brot', checked: true } }, deposit: {} };
+  const mk = (id, want, user = A) => ({ id: 'x', code: CODE, op: 'claim', args: [id, user, want], ts: 5 });
+  assert.equal(overlay(state, [mk('a', true)]).items.a.claimedBy, A);
+  assert.equal(overlay(state, [mk('a', true), mk('a', false)]).items.a.claimedBy, null);
+  assert.equal(overlay(state, [mk('a', true, B), mk('a', false, A)]).items.a.claimedBy, B, 'releasing is only for your own claim');
+  assert.equal(overlay(state, [mk('b', true)]).items.b.claimedBy, undefined, 'a checked item is not claimed');
+  const db = localAdapter(mem(), false);
+  const store = createStore(db);
+  const code = await store.create();
+  await store.add(code, { id: 'a', title: 'Milch' }, A);
+  const ob = createOutbox({ storage: mem() });
+  const wrapped = ob.wrap(store, null);
+  await wrapped.claim(code, 'a', B, true);
+  await wrapped.claim(code, 'a', B, true); // replay
+  assert.equal((await db.get(code, 'items/a')).claimedBy, B);
+  assert.equal(ob.count(code), 0);
+});

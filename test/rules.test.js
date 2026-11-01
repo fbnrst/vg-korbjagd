@@ -65,6 +65,7 @@ test('Rules: container nodes only take objects (a primitive would bypass the wil
 test('Rules: valid documents from store.js are accepted', () => {
   assert.equal(list(withItem(goodItem())), null);
   assert.equal(list(withItem(goodItem({ unit: 'kg', amount: 3, info: 'Bio', vgNum: 4711, ean: '4012345678901', checked: true, checkedBy: U, checkedAt: 5 }))), null);
+  assert.equal(list(withItem(goodItem({ claimedBy: U }))), null, 'a claimed open item');
   assert.equal(list({ meta: { created: 1 }, scores: { [U]: 0 }, deposit: { 12: { [U]: 3 } } }), null);
   assert.equal(list({ meta: { created: 1 }, activity: Date.now() }), null);
   assert.equal(list({ meta: { created: Date.now() } }), null);
@@ -75,6 +76,8 @@ test('Rules: garbage is rejected', () => {
   const bad = [
     [{ meta: { created: 1 }, items: { a1: goodItem({ title: 'x'.repeat(121) }) } }, 'long title'],
     [withItem(goodItem({ title: '' })), 'empty title'],
+    [withItem(goodItem({ claimedBy: '<b>x</b>' })), 'claimedBy is not a user key'],
+    [withItem(goodItem({ claimedBy: 5 })), 'claimedBy is not a string'],
     [withItem(goodItem({ amount: 0 })), 'amount 0'],
     [withItem(goodItem({ amount: 1000 })), 'amount 1000'],
     [withItem(goodItem({ amount: 1.5 })), 'fractional amount'],

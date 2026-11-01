@@ -1,0 +1,81 @@
+name: Publish database rules
+# Publishes database.rules.json to the Realtime Database (scripts/publish-rules.mjs; see docs/security.md).
+# - A push to main that changes the rules publishes them to the DEV database only (the dev site follows main).
+# - Publishing a release (gh release create vX.Y.Z) publishes the rules of that tag to dev, then to PRODUCTION. Wait for this run
+#   to be green before starting pages.yml, so the rules are live before the new client reaches the release site.
+# - By hand: Actions -> Publish database rules -> Run workflow, target dev, production or both (dev first), e.g. to catch up.
+# Needs the secrets FIREBASE_SERVICE_ACCOUNT_DEV and FIREBASE_SERVICE_ACCOUNT, with permission to change the rules.
+on:
+  push:
+    branches: [main]
+    paths: [database.rules.json, scripts/publish-rules.mjs, .github/workflows/rules.yml]
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Which database(s) to publish to'
+        type: choice
+        options: [dev, production, both]
+        default: dev
+      dry_run:
+        description: 'Only check the file and the access, publish nothing'
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: publish-rules
+  cancel-in-progress: false
+env:
+  DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
+jobs:
+  dev:
+    name: publish (dev)
+    if: github.event_name != 'workflow_dispatch' || inputs.target == 'dev' || inputs.target == 'both'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Check the rules file
+        run: node --test test/rules.test.js
+      # Dev only notes a missing secret and skips (it must be published by hand then)
+      - name: Check secret
+        id: secret
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DEV }}
+        run: |
+          if [ -n "$FIREBASE_SERVICE_ACCOUNT" ]; then echo "present=true" >> "$GITHUB_OUTPUT"
+          else echo "::warning::Secret FIREBASE_SERVICE_ACCOUNT_DEV is not set: publish the rules to dev by hand. See docs/security.md"; fi
+      - name: Publish to dev
+        if: steps.secret.outputs.present == 'true'
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DEV }}
+          DATABASE_URL: https://vg-korbjagd-dev-default-rtdb.europe-west1.firebasedatabase.app
+        run: node scripts/publish-rules.mjs
+  production:
+    name: publish (production)
+    # dev first: production only runs when dev succeeded or was not part of this run
+    needs: dev
+    if: ${{ !cancelled() && (github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && (inputs.target == 'production' || inputs.target == 'both'))) && (needs.dev.result == 'success' || needs.dev.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Check the rules file
+        run: node --test test/rules.test.js
+      - name: Publish to production
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          DATABASE_URL: https://vg-korbjagd-default-rtdb.europe-west1.firebasedatabase.app
+        run: |
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then echo "::error::Secret FIREBASE_SERVICE_ACCOUNT is missing"; exit 1; fi
+          node scripts/publish-rules.mjs

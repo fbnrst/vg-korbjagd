@@ -6,6 +6,7 @@
 // Firebase key characters and HTML special characters (keys end up in the rendering) are replaced.
 // Must match the rules in database.rules.json: "<emoji without spaces> <name>", at most 60 characters.
 import { NS } from './env.js';
+import { toPos } from './order.js';
 const BAD = /[.$#\[\]\/<>&"'`\u0000-\u001f]/g;
 export const userKey = (emoji, name) => {
   const e = String(emoji ?? '').replace(BAD, '_').replace(/\s+/g, '').slice(0, 20) || '🙂';
@@ -100,7 +101,7 @@ const makeItem = (i, user) => ({
   id: i.id, title: String(i.title).trim().slice(0, 120), amount: i.amount > 1 ? Math.min(999, Math.round(i.amount)) : 1,
   unit: i.unit ? String(i.unit).slice(0, 20) : null, info: i.info ? String(i.info).slice(0, 200) : null,
   vgNum: toNum(i.vgNum), ean: /^\d{8,14}$/.test(i.ean) ? i.ean : null,
-  checked: false, checkedBy: null, checkedAt: null, addedBy: user, addedAt: Date.now() });
+  checked: false, checkedBy: null, checkedAt: null, claimedBy: null, pos: toPos(i.pos), addedBy: user, addedAt: Date.now() });
 
 // An item as it was (id, number, ean, amount, state), for putting a deleted item back. Pure; null for an unusable item.
 export function restoredItem(i, user) {
@@ -108,6 +109,7 @@ export function restoredItem(i, user) {
   const item = makeItem(i, isUserKey(i.addedBy) ? i.addedBy : user);
   if (Number(i.addedAt) > 0) item.addedAt = Number(i.addedAt);
   if (i.checked) { item.checked = true; item.checkedBy = isUserKey(i.checkedBy) ? i.checkedBy : user; item.checkedAt = Number(i.checkedAt) || Date.now(); }
+  else if (isUserKey(i.claimedBy)) item.claimedBy = i.claimedBy; // a claim only exists on an open item
   return item;
 }
 // Nothing on the list at all (open or checked off): the start hint is shown
@@ -191,8 +193,8 @@ export function createStore(rawDb, guardOpts = {}) {
         return Object.fromEntries(Object.entries(d).map(([typ, users]) => [typ, users && users[from] != null ? move(users) : users]));
       }));
       for (const [id, it] of Object.entries((await settled(db.get(code, 'items'))) || {})) {
-        if (!it || !isId(id) || (it.checkedBy !== from && it.addedBy !== from)) continue;
-        await settled(db.update(code, `items/${id}`, old => old ? { ...old, ...(old.checkedBy === from ? { checkedBy: to } : {}), ...(old.addedBy === from ? { addedBy: to } : {}) } : undefined));
+        if (!it || !isId(id) || (it.checkedBy !== from && it.addedBy !== from && it.claimedBy !== from)) continue;
+        await settled(db.update(code, `items/${id}`, old => old ? { ...old, ...(old.checkedBy === from ? { checkedBy: to } : {}), ...(old.addedBy === from ? { addedBy: to } : {}), ...(old.claimedBy === from ? { claimedBy: to } : {}) } : undefined));
       }
     },
     // Replay of a journaled point (outbox.js): the plain counter change, not journaled again
@@ -209,9 +211,27 @@ export function createStore(rawDb, guardOpts = {}) {
       const toggle = db.update(code, `items/${id}`, old => {
         prev = old;
         if (!old || !!old.checked === want) return undefined;
-        return { ...old, checked: want, checkedBy: want ? user : null, checkedAt: want ? Date.now() : null };
+        return { ...old, checked: want, checkedBy: want ? user : null, checkedAt: want ? Date.now() : null, claimedBy: null }; // checking off or putting back clears a claim
       });
       await followUp(toggle, r => r.committed && point(code, want ? user : prev.checkedBy, want ? 1 : -1));
+    },
+    // Claim an open item ("I'll get this") or release it. Rule: the claim is a plain label, last tap wins. Claiming an item that
+    // somebody else holds takes it over (an explicit tap); releasing only clears the caller's own claim. Both abort when the
+    // target state already holds, so an outbox replay is harmless. A checked item cannot be claimed. No points.
+    async claim(code, id, user, want) {
+      if (!isId(id) || !isUserKey(user) || typeof want !== 'boolean') return;
+      await db.update(code, `items/${id}`, old => {
+        if (!old || old.checked) return undefined;
+        if (want) return old.claimedBy === user ? undefined : { ...old, claimedBy: user };
+        return old.claimedBy === user ? { ...old, claimedBy: null } : undefined;
+      });
+    },
+    // Manual order: set the position of ONE open item (see order.js). Aborts when it already has that position or is gone/checked,
+    // so an outbox replay is harmless. A reorder that needs several writes (renumbering) is several of these calls.
+    async move(code, id, pos) {
+      pos = toPos(pos);
+      if (!isId(id) || pos === null) return;
+      await db.update(code, `items/${id}`, old => (!old || old.checked || old.pos === pos ? undefined : { ...old, pos }));
     },
     // Add the VG number later; with checkToo the item also goes into the basket
     // extra: {title, info} from the VG database; the title only replaces the placeholder "VG no. 123" (formerly "VG-Nr. 123")
@@ -225,7 +245,7 @@ export function createStore(rawDb, guardOpts = {}) {
         const next = { ...old, vgNum };
         if (extra.info) next.info = String(extra.info).slice(0, 200);
         if (extra.title && /^VG(-Nr\.| no\.) \d+$/.test(old.title)) next.title = String(extra.title).slice(0, 120);
-        if (checkToo && !old.checked) { next.checked = true; next.checkedBy = user; next.checkedAt = Date.now(); newlyChecked = true; }
+        if (checkToo && !old.checked) { next.checked = true; next.checkedBy = user; next.checkedAt = Date.now(); next.claimedBy = null; newlyChecked = true; }
         return next;
       }), () => newlyChecked && point(code, user, 1));
     },
@@ -237,7 +257,7 @@ export function createStore(rawDb, guardOpts = {}) {
         newlyChecked = false;
         if (!old) return undefined;
         const next = { ...old, ean: String(ean) };
-        if (checkToo && !old.checked) { next.checked = true; next.checkedBy = user; next.checkedAt = Date.now(); newlyChecked = true; }
+        if (checkToo && !old.checked) { next.checked = true; next.checkedBy = user; next.checkedAt = Date.now(); next.claimedBy = null; newlyChecked = true; }
         return next;
       }), () => newlyChecked && point(code, user, 1));
     },
@@ -314,7 +334,7 @@ export function createStore(rawDb, guardOpts = {}) {
     touched[code] = now;
     return touch0(code);
   };
-  for (const name of ['join', 'bump', 'add', 'check', 'setNum', 'setEan', 'remove', 'restore', 'depositAdd', 'depositRemove', 'clearDeposit', 'clearChecked', 'clearOpen', 'clearAll', 'resetScores', 'importList', 'renameUser']) {
+  for (const name of ['join', 'bump', 'add', 'check', 'claim', 'move', 'setNum', 'setEan', 'remove', 'restore', 'depositAdd', 'depositRemove', 'clearDeposit', 'clearChecked', 'clearOpen', 'clearAll', 'resetScores', 'importList', 'renameUser']) {
     const fn = store[name];
     store[name] = async (code, ...args) => { const r = await fn(code, ...args); touch(code); return r; };
   }
