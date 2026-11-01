@@ -160,21 +160,19 @@ function connect() {
 const AISLE_NAME = { produce: 'aisleProduce', bakery: 'aisleBakery', dairy: 'aisleDairy', meat: 'aisleMeat', frozen: 'aisleFrozen', dry: 'aisleDry', drinks: 'aisleDrinks', household: 'aisleHousehold', other: 'aisleOther' };
 let aisleOn = LS.get('aisles', false) === true;
 let aisleOver = sanitizeOverrides(LS.get('aisleOver', {}));
-// Reorder mode (long press on an open item, or "Reorder items" in the menu): the open rows show only the name and the arrows
+// Reorder mode (long press on an open item): the rows stay exactly as they are, only the check box of each open row becomes a
+// drag handle (≡) and the other controls go invisible without giving up their space, so nothing on the list moves; the
+// input bar at the bottom turns into the hint and the "Done" button
 let reorder = false;
-// The sections to show: only those with items, but every section while reordering (an empty one is a place to drop an item)
+// The sections that have items (in reorder mode too: an empty heading appearing would push the rows down)
 const aisleGroups = open => {
   const by = new Map(groupByAisle(open, aisleOver).map(g => [g.aisle, g.items]));
-  return [...AISLES, OTHER].map(a => ({ aisle: a, items: by.get(a) || [] })).filter(g => reorder || g.items.length);
+  return [...AISLES, OTHER].map(a => ({ aisle: a, items: by.get(a) || [] })).filter(g => g.items.length);
 };
 // Moving an item into a section remembers it on this phone (the order itself is shared); the automatic section forgets the choice
 const putInSection = (title, aisle) => {
   aisleOver = withChoice(aisleOver, title, aisle === (guessAisle(title) || OTHER) ? null : aisle); LS.set('aisleOver', aisleOver);
 };
-function orderRowHtml(i) {
-  const id = esc(i.id), nm = esc(shortName(i.title));
-  return `<div class="item ord"><button type="button" class="ordh" data-ordh="${id}" aria-label="${t('ariaDragItem', { name: nm })}"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 8h14M5 12h14M5 16h14"/></svg></button><div class="t">${i.amount > 1 ? `${esc(i.amount)}${i.unit ? ' ' + esc(i.unit) : '×'} ` : ''}${esc(i.title)}</div></div>`;
-}
 function itemHtml(i) {
   const by = !isLocal() && i.checked && i.checkedBy ? `<span class="badge">${esc(i.checkedBy)}</span>` : '';
   const id = esc(i.id);
@@ -188,8 +186,11 @@ function itemHtml(i) {
   const buttons = checkToo => `<button class="rowbtn ok" type="submit" aria-label="${t('ariaConfirmItem', { name: nm })}">✓</button><button class="rowbtn" type="button" data-scanrow="${id}" data-checktoo="${checkToo}" aria-label="${t('ariaScanItem', { name: nm })}"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M8 7v10"/><path d="M12 7v10"/><path d="M16 7v10"/></svg></button>`;
   const vgIn = editing ? `<form data-vgedit="${id}"><input class="vg" type="number" inputmode="numeric" enterkeyhint="done" value="${esc(i.vgNum || '')}" placeholder="${t('noShort')}" aria-label="${t('ariaNumItem', { name: nm })}">${buttons(0)}</form>`
     : i.vgNum || i.checked ? '' : `<form data-vg="${id}" class="quick"><input class="vg" type="number" inputmode="numeric" enterkeyhint="done" placeholder="${t('noShort')}" aria-label="${t('ariaNumItem', { name: nm })}">${buttons(1)}</form>`;
-  return `<div class="item ${i.checked ? 'done' : ''}">
-      <button class="chk" data-chk="${esc(i.id)}" aria-label="${t(i.checked ? 'ariaBackItem' : 'ariaCheckItem', { name: nm })}"></button>
+  const ord = reorder && !i.checked; // reorder mode: the handle takes the place of the check box, nothing else moves
+  const lead = ord ? `<button type="button" class="ordh" data-ordh="${id}" aria-label="${t('ariaDragItem', { name: nm })}"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 8h14M5 12h14M5 16h14"/></svg></button>`
+    : `<button class="chk" data-chk="${id}" aria-label="${t(i.checked ? 'ariaBackItem' : 'ariaCheckItem', { name: nm })}"></button>`;
+  return `<div class="item${i.checked ? ' done' : ''}${ord ? ' ord' : ''}">
+      ${lead}
       <div class="t">${i.amount > 1 ? `${esc(i.amount)}${i.unit ? ' ' + esc(i.unit) : '×'} ` : ''}${esc(i.title)}<small>${sub}</small></div>${by}${vgIn}
       <button class="x" data-del="${esc(i.id)}" aria-label="${t('ariaDeleteItem', { name: nm })}">×</button></div>`;
 }
@@ -209,7 +210,7 @@ function emptyHint() {
 let rowsLater = false;
 const rowFieldFocused = () => { const a = document.activeElement; return !!a && a.tagName === 'INPUT' && !!a.closest('#items, #doneItems'); };
 // A button that had keyboard focus is found again after the rebuild (the + of the empties, a check box, a checkout row)
-const FOCUS_KEYS = ['data-ordh', 'data-orddone', 'data-dep-add', 'data-dep-sub', 'data-chk', 'data-checkout', 'data-editnum'];
+const FOCUS_KEYS = ['data-ordh', 'data-dep-add', 'data-dep-sub', 'data-chk', 'data-checkout', 'data-editnum'];
 function focusedKey() {
   const a = document.activeElement, k = a && a.tagName === 'BUTTON' && FOCUS_KEYS.find(x => a.hasAttribute(x));
   return k ? `[${k}="${CSS.escape(a.getAttribute(k))}"]` : null;
@@ -221,12 +222,13 @@ function render() {
   const all = Object.values(state.items);
   const open = sortOpen(all.filter(i => !i.checked)); // manual order (order.js); never moved = oldest first
   if (reorder && !open.length) reorder = false;
+  $('#addForm').classList.toggle('hide', reorder); $('#orderBar').classList.toggle('hide', !reorder); // "Done" sits where the input bar was
+  if (reorder) $('#addSuggest').classList.add('hide');
   const done = all.filter(i => i.checked).sort((a, b) => (b.checkedAt || 0) - (a.checkedAt || 0)); // most recently checked off first
   rowsLater = rowFieldFocused() || dragging;
   if (!rowsLater) {
     $('#items').innerHTML = first && loadingStuck && !stale && !isLocal() ? `<div class="stuck"><p class="muted">${esc(t('connLoadingList'))}</p><button type="button" class="btn sec" id="useLocal">${esc(t('connUseLocal'))}</button></div>`
-      : open.length ? (reorder ? `<div class="orderBar"><span>${esc(t('orderHint'))}</span><button type="button" class="btn" data-orddone="1">${esc(t('orderDone'))}</button></div>` : '')
-        + (aisleOn ? aisleGroups(open).map(g => `<h3 class="aisleHead${g.items.length ? '' : ' empty'}" data-aisle="${g.aisle}">${esc(t(AISLE_NAME[g.aisle]))}</h3>${g.items.map(i => reorder ? orderRowHtml(i) : itemHtml(i)).join('')}`).join('') : open.map(i => reorder ? orderRowHtml(i) : itemHtml(i)).join(''))
+      : open.length ? (aisleOn ? aisleGroups(open).map(g => `<h3 class="aisleHead" data-aisle="${g.aisle}">${esc(t(AISLE_NAME[g.aisle]))}</h3>${g.items.map(itemHtml).join('')}`).join('') : open.map(itemHtml).join(''))
       : !isEmptyList(state.items) ? `<p class="muted" style="text-align:center">${t('allInBasket')}</p>`
       : first && !isLocal() ? '' // the first snapshot of a shared list is still on its way
       : emptyHint();
@@ -307,6 +309,7 @@ function renderDeposit() {
 /* ---------- Manual order ---------- */
 function setReorder(on) {
   if (on && (readOnly() || !Object.values(state.items).some(i => !i.checked))) return;
+  if (on) dismissKeyboard();
   reorder = on; render();
 }
 // Every write is a move of one item to a number (order.js); renumbering the list is several of them.
@@ -399,13 +402,13 @@ $('#items').addEventListener('pointerdown', e => {
 $('#items').addEventListener('pointermove', e => { if (pressAt && Math.hypot(e.clientX - pressAt[0], e.clientY - pressAt[1]) > 8) endPress(); });
 for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) $('#items').addEventListener(ev, endPress);
 $('#items').addEventListener('contextmenu', e => { if (e.target.closest('.item')) e.preventDefault(); });
-$('#menuReorder').onclick = () => setReorder(!reorder); // the menu closes itself on any button
+$('#orderDone').onclick = () => setReorder(false);
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && reorder && !document.querySelector('.menu:not(.hide), [aria-modal="true"]:not(.hide)')) setReorder(false); });
 
 /* ---------- Events ---------- */
 document.addEventListener('click', e => {
   if (e.target.closest('#vgRetry')) { vgLoader.start(); return; }
   if (e.target.closest('#useLocal')) { startLocal(); return; } // the saved list code stays, the next start tries it again
-  if (e.target.closest('[data-orddone]')) { setReorder(false); return; }
   if (Date.now() < noClickUntil) return; // the click that ends a long press must not open the section dialog or tick the item
   const chk = e.target.closest('[data-chk]');
   if (chk) { const it = state.items[chk.dataset.chk]; if (it && !it.checked) remember(it.title, it.vgNum); if (it) bg.check(code, it.id, myKey(), !it.checked); return; }
@@ -727,6 +730,7 @@ $('#shareLink').onclick = async () => {
 document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => show(b.dataset.t));
 function show(id) {
   if (isLocal() && id === 'vScore') id = 'vList'; // the game only exists once the list is shared
+  if (reorder && id !== 'vList') { reorder = false; render(); } // the reorder mode belongs to the list tab
   document.querySelectorAll('.tabs button').forEach(x => { // also when the app switches lists
     const on = x.dataset.t === id;
     x.classList.toggle('on', on); if (on) x.setAttribute('aria-current', 'page'); else x.removeAttribute('aria-current');

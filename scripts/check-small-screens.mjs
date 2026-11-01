@@ -176,6 +176,10 @@ async function runContext(browser, base, [w, h], lang, scheme, violations) {
   for (const v of ['Hafer-Barista-Drink ungesüßt mit Calcium und Vitamin D im 1 Liter Tetrapak', 'Donaudampfschifffahrtsgesellschaftskapitänsmütze', 'Äpfel Elstar', 'Vollkornbrot', '4455', '7901']) await add(v);
   await blur();
   await check('list');
+  // reorder mode (long press on a row): handles in place of the check boxes, "Done" in the bottom bar
+  await page.hover('#items .item:not(.done) .t >> nth=0'); await page.mouse.down(); await page.waitForTimeout(650); await page.mouse.up(); await page.waitForTimeout(150);
+  if (!(await page.isVisible('#orderBar'))) violations.push(`[${tag}] list-reorder: the long press did not start the reorder mode`);
+  await check('list-reorder'); await page.click('#orderDone'); await page.waitForTimeout(100);
   await page.fill('.item [data-vg] input >> nth=0', '9999999'); // a long number in the quick field of a row
   await check('list-long-number');
   await page.press('.item [data-vg] input >> nth=0', 'Escape'); await blur();
