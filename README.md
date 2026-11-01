@@ -12,7 +12,7 @@ No account, no app store.
 
 [Install](https://fbnrst.github.io/kober/docs/#en-install) · [Help](https://fbnrst.github.io/kober/docs/) · [Privacy](https://fbnrst.github.io/kober/privacy.html)
 
-<img src="public/docs/img/readme-phones.png" alt="The list and the ranking tab on a phone" width="340" align="right">
+<img src="public/docs/img/readme-phones-2.png" alt="The list and the ranking tab on a phone" width="340" align="right">
 
 An independent, unofficial shopping list app. The list lives on your phone first; once you share it, phones sync live and a leaderboard ("who puts the most in the basket") starts. Idea and product data: the [VG app](https://gitlab.com/pyfox/vg-app) of VG Dresden. This project is not affiliated with VG Dresden.
 
