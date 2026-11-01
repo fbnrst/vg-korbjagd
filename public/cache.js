@@ -36,17 +36,45 @@ export function sanitize(s) {
 }
 
 const validCode = isListCode;
+// Index of the cached lists ({code: ts of the last write}) so pruning never has to parse the snapshots themselves. It is
+// user-writable like everything in localStorage: anything off (not an object, a bad code or time stamp, too many entries)
+// makes it count as missing, and a missing index is rebuilt once from the cache keys (also the migration from caches
+// written before the index existed, and the way an orphaned cache key is found again).
+const INDEX = NS + 'kober-cache-index', INDEX_MAX = 20;
+function readIndex(storage) {
+  try {
+    const o = JSON.parse(storage.getItem(INDEX));
+    if (!o || typeof o !== 'object' || Array.isArray(o)) return null;
+    const e = Object.entries(o);
+    return e.length <= INDEX_MAX && e.every(([c, ts]) => validCode(c) && typeof ts === 'number' && Number.isFinite(ts) && ts >= 0) ? o : null;
+  } catch (e) { return null; }
+}
+// A failed index write removes the index, so the next save rebuilds it instead of trusting a stale one
+function writeIndex(storage, idx) { try { storage.setItem(INDEX, JSON.stringify(idx)); } catch (e) { try { storage.removeItem(INDEX); } catch (e2) { /* nothing to do */ } } }
 const cacheKeys = storage => { const ks = []; try { for (let i = 0; i < storage.length; i++) { const k = storage.key(i); if (k && k.startsWith(PREFIX)) ks.push(k); } } catch (e) { /* no enumeration: no pruning */ } return ks; };
 const stamp = (storage, k) => { try { return Number(JSON.parse(storage.getItem(k)).ts) || 0; } catch (e) { return 0; } };
+function rebuildIndex(storage) {
+  const idx = {};
+  for (const k of cacheKeys(storage)) {
+    const c = k.slice(PREFIX.length);
+    if (validCode(c)) idx[c] = stamp(storage, k); else storage.removeItem(k); // never readable anyway
+  }
+  return idx;
+}
 
 export function saveSnapshot(storage, code, snap, now = Date.now()) {
   if (!validCode(code)) return false;
   try {
     const json = JSON.stringify({ ts: now, data: sanitize(snap) });
-    if (json.length > MAX_BYTES) { storage.removeItem(PREFIX + code); return false; }
+    if (json.length > MAX_BYTES) { dropSnapshot(storage, code); return false; }
     storage.setItem(PREFIX + code, json);
-    const rest = cacheKeys(storage).filter(k => k !== PREFIX + code).sort((a, b) => stamp(storage, b) - stamp(storage, a));
-    rest.slice(KEEP - 1).forEach(k => storage.removeItem(k)); // only the last-used lists stay
+    const idx = readIndex(storage) || rebuildIndex(storage);
+    delete idx[code];
+    const drop = Object.keys(idx).sort((a, b) => idx[b] - idx[a]).slice(KEEP - 1); // only the last-used lists stay
+    drop.forEach(c => { delete idx[c]; });
+    idx[code] = now;
+    writeIndex(storage, idx);
+    drop.forEach(c => storage.removeItem(PREFIX + c));
     return true;
   } catch (e) { return false; } // storage full or blocked: no cache, nothing else is affected
 }
@@ -61,4 +89,10 @@ export function loadSnapshot(storage, code, now = Date.now()) {
   } catch (e) { return null; }
 }
 
-export function dropSnapshot(storage, code) { try { storage.removeItem(PREFIX + code); } catch (e) { /* nothing to do */ } }
+export function dropSnapshot(storage, code) {
+  try {
+    storage.removeItem(PREFIX + code);
+    const idx = readIndex(storage);
+    if (idx && code in idx) { delete idx[code]; writeIndex(storage, idx); }
+  } catch (e) { /* nothing to do */ }
+}
