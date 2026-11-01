@@ -848,28 +848,29 @@ function buildEmojis() {
 }
 // Name and emoji are only needed once there are other people (sharing or joining).
 // Cancel puts back the name and emoji from before (the emoji buttons change `me` right away) and calls onCancel.
-// iOS only: a link opened in Safari does not reach the installed app (separate storage), so say where the list can be joined there
-let nameScreenHint = false;
-// Shown once per list code and browser tab session (sessionStorage), not once forever: every time someone opens a list link in the
-// iPhone browser the hint is due again, because the two storages never meet.
+// iOS only: a link opened in Safari does not reach the installed app (separate storage). So in the iPhone browser a gate comes
+// BEFORE everything else: install first, then how to join a list there. It can be clicked away ("Continue in the browser").
+// Per list code and tab session for links (sessionStorage), for a plain visit until it was closed once (LS).
 const hintSeenRead = () => { try { return sanitizeHintSeen(JSON.parse(sessionStorage.getItem(NS + 'hintSeen') || '[]')); } catch (e) { return []; } };
 const browserHintDue = c => shouldShowBrowserHint(navigator, q => matchMedia(q), c, hintSeenRead());
 function browserHintDone(c) { try { sessionStorage.setItem(NS + 'hintSeen', JSON.stringify(addHintSeen(hintSeenRead(), c))); } catch (e) { /* private mode: shown again next time */ } }
-function showBrowserBar(c) { $('#browserBar').dataset.kind = 'list'; $('#browserBarText').textContent = t('browserHint', { code: c }); $('#browserBar').classList.remove('hide'); browserHintDone(c); }
-$('#browserBarClose').onclick = () => {
-  $('#browserBar').classList.add('hide');
-  if ($('#browserBar').dataset.kind === 'install') LS.set('installHintOff', true); // closed once: not shown again
+let gateCode = null;
+function showGate(c, proceed) {
+  gateCode = c;
+  const steps = $('#gateSteps'); steps.textContent = '';
+  for (const text of [t('gateStep1'), t('gateStep2'), ...(c ? [t('gateStepJoin', { code: c })] : [])]) { const li = document.createElement('li'); li.textContent = text; steps.appendChild(li); }
+  $('#gateCopy').classList.toggle('hide', !c);
+  $('#gateGo').onclick = () => { $('#gateDlg').classList.add('hide'); if (c) browserHintDone(c); else LS.set('installHintOff', true); proceed(); };
+  $('#gateDlg').classList.remove('hide');
+}
+$('#gateCopy').onclick = async () => {
+  try { await navigator.clipboard.writeText(gateCode); toast(t('codeCopied')); } catch (e) { toast(t('codeSelected')); }
 };
-// Plain visit in the iPhone browser (no list link): suggest installing the app
-function showInstallBar() { $('#browserBar').dataset.kind = 'install'; $('#browserBarText').textContent = t('installBar'); $('#browserBar').classList.remove('hide'); }
 function askIdentity(next, onCancel = null, joining = null) { // `joining`: the (validated) list code shown as a note
   const before = { ...me };
   pending = next; pendingCancel = onCancel && (() => { me.name = before.name; me.emoji = before.emoji; buildEmojis(); onCancel(); });
   $('#nameCancel').classList.toggle('hide', !onCancel);
   $('#joinNote').textContent = joining ? t('joiningList', { code: joining }) : ''; $('#joinNote').classList.toggle('hide', !joining);
-  const hint = joining && browserHintDue(joining);
-  $('#browserNote').textContent = hint ? t('browserHint', { code: joining }) : ''; $('#browserNote').classList.toggle('hide', !hint);
-  nameScreenHint = !!hint;
   $('#welcomeErr').textContent = ''; $('#nameIn').value = me.name;
   for (const v of ['vList', 'vDeposit', 'vCheckout', 'vScore']) $('#' + v).classList.add('hide');
   $('#tabs').classList.add('hide'); $('#addBar').classList.add('hide'); $('#vWelcome').classList.remove('hide');
@@ -899,7 +900,6 @@ function enterApp() {
   connect();
 }
 function startLocal() {
-  $('#browserBar').classList.add('hide');
   code = LOCAL; store = localStore;
   enterApp();
 }
@@ -916,10 +916,6 @@ async function joinShared(c) {
       if (!(await (await getRemote()).exists(c))) { toast(t('noList')); return startLocal(); }
     } catch (e) { toast(noDbMsg(e)); return startLocal(); }
     try { await startShared(c); } catch (e) { toast(noDbMsg(e)); startLocal(); return; }
-    if (browserHintDue(c)) { // once per list code: on the name screen already, otherwise as a calm note now
-      if (!nameScreenHint) showBrowserBar(c); else browserHintDone(c);
-    }
-    nameScreenHint = false;
   };
   // cancel: back to the list on screen, or (a join link opened the app) to the local list
   me.name ? go() : askIdentity(go, () => { history.replaceState(null, '', location.pathname); store ? backToList() : startLocal(); }, c);
@@ -968,10 +964,14 @@ async function init() {
   const urlCode = parseListCode(urlList); // same check as typed and scanned codes
   if (urlList && !urlCode) toast(t('notAList'));
   const savedCode = LS.get('code', '');
-  if (urlCode && urlCode !== savedCode) joinShared(urlCode);
-  else if (savedCode && me.name) startShared(savedCode).then(() => { if (urlCode && browserHintDue(urlCode)) showBrowserBar(urlCode); }).catch(e => { toast(noDbMsg(e)); startLocal(); }); // offline: local list, saved code is kept
-  else startLocal();
-  if (!urlList && shouldShowInstallHint(navigator, q => matchMedia(q), LS.get('installHintOff', false))) showInstallBar();
+  const startFlow = () => {
+    if (urlCode && urlCode !== savedCode) joinShared(urlCode);
+    else if (savedCode && me.name) startShared(savedCode).catch(e => { toast(noDbMsg(e)); startLocal(); }); // offline: local list, saved code is kept
+    else startLocal();
+  };
+  const gateFor = urlCode && browserHintDue(urlCode) ? urlCode : null;
+  if (gateFor || (!urlList && shouldShowInstallHint(navigator, q => matchMedia(q), LS.get('installHintOff', false)))) showGate(gateFor, startFlow);
+  else startFlow();
 }
 init();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});

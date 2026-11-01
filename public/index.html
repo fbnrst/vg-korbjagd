@@ -31,8 +31,6 @@ header .ibtn::after{content:'';position:absolute;inset:-2px} /* 40px button, 44p
 header .ibtn.hide{display:none}
 #devTag{background:var(--devtag-bg);color:var(--devtag-fg);border-radius:999px;padding:1px 9px;font-size:12px;font-weight:800;letter-spacing:.5px}
 /* Connection notice: a bar that hangs under the header over the top of the list, so showing or hiding it never changes the height of the shell or moves anything. It is only text (no taps), so taps go through to the list. Shared lists only. */
-#browserBar{flex:none;display:flex;gap:10px;align-items:center;margin:8px 12px 0;padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--fg);font-size:14px;line-height:1.3}
-#browserBar button{flex:none;min-height:40px}
 #connBanner{position:absolute;left:0;right:0;top:100%;z-index:4;pointer-events:none;background:var(--conn-bg);color:var(--conn-fg);border-bottom:2px solid var(--orange);padding:6px 16px;font-size:13px;line-height:1.3;text-align:center;box-shadow:0 2px 6px var(--shadow-banner)}
 .stuck{text-align:center;padding:28px 8px}.stuck p{margin:0 0 14px}
 main{flex:1;min-height:0;width:100%;max-width:640px;margin:0 auto;padding:8px 16px 16px;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch} /* compat-ok: ignored before Safari 16, only the scroll chaining at the end of the list differs */
@@ -141,8 +139,8 @@ body.typing .tabs{display:none}
 .empty a{color:var(--green);font-weight:600;display:inline-block;padding:11px 14px;margin:-4px -14px -6px} /* 40px tall tap area, the text keeps its place */
 .muted{color:var(--mute)}.hide{display:none!important}
 .big{font-size:22px;letter-spacing:4px;font-weight:700}
-#shareDlg,#importDlg,#resetDlg,#joinDlg,#installDlg,#diagDlg{position:fixed;left:0;right:0;top:var(--vvtop,0px);bottom:0;height:var(--app-h,100dvh);z-index:30;background:var(--scrim);display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto;-webkit-overflow-scrolling:touch} /* compat-ok: bottom:0 fills the screen before Safari 15.4 */
-#shareDlg>.card,#importDlg>.card,#resetDlg>.card,#joinDlg>.card,#installDlg>.card,#diagDlg>.card{margin:auto} /* auto margins: centred when it fits, starts at the top and scrolls when it is taller than the screen (a small phone, the keyboard open) */
+#shareDlg,#importDlg,#resetDlg,#joinDlg,#installDlg,#diagDlg,#gateDlg{position:fixed;left:0;right:0;top:var(--vvtop,0px);bottom:0;height:var(--app-h,100dvh);z-index:30;background:var(--scrim);display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto;-webkit-overflow-scrolling:touch} /* compat-ok: bottom:0 fills the screen before Safari 15.4 */
+#shareDlg>.card,#importDlg>.card,#resetDlg>.card,#joinDlg>.card,#installDlg>.card,#diagDlg>.card,#gateDlg>.card{margin:auto}.gateSteps{margin:0 0 14px;padding-left:20px;line-height:1.4}.gateSteps li{margin:0 0 8px} /* auto margins: centred when it fits, starts at the top and scrolls when it is taller than the screen (a small phone, the keyboard open) */
 #qr svg,#installQr svg{width:100%;max-width:min(260px,max(190px,calc(100vh - 360px)));height:auto;background:var(--qr-bg);border-radius:10px}
 #scanner{position:fixed;left:0;right:0;top:var(--vvtop,0px);bottom:0;height:var(--app-h,100dvh);z-index:30;background:var(--scanner-bg);color:var(--scanner-fg);display:flex;flex-direction:column;align-items:center;gap:12px;padding:16px} /* compat-ok: bottom:0 fills the screen before Safari 15.4 */
 #scanner video{width:100%;max-width:520px;flex:1;min-height:0;object-fit:cover;border-radius:14px}
@@ -200,6 +198,14 @@ body.typing .tabs{display:none}
     <div style="margin-top:12px"><button class="btn" id="resetGo" type="button" style="width:100%">Reset</button></div>
   </div>
 </div>
+<div id="gateDlg" class="hide" data-dialog>
+  <div class="card" style="max-width:340px;width:100%">
+    <h2 id="gateTitle" style="margin:0 0 10px">Install Kober first</h2>
+    <ol id="gateSteps" class="gateSteps"></ol>
+    <button class="btn hide" id="gateCopy" type="button" style="width:100%">Copy code</button>
+    <button class="btn sec" id="gateGo" type="button" data-dialog-close style="width:100%;margin-top:10px">Continue in the browser</button>
+  </div>
+</div>
 <div id="joinDlg" class="hide">
   <div class="card" style="text-align:center;max-width:340px;width:100%">
     <button class="dlg-x" id="joinClose" type="button" aria-label="Close"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
@@ -243,7 +249,6 @@ body.typing .tabs{display:none}
   </div>
   <div id="connBanner" class="hide" role="status" aria-live="polite"></div>
 </header>
-<div id="browserBar" class="hide" role="note"><span id="browserBarText"></span><button id="browserBarClose" class="btn sec" type="button">Close</button></div>
 <main>
   <p id="demoBanner" class="card hide" style="background:var(--green2)">Demo mode: no database set up yet, the list is only visible in this browser (see README).</p>
   <!-- Welcome -->
@@ -251,7 +256,6 @@ body.typing .tabs{display:none}
     <div class="card">
       <h2 style="margin:0 0 6px">Your name for the ranking</h2>
       <p id="joinNote" class="muted hide" style="margin:0 0 8px"></p>
-      <p id="browserNote" class="muted hide" style="margin:0 0 8px"></p>
       <input type="text" id="nameIn" placeholder="Your name" maxlength="20" autocomplete="off">
       <div class="emojis" id="emojis"></div>
       <p class="muted" style="font-size:13px;margin:6px 0 0"><span id="privacyNoteName"></span> <a href="privacy.html" class="privacyLink">Privacy</a></p>
