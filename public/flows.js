@@ -159,7 +159,7 @@ export function addHintSeen(seen, code) {
 /* ---------- Own item history (suggestions) ---------- */
 // For all lists together: the names the person added or checked off, with a count and the last use. `{ ALL: [{ t, n, ts, v? }] }` in
 // localStorage (user-writable: everything is validated again). Bounded: HISTORY_MAX names.
-export const HISTORY_MAX = 300;
+export const HISTORY_MAX = 1000;
 export const HISTORY_TITLE_MAX = 60;
 export const HISTORY_KEY = 'ALL'; // one table for every list on this phone
 const historyCode = c => c === HISTORY_KEY;
