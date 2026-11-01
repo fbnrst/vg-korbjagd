@@ -81,10 +81,9 @@ async function scenes(browser, base, lang) {
   const tab = t => page.click(`.tabs [data-t=${t}]`);
 
   await open();
-  // 1) list: names and numbers, two items already in the basket
-  for (const v of ['Haferdrink', 'Äpfel Elstar', '4455', '7901', '3105', 'Vollkornbrot', '4464']) await add(v);
-  await row('#items', 'Aprikosen').locator('[data-chk]').click();
-  await row('#items', 'Porree').locator('[data-chk]').click();
+  // 1) list: names stay open, typed VG numbers go straight into the basket
+  for (const v of ['Haferdrink', 'Äpfel Elstar', 'Vollkornbrot', '4455', '7901']) { await add(v); await page.waitForTimeout(120); }
+  await page.evaluate(() => document.activeElement && document.activeElement.blur());
   await shot('list');
   // 2) number suggestions
   await page.fill('#addIn', '790');
@@ -98,8 +97,8 @@ async function scenes(browser, base, lang) {
   await shot('empties');
   // 4) checkout: more items with numbers in the basket, one bakery item (number below 1000), and the empties from above
   await tab('vList');
-  await add('790');
-  for (const t of ['Roggenbrot', 'Balsamico', 'Möhren']) { await row('#items', t).locator('[data-chk]').click(); await page.waitForTimeout(150); }
+  for (const v of ['790', '3105', '4464']) { await add(v); await page.waitForTimeout(150); }
+  await page.evaluate(() => document.activeElement && document.activeElement.blur()); // keyboard away, the tab bar comes back
   await tab('vCheckout');
   await page.click('[data-checkout]:has-text("Möhren")'); await page.click('[data-checkout]:has-text("Milchflasche")'); // two rows done: they slide into the block at the bottom
   await shot('checkout');
