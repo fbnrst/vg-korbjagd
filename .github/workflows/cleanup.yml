@@ -14,21 +14,28 @@ permissions:
 jobs:
   cleanup:
     runs-on: ubuntu-latest
+    # The service account key bypasses the database rules: only the two steps below get it, not the third-party actions
     env:
-      FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
       DATABASE_URL: https://vg-korbjagd-default-rtdb.europe-west1.firebasedatabase.app
       MAX_AGE_DAYS: '30'
       DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
       # Fail loudly: the privacy notice promises deletion after 30 days
       - name: Check secret
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: |
           if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then
             echo "::error::Secret FIREBASE_SERVICE_ACCOUNT is missing, the cleanup is not running. See docs/retention.md"
             exit 1
           fi
-      - run: node scripts/cleanup-lists.mjs
+      - name: Delete inactive lists
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: node scripts/cleanup-lists.mjs

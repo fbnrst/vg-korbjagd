@@ -41,7 +41,8 @@ Löschen (`null`) wird nicht validiert. Die Regeln prüfen nur neue Schreibzugri
 
 ## Dritte, Datenfluss und Browser
 
-- Verbindungen gehen zu Firebase (SDK von gstatic.com, `store.js`), zu den VG-Endpunkten (`vg.js`), zu Open Food Facts (`app.js`, nur beim Scannen unbekannter Codes) und auf iPhones zu jsDelivr (zxing, Version fest, **ohne SRI**). Alles ist in `public/privacy.html` aufgeführt.
+- Verbindungen gehen zu Firebase (SDK von gstatic.com, `store.js`), zu den VG-Endpunkten (`vg.js`), zu Open Food Facts (`app.js`, nur beim Scannen unbekannter Codes). zxing (Scanner auf iPhones) liegt seit November 2026 in `public/vendor/`, es gibt kein CDN mehr. Alles ist in `public/privacy.html` aufgeführt.
+- **Content-Security-Policy** als `<meta>` in allen drei Seiten (GitHub Pages setzt keine Header): Skripte nur von der eigenen Seite, `gstatic.com` (Firebase-SDK) und `*.firebasedatabase.app` (Long-Polling-Fallback der Datenbank, dafür auch `frame-src`), keine Inline-Skripte (Hilfe- und Datenschutzseite haben dafür `docs/help.js` und `privacy.js`), `connect-src` nur Firebase, VG und Open Food Facts. Sie ist die zweite Schicht hinter `esc()`. `test/csp.test.js` prüft die Richtlinie gegen die Hosts im Code; wer einen neuen Host anspricht, muss ihn in `public/index.html` ergänzen. `frame-ancestors` geht per `<meta>` nicht.
 - Der Listencode steckt im Link `?list=CODE`. Alle drei Seiten setzen `<meta name="referrer" content="no-referrer">` (`test/referrer.test.js`), damit er nicht in Anfragen an Dritte mitgeht.
 - Release und `/dev/` teilen sich einen Ursprung. Das Präfix `NS` trennt `localStorage` und Service-Worker-Caches; jeder neue Schlüssel muss es benutzen. Dev hat ein eigenes Firebase-Projekt (`public/firebase-config.dev.js`).
 - `?sim=` (simulierter Server) wirkt nur im Demo-Modus oder auf der Dev-Seite, nie auf dem Release mit echter Datenbank.
@@ -50,8 +51,9 @@ Löschen (`null`) wird nicht validiert. Die Regeln prüfen nur neue Schreibzugri
 
 - Das Dienstkonto in `FIREBASE_SERVICE_ACCOUNT` umgeht die Regeln und kann alles lesen und löschen. Es liegt nur als GitHub-Secret vor, sollte nur die Rolle *Firebase Realtime Database Admin* haben ([retention.md](retention.md)) und wird bei Verdacht in der Cloud-Konsole widerrufen. Der Aufräum-Job läuft nur für das Produktionsprojekt, nicht für Dev.
 - Dependabot schlägt wöchentlich neue Versionen der GitHub Actions vor. prek-Hooks laufen lokal und in CI; gitleaks scannt absichtlich nur gestagte Änderungen, in CI findet es daher nichts.
-- Die Actions in `autofix.yml` sind auf Commit-Hashes festgelegt, die in `cleanup.yml` und `pages.yml` nur auf Versions-Tags.
-- `public/vendor/` (crypto-js, qrcode) ist von den Prüfungen ausgenommen.
+- Alle Actions sind auf Commit-Hashes festgelegt (Versions-Tag als Kommentar, Dependabot aktualisiert beides). In `cleanup.yml` bekommen nur die zwei Schritte, die es brauchen, das Secret `FIREBASE_SERVICE_ACCOUNT`, nicht die Fremd-Actions; `checkout` läuft dort ohne gespeicherten Token.
+- Listencodes kommen aus `crypto.getRandomValues` (`store.js`), nicht aus `Math.random`.
+- `public/vendor/` (crypto-js, qrcode, zxing) ist von den Prüfungen ausgenommen. zxing ist byte-gleich mit `umd/index.min.js` aus dem npm-Paket `@zxing/library@0.21.3`; ein Update ersetzt die Datei aus dem npm-Paket und vergleicht den Hash.
 
 ## Regeln veröffentlichen
 
@@ -66,6 +68,4 @@ Die Regeln werden von Hand eingespielt, **zuerst Dev, dann Produktion** (Projekt
 
 - **Tarif:** Das Produktionsprojekt läuft auf dem kostenlosen **Spark**-Tarif (bestätigt vom Maintainer). Damit können keine Kosten entstehen; bei überschrittenem Kontingent (u. a. etwa 100 gleichzeitige Verbindungen) wird der Dienst gedrosselt oder gestoppt. **Budgetalarme** gibt es nur beim Blaze-Tarif und sind hier nicht nötig. Die App fängt das ab (Verbindungsbanner, Outbox, Cache, siehe [architecture.md](architecture.md)).
 - **App Check:** Status unbekannt (Firebase console: *Build → App Check*, Reiter *Apps* und *APIs*). Für eine Familien-Einkaufsliste nicht empfohlen und nicht geplant: es braucht reCAPTCHA und könnte bei falscher Einstellung die App aussperren; der Listencode bleibt der Zugriffsschutz.
-- Actions in `cleanup.yml` und `pages.yml` auf Commit-Hashes festlegen.
-- zxing von jsDelivr mit Subresource Integrity laden oder ins Repo übernehmen.
 - Kein Ratenlimit und keine Begrenzung der Knotenanzahl in den Regeln (siehe oben).

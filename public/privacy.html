@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Privacy</title>
 <meta name="theme-color" content="#8bad73">
@@ -30,7 +31,7 @@ html[lang=de] [lang=en],html[lang=en] [lang=de]{display:none}
 
 <div lang="en">
 <h1>Privacy notice</h1>
-<p class="muted">Last updated: 31 October 2026</p>
+<p class="muted">Last updated: 1 November 2026</p>
 
 <h2>In short</h2>
 <ul>
@@ -57,7 +58,6 @@ html[lang=de] [lang=en],html[lang=en] [lang=de]{display:none}
 <tr><td>Google Firebase (Google Ireland / Google LLC) – database and software library from gstatic.com</td><td>When the app starts, and while you use a shared list</td><td>IP address; list data as described above</td></tr>
 <tr><td>app.vg-dresden.de (VG Dresden) – public product data</td><td>When the app starts; when you import a list from the VG app</td><td>IP address; for an import the share ID of that list</td></tr>
 <tr><td>Open Food Facts (openfoodfacts.org)</td><td>When you scan a barcode that is not on your list yet</td><td>IP address and the scanned barcode number</td></tr>
-<tr><td>jsDelivr (cdn.jsdelivr.net) – barcode library</td><td>Only on devices without built-in barcode detection (e.g. iPhone), when you open the scanner</td><td>IP address</td></tr>
 </table>
 <p class="muted">Google and GitHub may process data in the USA. Both offer safeguards such as the EU–US Data Privacy Framework or standard contractual clauses; please see their privacy policies.</p>
 
@@ -73,7 +73,7 @@ html[lang=de] [lang=en],html[lang=en] [lang=de]{display:none}
 
 <div lang="de">
 <h1>Datenschutzhinweise</h1>
-<p class="muted">Stand: 31. Oktober 2026</p>
+<p class="muted">Stand: 1. November 2026</p>
 
 <h2>Kurz gesagt</h2>
 <ul>
@@ -100,7 +100,6 @@ html[lang=de] [lang=en],html[lang=en] [lang=de]{display:none}
 <tr><td>Google Firebase (Google Ireland / Google LLC) – Datenbank und Programmbibliothek von gstatic.com</td><td>Beim Start der App und während du eine geteilte Liste nutzt</td><td>IP-Adresse; Listendaten wie oben beschrieben</td></tr>
 <tr><td>app.vg-dresden.de (VG Dresden) – öffentliche Produktdaten</td><td>Beim Start der App; beim Import einer Liste aus der VG-App</td><td>IP-Adresse; beim Import die Share-ID dieser Liste</td></tr>
 <tr><td>Open Food Facts (openfoodfacts.org)</td><td>Wenn du einen Barcode scannst, der noch nicht auf deiner Liste steht</td><td>IP-Adresse und die gescannte Barcode-Nummer</td></tr>
-<tr><td>jsDelivr (cdn.jsdelivr.net) – Barcode-Bibliothek</td><td>Nur auf Geräten ohne eingebaute Barcode-Erkennung (z. B. iPhone), wenn du den Scanner öffnest</td><td>IP-Adresse</td></tr>
 </table>
 <p class="muted">Google und GitHub verarbeiten Daten möglicherweise in den USA. Beide bieten Garantien wie das EU-US Data Privacy Framework oder Standardvertragsklauseln; Details stehen in deren Datenschutzerklärungen.</p>
 
@@ -115,34 +114,6 @@ html[lang=de] [lang=en],html[lang=en] [lang=de]{display:none}
 </div>
 
 </main>
-<script type="module">
-import { lang } from './i18n.js';
-import { IS_DEV } from './env.js';
-import legal from './legal-config.js';
-document.documentElement.lang = lang;
-document.title = lang === 'de' ? 'Datenschutz' : 'Privacy';
-document.getElementById('back').textContent = lang === 'de' ? '← Einkaufsliste' : '← Shopping list';
-{
-  const head = document.querySelector('header');
-  let last = scrollY;
-  addEventListener('scroll', () => {
-    const y = scrollY;
-    if (Math.abs(y - last) < 6) return; // ignore jitter
-    head.classList.toggle('away', y > last && y > head.offsetHeight);
-    last = y;
-  }, { passive: true });
-}
-if (IS_DEV) {
-  document.title += ' DEV';
-  document.getElementById('back').insertAdjacentHTML('afterend', '<span class="devtag">DEV</span>');
-}
-document.querySelectorAll('.who').forEach(el => { el.textContent = legal.name; });
-document.querySelectorAll('.contact').forEach(el => {
-  const a = document.createElement('a');
-  if (legal.email) { a.href = 'mailto:' + legal.email; a.textContent = legal.email; }
-  else { a.href = legal.contactUrl; a.textContent = legal.contactUrl.replace(/^https:\/\//, ''); a.rel = 'noopener'; }
-  el.append(a);
-});
-</script>
+<script type="module" src="privacy.js"></script>
 </body>
 </html>

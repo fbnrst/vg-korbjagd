@@ -146,7 +146,8 @@ export function createStore(rawDb, guardOpts = {}) {
     return p;
   };
   const CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  const randCode = () => Array.from({ length: 6 }, () => CHARS[Math.floor(Math.random() * CHARS.length)]).join('');
+  // The code is the only secret of a list: crypto randomness, not Math.random. 32 characters divide 256, so `% 32` has no bias.
+  const randCode = () => Array.from(crypto.getRandomValues(new Uint8Array(6)), b => CHARS[b % CHARS.length]).join('');
   // The point (bump) is a second transaction after the one that changed the item. If the first one timed out it is still
   // queued and may commit later, and then the point must follow it, otherwise it is lost.
   const followUp = async (txn, next) => {
