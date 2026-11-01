@@ -7,7 +7,7 @@ import { IS_DEV, NS } from './env.js';
 import { BUILD } from './version.js';
 import { loadVg, similarNames } from './vg.js';
 import { t, applyStatic } from './i18n.js';
-import { shouldShowAndroidInstall, shouldShowInstallHint, shouldShowBrowserHint, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, createVgLoader, uploadLocalList, checkoutSections, rankPlaces, classifyScan } from './flows.js';
+import { shouldShowAndroidInstall, shouldShowInstallHint, shouldShowBrowserHint, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, createVgLoader, uploadLocalList, checkoutSections, rankPlaces, computeBadges, classifyScan } from './flows.js';
 import { initDialogs, shortName, menuIndex, visibleFocusables } from './a11y.js';
 
 const $ = s => document.querySelector(s);
@@ -250,7 +250,10 @@ function render() {
     const w = splitKey(k), h = 30 + 80 * n / max;
     return `<div class="pod"><div class="e">${esc(w.emoji)}</div><div>${esc(w.name)}</div><div class="bar" style="height:${h}px">${n > 0 ? MEDAL[place] + ' ' : ''}${esc(n)}</div></div>`;
   }).join('');
-  $('#ranks').innerHTML = placed.map(({ k, n, place }) => `<div class="rank"><span>${n > 0 && MEDAL[place] ? MEDAL[place] : place + '.'}</span><span>${esc(k)}</span><b>${esc(n)}</b></div>`).join('');
+  const badges = computeBadges({ scores: state.scores, items: state.items, deposit: state.deposit });
+  const BADGE = { empties: ['♻️', 'badgeEmpties', 'badgeHintEmpties'], basket: ['🧺', 'badgeBasket', 'badgeHintBasket'], first: ['⚡', 'badgeFirst', 'badgeHintFirst'] };
+  const chips = k => (badges[k] || []).map(id => `<span class="badge" title="${esc(t(BADGE[id][2]))}"><span aria-hidden="true">${BADGE[id][0]}</span> ${esc(t(BADGE[id][1]))}</span>`).join('');
+  $('#ranks').innerHTML = placed.map(({ k, n, place }) => `<div class="rank"><span>${n > 0 && MEDAL[place] ? MEDAL[place] : place + '.'}</span><span class="who">${esc(k)}${chips(k)}</span><b>${esc(n)}</b></div>`).join('');
 }
 
 /* ---------- Checkout ---------- */

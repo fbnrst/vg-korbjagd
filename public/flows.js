@@ -67,6 +67,35 @@ export function rankPlaces(scores) {
   return { placed, podium: [...at(2), ...at(1), ...at(3), ...placed.filter(x => x.n === 0)], max: Math.max(1, placed[0] ? placed[0].n : 1) };
 }
 
+// Badges, derived from what the list already stores (no new fields, no writes). `items` are the list items (checkedBy/
+// checkedAt), `deposit` is {typeId: {user: pieces}}. Only for lists with at least two players, otherwise nobody competes.
+// - 'empties': most empties pieces on the list (at least BADGE_MIN_EMPTIES; ties share it)
+// - 'basket':  most items in the basket (at least BADGE_MIN_BASKET; ties share it)
+// - 'first':   checked off the earliest item that is in the basket (one person)
+// Returns {user: [badge ids]} in a fixed order, only for users with at least one badge.
+export const BADGE_MIN_EMPTIES = 3, BADGE_MIN_BASKET = 3;
+export function computeBadges({ scores, items, deposit } = {}) {
+  const players = Object.keys(scores || {});
+  if (players.length < 2) return {};
+  const out = {};
+  const give = (user, id) => { if (players.includes(user)) (out[user] = out[user] || []).push(id); };
+  const leaders = (count, min) => { const top = Math.max(0, ...Object.values(count)); return top >= min ? Object.keys(count).filter(u => count[u] === top) : []; };
+  const empties = {};
+  for (const group of Object.values(deposit || {})) for (const [u, n] of Object.entries(group || {})) empties[u] = (empties[u] || 0) + (Number(n) || 0);
+  const basket = {};
+  let first = null;
+  for (const i of Object.values(items || {})) {
+    if (!i || !i.checked || !i.checkedBy) continue;
+    basket[i.checkedBy] = (basket[i.checkedBy] || 0) + 1;
+    const at = Number(i.checkedAt) || 0;
+    if (at > 0 && (!first || at < first.at || (at === first.at && i.checkedBy < first.user))) first = { at, user: i.checkedBy };
+  }
+  leaders(empties, BADGE_MIN_EMPTIES).forEach(u => give(u, 'empties'));
+  leaders(basket, BADGE_MIN_BASKET).forEach(u => give(u, 'basket'));
+  if (first) give(first.user, 'first');
+  return out;
+}
+
 /* ---------- Scanning ---------- */
 // What a scanned (or typed) code means. While joining only a list code or join link counts. A VG shelf label carries the
 // VG number (vgNumFromCode), whether or not the VG data has loaded; any other run of 8-14 digits is a product barcode;
