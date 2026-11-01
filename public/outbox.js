@@ -15,6 +15,7 @@
 // would both replay. Everything read from localStorage is untrusted (the user can edit it): every entry is validated
 // again with the same rules as store.js, invalid ones are dropped.
 import { NS } from './env.js';
+import { toPos } from './order.js';
 import { isId, isUserKey, isPending, restoredItem, isListCode } from './store.js';
 
 export const MAX_ENTRIES = 200, MAX_AGE = 24 * 3600e3, MAX_TRIES = 3;
@@ -36,6 +37,7 @@ const VALID = {
   },
   check: ([id, user, want]) => isId(id) && isUserKey(user) && typeof want === 'boolean' ? [id, user, want] : null,
   claim: ([id, user, want]) => isId(id) && isUserKey(user) && typeof want === 'boolean' ? [id, user, want] : null,
+  move: ([id, pos]) => isId(id) && toPos(pos) !== null && typeof pos === 'number' ? [id, pos] : null,
   setNum: ([id, user, vgNum, checkToo, extra]) => {
     if (!isId(id) || !isUserKey(user)) return null;
     const e = {}, x = extra && typeof extra === 'object' ? extra : {};
@@ -78,6 +80,9 @@ export function overlay(state, entries) {
     } else if (e.op === 'claim') {
       const i = items[a];
       if (i && !i.checked) items[a] = { ...i, claimedBy: c ? b : i.claimedBy === b ? null : i.claimedBy };
+    } else if (e.op === 'move') {
+      const i = items[a];
+      if (i && !i.checked) items[a] = { ...i, pos: b };
     } else if (e.op === 'setNum' || e.op === 'setEan') {
       const i = items[a];
       if (!i) continue;

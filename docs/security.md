@@ -36,6 +36,8 @@ The source of truth is `database.rules.json` and `test/rules.test.js` (a small e
 
 **Claims:** `items/<id>/claimedBy` ("I'll get this") is an optional user key, validated like `checkedBy`. It is a plain label without authority: anybody who knows the code may set or replace it (last tap wins), so it carries no security meaning. It is rendered through `esc()` like every user key and sanitised in `cache.js`. **Publish the updated rules (both projects, dev first) before this client reaches a site:** under the old rules the unknown field `claimedBy` is rejected by `$other` and the whole item write fails.
 
+**Manual order:** `items/<id>/pos` is an optional number (-1e9 … 1e13), the position of an open item (see `public/order.js`). It is a plain sort key without authority; anybody who knows the code may change it, it is sanitised in `cache.js` and the outbox. **Publish the updated rules (both projects, dev first) before this client reaches a site:** under the old rules the unknown field `pos` is rejected by `$other` and the item write (also an ordinary move) fails.
+
 Deleting (`null`) is not validated; an empty object counts as a deletion in the Realtime Database, so emptying `items`, `scores` or `deposit` stays allowed (clear the list, last item, new round). The rules only check new writes, not data that is already stored. `store.js` validates the mirror image (`isUserKey`, `userKey()`, `isId`) so that legitimate clients never write data that would be rejected; both must be changed together.
 
 ## Trust boundaries

@@ -6,6 +6,7 @@
 // Firebase key characters and HTML special characters (keys end up in the rendering) are replaced.
 // Must match the rules in database.rules.json: "<emoji without spaces> <name>", at most 60 characters.
 import { NS } from './env.js';
+import { toPos } from './order.js';
 const BAD = /[.$#\[\]\/<>&"'`\u0000-\u001f]/g;
 export const userKey = (emoji, name) => {
   const e = String(emoji ?? '').replace(BAD, '_').replace(/\s+/g, '').slice(0, 20) || '🙂';
@@ -98,7 +99,7 @@ const makeItem = (i, user) => ({
   id: i.id, title: String(i.title).trim().slice(0, 120), amount: i.amount > 1 ? Math.min(999, Math.round(i.amount)) : 1,
   unit: i.unit ? String(i.unit).slice(0, 20) : null, info: i.info ? String(i.info).slice(0, 200) : null,
   vgNum: toNum(i.vgNum), ean: /^\d{8,14}$/.test(i.ean) ? i.ean : null,
-  checked: false, checkedBy: null, checkedAt: null, claimedBy: null, addedBy: user, addedAt: Date.now() });
+  checked: false, checkedBy: null, checkedAt: null, claimedBy: null, pos: toPos(i.pos), addedBy: user, addedAt: Date.now() });
 
 // An item as it was (id, number, ean, amount, state), for putting a deleted item back. Pure; null for an unusable item.
 export function restoredItem(i, user) {
@@ -221,6 +222,13 @@ export function createStore(rawDb, guardOpts = {}) {
         return old.claimedBy === user ? { ...old, claimedBy: null } : undefined;
       });
     },
+    // Manual order: set the position of ONE open item (see order.js). Aborts when it already has that position or is gone/checked,
+    // so an outbox replay is harmless. A reorder that needs several writes (renumbering) is several of these calls.
+    async move(code, id, pos) {
+      pos = toPos(pos);
+      if (!isId(id) || pos === null) return;
+      await db.update(code, `items/${id}`, old => (!old || old.checked || old.pos === pos ? undefined : { ...old, pos }));
+    },
     // Add the VG number later; with checkToo the item also goes into the basket
     // extra: {title, info} from the VG database; the title only replaces the placeholder "VG no. 123" (formerly "VG-Nr. 123")
     async setNum(code, id, user, vgNum, checkToo, extra = {}) {
@@ -322,7 +330,7 @@ export function createStore(rawDb, guardOpts = {}) {
     touched[code] = now;
     return touch0(code);
   };
-  for (const name of ['join', 'bump', 'add', 'check', 'claim', 'setNum', 'setEan', 'remove', 'restore', 'depositAdd', 'depositRemove', 'clearDeposit', 'clearChecked', 'clearOpen', 'clearAll', 'resetScores', 'importList', 'renameUser']) {
+  for (const name of ['join', 'bump', 'add', 'check', 'claim', 'move', 'setNum', 'setEan', 'remove', 'restore', 'depositAdd', 'depositRemove', 'clearDeposit', 'clearChecked', 'clearOpen', 'clearAll', 'resetScores', 'importList', 'renameUser']) {
     const fn = store[name];
     store[name] = async (code, ...args) => { const r = await fn(code, ...args); touch(code); return r; };
   }

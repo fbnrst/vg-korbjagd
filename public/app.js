@@ -8,6 +8,7 @@ import { BUILD } from './version.js';
 import { loadVg, similarNames } from './vg.js';
 import { t, applyStatic } from './i18n.js';
 import { shouldShowAndroidInstall, shouldShowInstallHint, shouldShowBrowserHint, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, sanitizeHistory, recordHistory, historyMatches, HISTORY_KEY, createVgLoader, uploadLocalList, checkoutSections, rankPlaces, computeBadges, classifyScan } from './flows.js';
+import { planMove, sortOpen } from './order.js';
 import { AISLES, OTHER, aisleOf, groupByAisle, sanitizeOverrides, withChoice } from './aisles.js';
 import { initDialogs, shortName, menuIndex, visibleFocusables } from './a11y.js';
 
@@ -188,6 +189,13 @@ function connect() {
 const AISLE_NAME = { produce: 'aisleProduce', bakery: 'aisleBakery', dairy: 'aisleDairy', meat: 'aisleMeat', frozen: 'aisleFrozen', dry: 'aisleDry', drinks: 'aisleDrinks', household: 'aisleHousehold', other: 'aisleOther' };
 let aisleOn = LS.get('aisles', false) === true;
 let aisleOver = sanitizeOverrides(LS.get('aisleOver', {}));
+// Reorder mode (long press on an open item, or "Reorder items" in the menu): the open rows show only the name and the arrows
+let reorder = false;
+function orderRowHtml(i, group) {
+  const id = esc(i.id), nm = esc(shortName(i.title)), g = group.findIndex(x => x.id === i.id);
+  return `<div class="item ord"><div class="t">${i.amount > 1 ? `${esc(i.amount)}${i.unit ? ' ' + esc(i.unit) : '×'} ` : ''}${esc(i.title)}</div>
+    <button type="button" class="ordbtn" data-ordup="${id}" aria-label="${t('ariaMoveUp', { name: nm })}"${g <= 0 ? ' disabled' : ''}>▲</button><button type="button" class="ordbtn" data-orddn="${id}" aria-label="${t('ariaMoveDown', { name: nm })}"${g >= group.length - 1 ? ' disabled' : ''}>▼</button></div>`;
+}
 function itemHtml(i) {
   const by = !isLocal() && i.checked && i.checkedBy ? `<span class="badge">${esc(i.checkedBy)}</span>` : '';
   const id = esc(i.id);
@@ -228,7 +236,7 @@ function emptyHint() {
 let rowsLater = false;
 const rowFieldFocused = () => { const a = document.activeElement; return !!a && a.tagName === 'INPUT' && !!a.closest('#items, #doneItems'); };
 // A button that had keyboard focus is found again after the rebuild (the + of the empties, a check box, a checkout row)
-const FOCUS_KEYS = ['data-move', 'data-claim', 'data-dep-add', 'data-dep-sub', 'data-chk', 'data-checkout', 'data-editnum'];
+const FOCUS_KEYS = ['data-ordup', 'data-orddn', 'data-orddone', 'data-move', 'data-claim', 'data-dep-add', 'data-dep-sub', 'data-chk', 'data-checkout', 'data-editnum'];
 function focusedKey() {
   const a = document.activeElement, k = a && a.tagName === 'BUTTON' && FOCUS_KEYS.find(x => a.hasAttribute(x));
   return k ? `[${k}="${CSS.escape(a.getAttribute(k))}"]` : null;
@@ -237,13 +245,15 @@ function render() {
   state = isLocal() ? raw : outbox.overlayFor(raw, code); // changes waiting to be sent show at once; a live snapshot replaces `raw`
   const typed = editingId ? document.querySelector('[data-vgedit] input')?.value : null; // survive re-renders while typing
   const refocus = focusedKey();
-  const all = Object.values(state.items).sort((a, b) => ((a.addedAt || 0) - (b.addedAt || 0)));
-  const open = all.filter(i => !i.checked);
+  const all = Object.values(state.items);
+  const open = sortOpen(all.filter(i => !i.checked)); // manual order (order.js); never moved = oldest first
+  if (reorder && !open.length) reorder = false;
   const done = all.filter(i => i.checked).sort((a, b) => (b.checkedAt || 0) - (a.checkedAt || 0)); // most recently checked off first
   rowsLater = rowFieldFocused();
   if (!rowsLater) {
     $('#items').innerHTML = first && loadingStuck && !stale && !isLocal() ? `<div class="stuck"><p class="muted">${esc(t('connLoadingList'))}</p><button type="button" class="btn sec" id="useLocal">${esc(t('connUseLocal'))}</button></div>`
-      : open.length ? (aisleOn ? groupByAisle(open, aisleOver).map(g => `<h3 class="aisleHead">${esc(t(AISLE_NAME[g.aisle]))}</h3>${g.items.map(itemHtml).join('')}`).join('') : open.map(itemHtml).join(''))
+      : open.length ? (reorder ? `<div class="orderBar"><span>${esc(t('orderHint'))}</span><button type="button" class="btn" data-orddone="1">${esc(t('orderDone'))}</button></div>` : '')
+        + (aisleOn ? groupByAisle(open, aisleOver).map(g => `<h3 class="aisleHead">${esc(t(AISLE_NAME[g.aisle]))}</h3>${g.items.map(i => reorder ? orderRowHtml(i, g.items) : itemHtml(i)).join('')}`).join('') : open.map(i => reorder ? orderRowHtml(i, open) : itemHtml(i)).join(''))
       : !isEmptyList(state.items) ? `<p class="muted" style="text-align:center">${t('allInBasket')}</p>`
       : first && !isLocal() ? '' // the first snapshot of a shared list is still on its way
       : emptyHint();
@@ -321,10 +331,43 @@ function renderDeposit() {
         <button data-dep-sub="${esc(d.id)}" aria-label="${t('ariaLessItem', { name: esc(shortName(d.name)) })}">−</button><span class="n">${depSum(d.id)}</span><button class="add" data-dep-add="${esc(d.id)}" aria-label="${t('ariaMoreItem', { name: esc(shortName(d.name)) })}">+</button></div>`).join('');
 }
 
+/* ---------- Manual order ---------- */
+function setReorder(on) {
+  if (on && (readOnly() || !Object.values(state.items).some(i => !i.checked))) return;
+  reorder = on; render();
+}
+// One step up or down inside the section the item sits in (the whole list when sections are off). Every write is a move of one
+// item to a number (order.js); renumbering the list is several of them.
+function moveItem(id, dir) {
+  if (readOnly()) return;
+  const open = Object.values(state.items).filter(i => !i.checked);
+  const visible = aisleOn ? (groupByAisle(sortOpen(open), aisleOver).find(g => g.items.some(i => i.id === id)) || { items: open }).items : open;
+  const plan = planMove(open, id, dir, visible);
+  if (!plan) return;
+  for (const [mid, pos] of plan.renumber || [[id, plan.pos]]) bg.move(code, mid, pos);
+}
+// A long press (about half a second without moving) on an open row starts the reorder mode
+let pressTimer = 0, pressAt = null, noClickUntil = 0;
+const endPress = () => { clearTimeout(pressTimer); pressAt = null; };
+$('#items').addEventListener('pointerdown', e => {
+  const row = e.target.closest('.item:not(.ord):not(.done)');
+  if (reorder || !row || e.button > 0 || e.target.closest('input, form, .x, .chk')) return;
+  pressAt = [e.clientX, e.clientY];
+  pressTimer = setTimeout(() => { pressAt = null; noClickUntil = Date.now() + 700; setReorder(true); }, 500);
+});
+$('#items').addEventListener('pointermove', e => { if (pressAt && Math.hypot(e.clientX - pressAt[0], e.clientY - pressAt[1]) > 8) endPress(); });
+for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) $('#items').addEventListener(ev, endPress);
+$('#items').addEventListener('contextmenu', e => { if (e.target.closest('.item')) e.preventDefault(); });
+$('#menuReorder').onclick = () => setReorder(!reorder); // the menu closes itself on any button
+
 /* ---------- Events ---------- */
 document.addEventListener('click', e => {
   if (e.target.closest('#vgRetry')) { vgLoader.start(); return; }
   if (e.target.closest('#useLocal')) { startLocal(); return; } // the saved list code stays, the next start tries it again
+  if (e.target.closest('[data-orddone]')) { setReorder(false); return; }
+  const ou = e.target.closest('[data-ordup],[data-orddn]');
+  if (ou) { moveItem(ou.dataset.ordup || ou.dataset.orddn, ou.dataset.ordup ? -1 : 1); return; }
+  if (Date.now() < noClickUntil) return; // the click that ends a long press must not open the section dialog or tick the item
   const mv = e.target.closest('[data-move]');
   if (mv) { const it = state.items[mv.dataset.move]; if (it) openAisleDlg(it); return; }
   const chk = e.target.closest('[data-chk]');
