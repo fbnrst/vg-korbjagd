@@ -89,6 +89,10 @@ export function isStandalone(nav, mm) {
 export function shouldShowBrowserHint(nav, mm, code, seen) {
   return isIosLike(nav) && !isStandalone(nav, mm) && /^[A-Z0-9]{6}$/.test(String(code)) && !(Array.isArray(seen) && seen.includes(code));
 }
+// iPhone/iPad browser tab, not the installed app: suggest adding Kober to the home screen (once the person closed it, never again)
+export function shouldShowInstallHint(nav, mm, dismissed) {
+  return isIosLike(nav) && !isStandalone(nav, mm) && dismissed !== true;
+}
 // Stored list of codes (localStorage is user-writable): only valid codes, at most 20, newest last
 export function sanitizeHintSeen(raw) {
   if (!Array.isArray(raw)) return [];

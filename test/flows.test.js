@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { isIosLike, isStandalone, shouldShowBrowserHint, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, createVgLoader, uploadLocalList, TICK_TTL, TICK_MAX } from '../public/flows.js';
+import { isIosLike, isStandalone, shouldShowBrowserHint, shouldShowInstallHint, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, createVgLoader, uploadLocalList, TICK_TTL, TICK_MAX } from '../public/flows.js';
 import { createStore, localAdapter, userKey } from '../public/store.js';
 import { createSim, createClock } from '../public/sim.js';
 import { STRINGS } from '../public/i18n.js';
@@ -168,4 +168,15 @@ test('browser hint: the stored list of seen codes is validated and bounded', () 
   for (let i = 0; i < 30; i++) s = addHintSeen(s, 'AAAA' + String(10 + i));
   assert.equal(s.length, 20);
   assert.deepEqual(addHintSeen(['4ALVUE'], '4ALVUE'), ['4ALVUE']);
+});
+
+test('install hint: only in an iPhone/iPad browser tab, never in the installed app, never after it was closed', () => {
+  const iphone = { userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_8 like Mac OS X)' };
+  const mm = standalone => () => ({ matches: standalone });
+  assert.equal(shouldShowInstallHint(iphone, mm(false), false), true);
+  assert.equal(shouldShowInstallHint(iphone, mm(false), undefined), true);
+  assert.equal(shouldShowInstallHint(iphone, mm(true), false), false);
+  assert.equal(shouldShowInstallHint({ ...iphone, standalone: true }, mm(false), false), false);
+  assert.equal(shouldShowInstallHint(iphone, mm(false), true), false);
+  assert.equal(shouldShowInstallHint({ userAgent: 'Mozilla/5.0 (X11; Linux x86_64)' }, mm(false), false), false);
 });

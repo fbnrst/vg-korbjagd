@@ -6,7 +6,7 @@ import { saveSnapshot, loadSnapshot, dropSnapshot } from './cache.js';
 import { IS_DEV, NS } from './env.js';
 import { loadVg, parseShareLink, fetchSharedList, vgNumFromCode, similarNames } from './vg.js';
 import { t, applyStatic } from './i18n.js';
-import { shouldShowBrowserHint, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, createVgLoader, uploadLocalList } from './flows.js';
+import { shouldShowInstallHint, shouldShowBrowserHint, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, createVgLoader, uploadLocalList } from './flows.js';
 import { initDialogs, shortName, menuIndex, visibleFocusables } from './a11y.js';
 
 const $ = s => document.querySelector(s);
@@ -855,8 +855,13 @@ let nameScreenHint = false;
 const hintSeenRead = () => { try { return sanitizeHintSeen(JSON.parse(sessionStorage.getItem(NS + 'hintSeen') || '[]')); } catch (e) { return []; } };
 const browserHintDue = c => shouldShowBrowserHint(navigator, q => matchMedia(q), c, hintSeenRead());
 function browserHintDone(c) { try { sessionStorage.setItem(NS + 'hintSeen', JSON.stringify(addHintSeen(hintSeenRead(), c))); } catch (e) { /* private mode: shown again next time */ } }
-function showBrowserBar(c) { $('#browserBarText').textContent = t('browserHint', { code: c }); $('#browserBar').classList.remove('hide'); browserHintDone(c); }
-$('#browserBarClose').onclick = () => $('#browserBar').classList.add('hide');
+function showBrowserBar(c) { $('#browserBar').dataset.kind = 'list'; $('#browserBarText').textContent = t('browserHint', { code: c }); $('#browserBar').classList.remove('hide'); browserHintDone(c); }
+$('#browserBarClose').onclick = () => {
+  $('#browserBar').classList.add('hide');
+  if ($('#browserBar').dataset.kind === 'install') LS.set('installHintOff', true); // closed once: not shown again
+};
+// Plain visit in the iPhone browser (no list link): suggest installing the app
+function showInstallBar() { $('#browserBar').dataset.kind = 'install'; $('#browserBarText').textContent = t('installBar'); $('#browserBar').classList.remove('hide'); }
 function askIdentity(next, onCancel = null, joining = null) { // `joining`: the (validated) list code shown as a note
   const before = { ...me };
   pending = next; pendingCancel = onCancel && (() => { me.name = before.name; me.emoji = before.emoji; buildEmojis(); onCancel(); });
@@ -966,6 +971,7 @@ async function init() {
   if (urlCode && urlCode !== savedCode) joinShared(urlCode);
   else if (savedCode && me.name) startShared(savedCode).then(() => { if (urlCode && browserHintDue(urlCode)) showBrowserBar(urlCode); }).catch(e => { toast(noDbMsg(e)); startLocal(); }); // offline: local list, saved code is kept
   else startLocal();
+  if (!urlList && shouldShowInstallHint(navigator, q => matchMedia(q), LS.get('installHintOff', false))) showInstallBar();
 }
 init();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
