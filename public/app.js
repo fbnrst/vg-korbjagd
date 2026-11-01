@@ -487,7 +487,7 @@ if (IS_DEV) {
   const item = document.createElement('button');
   item.type = 'button'; item.setAttribute('role', 'menuitem'); item.textContent = t('devDiag');
   item.onclick = () => { dismissKeyboard(); pre.textContent = '…'; dlg.classList.remove('hide'); diag(pre); };
-  $('#menu').insertBefore(item, $('#helpLink'));
+  $('#menu').appendChild(item); // last entry
 }
 // Join dialog (menu on the local list): type the code, or scan the QR code
 const closeJoin = () => { $('#joinDlg').classList.add('hide'); $('#codeIn').value = ''; };
