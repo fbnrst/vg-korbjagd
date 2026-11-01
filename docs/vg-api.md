@@ -1,45 +1,45 @@
-# VG-Dresden-Endpunkte (inoffiziell dokumentiert)
+# VG Dresden endpoints (unofficial documentation)
 
-Die Original-App ([gitlab.com/pyfox/vg-app](https://gitlab.com/pyfox/vg-app), GPLv3) lädt ihre Stammdaten von `https://app.vg-dresden.de/php/`. Diese Beschreibung stammt aus dem Quelltext der App (`src/shared/DataManager.tsx`) und aus Abfragen am 2026-10-31; Anzahl und Größe der Einträge sind der Stand damals (zuletzt nur gegen `public/vg.js` geprüft, die Endpunkte waren nicht erreichbar). Es ist **keine offizielle API-Doku**; Endpunkte und Formate können sich jederzeit ändern. Vor produktiver Nutzung oder Weiterverbreitung der Daten bitte bei der VG Dresden nachfragen (info@vg-dresden.de).
+The original app ([gitlab.com/pyfox/vg-app](https://gitlab.com/pyfox/vg-app), GPLv3) loads its master data from `https://app.vg-dresden.de/php/`. This description comes from the app's source code (`src/shared/DataManager.tsx`) and from requests made on 2026-10-31; the number and size of the entries are the state at that time (most recently only checked against `public/vg.js`, the endpoints were not reachable). It is **not official API documentation**; endpoints and formats can change at any time. Before productive use or redistribution of the data, please ask VG Dresden (info@vg-dresden.de).
 
-## Lese-Endpunkte (GET, ohne Anmeldung)
+## Read endpoints (GET, no login)
 
-| Endpunkt | Einträge | Größe | Felder |
+| Endpoint | Entries | Size | Fields |
 |---|---|---|---|
-| `getProductList.php` | 9034 | ca. 1,1 MB | `id`, `vgNum`, `unitID`, `manufacturerID`, `countryID`, `title`, `isRegional` (0/1) |
-| `getManufacturersList.php` | 1323 | ca. 89 KB | `id`, `short`, `manufacturer` |
-| `getCountriesList.php` | 186 | ca. 9 KB | `id`, `code`, `country` |
-| `getUnitsList.php` | 430 | ca. 18 KB | `id`, `short`, `unit` |
-| `getDepositsList.php` | 18 | ca. 1 KB | `id`, `code`, `name`, `vgNum` (Pfand) |
-| `getChecksums.php` | 5 | < 1 KB | `table` (z. B. `d02fcebe.vg-products`), `checksum` |
+| `getProductList.php` | 9034 | about 1.1 MB | `id`, `vgNum`, `unitID`, `manufacturerID`, `countryID`, `title`, `isRegional` (0/1) |
+| `getManufacturersList.php` | 1323 | about 89 KB | `id`, `short`, `manufacturer` |
+| `getCountriesList.php` | 186 | about 9 KB | `id`, `code`, `country` |
+| `getUnitsList.php` | 430 | about 18 KB | `id`, `short`, `unit` |
+| `getDepositsList.php` | 18 | about 1 KB | `id`, `code`, `name`, `vgNum` (deposit) |
+| `getChecksums.php` | 5 | < 1 KB | `table` (e.g. `d02fcebe.vg-products`), `checksum` |
 
-Beispiele:
+Examples:
 
     getProductList.php   -> [{"id":1,"vgNum":7900,"unitID":2,"manufacturerID":158,"countryID":31,"title":"Fruchtwürfel- mischung","isRegional":0}, …]
     getChecksums.php     -> [{"table":"d02fcebe.countries","checksum":3053541427}, …]
 
-Rund ein Fünftel der Einträge (1904 von 9034, Stand 2026-10-31) sind keine echten Produkte, sondern unbenutzte Nummernplätze mit Titeln wie „unbesetzt …“ oder „RESERVIERT …“. Die App schlägt sie nie vor (`isPlaceholder` in `public/vg.js`, weder bei Namen noch bei Nummern). Eine vollständig getippte Nummer wird trotzdem angenommen, falls der Laden sie benutzt, obwohl die Datenbank „unbesetzt“ sagt; der Artikel heißt dann so wie der Eintrag (z. B. „unbesetzt Backwaren“).
+About a fifth of the entries (1904 of 9034, as of 2026-10-31) are not real products but unused number slots with titles like "unbesetzt …" or "RESERVIERT …". The app never suggests them (`isPlaceholder` in `public/vg.js`, neither for names nor for numbers). A fully typed number is still accepted if the shop uses it although the database says "unbesetzt"; the item then gets the entry's title (e.g. "unbesetzt Backwaren").
 
-Verknüpfung: `product.unitID` → Units, `product.manufacturerID` → Manufacturers, `product.countryID` → Countries. Produkte haben **keine EAN**, nur die VG-Nummer.
+Links: `product.unitID` → Units, `product.manufacturerID` → Manufacturers, `product.countryID` → Countries. Products have **no EAN**, only the VG number.
 
-Antworten sind JSON, kommen aber mit `Content-Type: text/html`.
+Responses are JSON but come with `Content-Type: text/html`.
 
-**CORS:** Sobald der Browser einen `Origin`-Header mitschickt, antworten die Endpunkte (auch auf den `OPTIONS`-Preflight) mit `access-control-allow-origin: *`. Ein einfacher `curl` ohne `Origin` zeigt den Header nicht, das hatte uns zunächst getäuscht. Browser-Apps können die Daten also direkt abrufen, ein Proxy ist nicht nötig. Umgesetzt in `public/vg.js`.
+**CORS:** as soon as the browser sends an `Origin` header, the endpoints answer (also to the `OPTIONS` preflight) with `access-control-allow-origin: *`. A plain `curl` without `Origin` does not show the header, which misled us at first. Browser apps can therefore fetch the data directly, no proxy is needed. Implemented in `public/vg.js`.
 
-## Aktualisierung über Prüfsummen
+## Updating through checksums
 
-`loadVg` in `public/vg.js` ruft zuerst `getChecksums.php` ab und vergleicht alle Prüfsummen zusammen mit der gespeicherten (Cache `kober-vg-v2` im `localStorage`). Sind sie gleich oder ist das Netz weg, gilt der Cache. Sonst werden alle fünf Listen (Produkte, Hersteller, Länder, Einheiten, Pfand) neu geladen, nicht nur die geänderte. Zeitlimit je Anfrage: 20 s.
+`loadVg` in `public/vg.js` first calls `getChecksums.php` and compares all checksums together with the stored one (cache `kober-vg-v2` in `localStorage`). If they are equal or the network is gone, the cache is used. Otherwise all five lists (products, manufacturers, countries, units, deposits) are reloaded, not only the changed one. Timeout per request: 20 s.
 
-## Geteilte Listen der Original-App
+## Shared lists of the original app
 
-Die Original-App teilt Listen als Link `https://app.vg-dresden.de/list?shareId=<ID>#<SCHLÜSSEL>`.
+The original app shares lists as a link `https://app.vg-dresden.de/list?shareId=<ID>#<KEY>`.
 
-- `getSharedList.php` (POST, JSON `{"shareId": "<ID>"}`) liefert den Text der Liste.
-- Der Text ist mit CryptoJS-AES (Passphrase-Modus) verschlüsselt. Der Schlüssel steht nur im Link-Fragment (`#…`) und geht nie an den Server.
-- Entschlüsselt ergibt sich ein JSON-Array von `{title, id, amount, unit?, vgNum?, country?, checked, date, hasVgNum, order}`.
+- `getSharedList.php` (POST, JSON `{"shareId": "<ID>"}`) returns the text of the list.
+- The text is encrypted with CryptoJS AES (passphrase mode). The key sits only in the link fragment (`#…`) and never goes to the server.
+- Decrypted, it is a JSON array of `{title, id, amount, unit?, vgNum?, country?, checked, date, hasVgNum, order}`.
 
-Kober nutzt diese Links nicht mehr: der frühere Import (Menü „Liste importieren“, `parseShareLink`, `decryptShared`, CryptoJS) wurde entfernt. Die Beschreibung bleibt als Dokumentation des Formats.
+Kober no longer uses these links: the former import (menu "Import list", `parseShareLink`, `decryptShared`, CryptoJS) was removed. The description stays as documentation of the format.
 
-## Weitere Endpunkte (nicht abgefragt)
+## Other endpoints (not queried)
 
-`shareList.php` (Liste teilen, schreibt auf den VG-Server) und `sendFeedback.php` wurden bewusst nicht ausprobiert. Eine Liste aus Kober an die Original-App zu schicken wäre über `shareList.php` technisch möglich, schreibt aber auf den VG-Server und ist deshalb nicht umgesetzt.
+`shareList.php` (share a list, writes to the VG server) and `sendFeedback.php` were deliberately not tried. Sending a list from Kober to the original app would be technically possible through `shareList.php`, but it writes to the VG server and is therefore not implemented.

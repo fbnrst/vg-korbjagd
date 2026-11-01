@@ -25,4 +25,4 @@ Do not open a public issue for a vulnerability.
 
 The latest release (the site root) and the current development version (`/dev/`).
 
-More detail: [docs/security.md](docs/security.md) (German).
+More detail: [docs/security.md](docs/security.md).
