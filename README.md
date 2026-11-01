@@ -3,7 +3,7 @@
 [![Checks](https://github.com/fbnrst/kober/actions/workflows/autofix.yml/badge.svg)](https://github.com/fbnrst/kober/actions/workflows/autofix.yml)
 [![Deploy](https://github.com/fbnrst/kober/actions/workflows/pages.yml/badge.svg)](https://github.com/fbnrst/kober/actions/workflows/pages.yml)
 
-<img src="public/docs/img/readme-phone.png" alt="The list and the ranking tab on a phone" width="340" align="right">
+<img src="public/docs/img/readme-phones.png" alt="The list and the ranking tab on a phone" width="340" align="right">
 
 ### 👉 [Open Kober on your phone](https://fbnrst.github.io/kober/)
 No account, no app store.
