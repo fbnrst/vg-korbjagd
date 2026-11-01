@@ -35,6 +35,7 @@ const VALID = {
     return [c, user];
   },
   check: ([id, user, want]) => isId(id) && isUserKey(user) && typeof want === 'boolean' ? [id, user, want] : null,
+  claim: ([id, user, want]) => isId(id) && isUserKey(user) && typeof want === 'boolean' ? [id, user, want] : null,
   setNum: ([id, user, vgNum, checkToo, extra]) => {
     if (!isId(id) || !isUserKey(user)) return null;
     const e = {}, x = extra && typeof extra === 'object' ? extra : {};
@@ -68,12 +69,15 @@ export function overlay(state, entries) {
   for (const e of entries) {
     const [a, b, c, d] = e.args;
     if (e.op === 'add') {
-      if (!items[a.id]) items[a.id] = { id: a.id, title: a.title, amount: a.amount || 1, unit: a.unit || null, info: a.info || null, vgNum: a.vgNum || null, ean: a.ean || null, checked: false, checkedBy: null, checkedAt: null, addedBy: b, addedAt: e.ts };
+      if (!items[a.id]) items[a.id] = { id: a.id, title: a.title, amount: a.amount || 1, unit: a.unit || null, info: a.info || null, vgNum: a.vgNum || null, ean: a.ean || null, checked: false, checkedBy: null, checkedAt: null, claimedBy: null, addedBy: b, addedAt: e.ts };
     } else if (e.op === 'restore') {
       if (!items[a.id]) items[a.id] = a;
     } else if (e.op === 'check') {
       const i = items[a];
-      if (i && !!i.checked !== c) items[a] = { ...i, checked: c, checkedBy: c ? b : null, checkedAt: c ? e.ts : null };
+      if (i && !!i.checked !== c) items[a] = { ...i, checked: c, checkedBy: c ? b : null, checkedAt: c ? e.ts : null, claimedBy: null };
+    } else if (e.op === 'claim') {
+      const i = items[a];
+      if (i && !i.checked) items[a] = { ...i, claimedBy: c ? b : i.claimedBy === b ? null : i.claimedBy };
     } else if (e.op === 'setNum' || e.op === 'setEan') {
       const i = items[a];
       if (!i) continue;
@@ -83,7 +87,7 @@ export function overlay(state, entries) {
         if (e.args[4].title && /^VG(-Nr\.| no\.) \d+$/.test(i.title)) n.title = e.args[4].title;
         if (e.args[4].info) n.info = e.args[4].info;
       } else n.ean = c;
-      if (d && !i.checked) { n.checked = true; n.checkedBy = b; n.checkedAt = e.ts; }
+      if (d && !i.checked) { n.checked = true; n.checkedBy = b; n.checkedAt = e.ts; n.claimedBy = null; }
       items[a] = n;
     } else if (e.op === 'remove') delete items[a];
     else if (e.op === 'depositAdd') deposit[a] = { ...deposit[a], [b]: ((deposit[a] || {})[b] || 0) + 1 };
