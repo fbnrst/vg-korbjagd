@@ -73,4 +73,5 @@ Checks: prek (`prek.toml`: file hygiene, JSON/YAML, `node --check`, tests, gitle
 
 - With an empty `firebase-config.js` (`export default null`) the app runs in a demo mode that stores shared lists in the browser as well.
 - Testing against the real Firebase project creates lists that the hardened rules do not let clients delete. Prefer demo mode or the unit tests; clean up leftovers in the Firebase console.
+- Overload handling (`conn.js`, `sim.js`): the connection state (ok, connecting, degraded, busy) drives the `#connBanner` bar on shared lists; the local list never shows it. `?sim=overload|slow|flap|recover:<seconds>` swaps the shared-list backend for a simulated server with fault injection (`sim.js`); it works only in demo mode or on the dev site, never on the release with a real database. Tests use the same sim with a manual clock (`test/overload.test.js`). The Firebase SDK itself cannot be driven into a real connection limit from a test: that part only shows on a real project.
 - Browser-pane checks: emulate a 375px viewport; the on-screen keyboard and service workers cannot be tested there.

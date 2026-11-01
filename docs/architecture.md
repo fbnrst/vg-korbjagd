@@ -176,6 +176,12 @@ Ist-Zustand laut Code.
 - **Verbindung weg bei laufender App:** Nach 3 Sekunden erscheint in der Kopfzeile das Chip „Offline“, bei Wiederverbindung verschwindet es. Schreibaktionen werden vom Firebase-SDK zwischengespeichert und nach der Wiederverbindung gesendet; ob das über ein Neuladen hinweg hält, ist nicht konfiguriert, vermutlich nicht **(unsicher)**. Der lokale Zustand zeigt die eigenen Änderungen sofort. Transaktionen (Abhaken) laufen offline gegen den lokal bekannten Stand und werden beim Verbinden bestätigt; schlägt das dort fehl, korrigiert sich die Anzeige **(unsicher, aus Firebase-Verhalten abgeleitet, nicht getestet)**. Teilen (`shareLocalList`) braucht Netz; bei Fehler bleibt die lokale Liste erhalten.
 - **VG-Daten** kommen offline aus dem `localStorage`-Cache, falls schon einmal geladen. Import aus der VG-App und Open Food Facts brauchen Netz (Fehlermeldung bzw. „Artikel <EAN>“ als Name).
 
+## Überlast und instabile Verbindung
+
+`conn.js` (rein, ohne DOM und Firebase) bewertet die Verbindung einer geteilten Liste: `ok`, `connecting` (erste 3 s), `degraded` (3 s ohne Verbindung, Flattern mit 3 Abbrüchen in 60 s oder Schreibvorgänge im Timeout) und `busy` (15 s nie verbunden oder wiederholt „verbunden und sofort wieder getrennt“, die Signatur des Verbindungslimits). Zurück auf `ok` erst nach 5 s stabiler Verbindung. Bei `busy` trennt die App die Verbindung selbst (`goOffline`) und versucht es mit exponentiellem Backoff mit Jitter (5, 10, 20, 40 s bis höchstens 120 s) erneut; im versteckten Tab ruht das, beim Sichtbarwerden oder `online` gibt es einen sofortigen Versuch. `store.js` bricht hängende Schreibvorgänge nach 8 s mit einem `PendingError` ab (die Operation bleibt in der Warteschlange; die Folgepunkte für `check` usw. laufen danach nach) und schreibt den Aktivitätsstempel nur bei `ok`. In der Oberfläche zeigt `#connBanner` einen ruhigen Hinweis, nach 10 s ohne ersten Datensatz erscheint ein Leerzustand mit „Vorerst lokale Liste nutzen“ (der gespeicherte Code bleibt). Eine leere Antwort gilt nur bei gesunder Verbindung als „Liste gelöscht“. Ein Speicher für Änderungen über ein Neuladen hinweg gibt es noch nicht.
+
+Testen: `?sim=overload|slow|flap|recover:<Sekunden>` (nur Demo-Modus oder Dev-Seite) ersetzt die geteilte Liste durch einen simulierten Server (`sim.js`); die Unit-Tests in `test/overload.test.js` nutzen dieselbe Simulation mit einer manuellen Uhr.
+
 ## Tests
 
 `npm test` führt `node --test` aus (Node ≥ 18, keine Abhängigkeiten); aktuell 36 Tests in fünf Dateien.
