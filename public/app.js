@@ -397,6 +397,28 @@ $('#menuShare').onclick = openShareDialog; // the same dialog from the ⋯ menu,
 $('#shareClose').onclick = closeShareDialog;
 $('#shareDlg').onclick = e => { if (e.target.id === 'shareDlg') closeShareDialog(); };
 $('#shareStart').onclick = () => { closeShareDialog(); me.name ? shareLocalList() : askIdentity(shareLocalList, backToList); };
+// Dev site only (the elements do not exist in the release): switch into a fresh shared test list without a code from another
+// device, and back. The local list stays untouched; its items are copied (no points) into the new list.
+if (IS_DEV) {
+  const devBtn = (box, key, fn) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'btn sec'; b.textContent = t(key); b.onclick = fn;
+    const p = document.createElement('p'); p.style.margin = '12px 0 0'; p.appendChild(b);
+    $(box).appendChild(p);
+  };
+  devBtn('#shareLocalBox', 'devShareCreate', async () => {
+    closeShareDialog();
+    if (!me.name) { me.name = 'Tester'; LS.set('me', me); }
+    try {
+      const data = { items: (await localDb.get(LOCAL, 'items')) || {}, deposit: (await localDb.get(LOCAL, 'deposit')) || {} };
+      const remote = await getRemote();
+      const c = await remote.create();
+      await remote.importList(c, data, myKey());
+      await startShared(c);
+    } catch (e) { toast(t('noDb')); startLocal(); }
+  });
+  devBtn('#shareSharedBox', 'devShareBack', () => { closeShareDialog(); forgetShared(); startLocal(); });
+}
 // Join dialog (menu on the local list): type the code, or scan the QR code
 const closeJoin = () => { $('#joinDlg').classList.add('hide'); $('#codeIn').value = ''; };
 function openJoin() { dismissKeyboard(); $('#joinDlg').classList.remove('hide'); }
