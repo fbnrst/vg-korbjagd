@@ -54,7 +54,8 @@ header :focus{outline-color:var(--hdr-fg)}
 .btn.danger{color:var(--red)}
 .btn.destroy:not(:disabled){background:var(--danger);color:var(--on-danger)} /* red filled = destructive action (the reset dialog while open items are ticked); green filled = ordinary action */
 .dangerZone{margin-top:22px;padding-top:16px;border-top:1px solid var(--line)} /* a thumb slip from "Send link" must not reach the delete button */
-.btn.ibtn2{display:grid;place-items:center;padding:10px 12px}
+.btn.ibtn2{display:flex;align-items:center;justify-content:center;padding:10px 12px} /* flex, not grid: Safari left the icon off-centre in a stretched grid button */
+.btn.ibtn2 svg{flex:none;display:block}
 .opt{display:flex;gap:10px;align-items:center;padding:10px 0;cursor:pointer}
 /* Options: an unselected one is a hollow ring (--ctl-bd, 3:1 against the card), the selected one carries the colour (the native look made the unselected radio the brightest thing in the dialog) */
 .opt input{appearance:none;-webkit-appearance:none;flex:none;width:22px;height:22px;margin:0;border:2px solid var(--ctl-bd);border-radius:50%;background:transparent}
@@ -105,7 +106,7 @@ body.typing .tabs{display:none}
 .t small{display:inline;margin-left:6px;color:var(--mute);font-size:14px;white-space:nowrap}
 .item input.vg{width:56px;height:40px;padding:4px 6px;font-size:16px} /* below 16px iOS zooms into the page when a field gets focus */.item form{flex:none;display:flex;gap:10px;align-items:center}
 /* the quick number field has a fixed width: while the confirm button is hidden the field takes its space, so nothing else moves */
-.item form.quick{width:128px}.item form.quick input.vg{flex:1;min-width:0;width:auto}
+.item form.quick{width:108px}.item form.quick input.vg{flex:1;min-width:0;width:auto}
 .item form.quick:not(.has) .rowbtn.ok{display:none}
 .rowbtn{position:relative;flex:none;width:30px;height:30px;padding:0;border:0;border-radius:8px;background:var(--green2);color:var(--fg);display:grid;place-items:center;font-size:16px;line-height:1}
 .rowbtn.ok{background:var(--fill);color:var(--on-fill)}
