@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { sanitizeHistory, recordHistory, historyMatches, withoutHistory, HISTORY_MAX } from '../public/flows.js';
+import { sanitizeHistory, recordHistory, historyMatches, HISTORY_MAX } from '../public/flows.js';
 
 const NOW = 1_700_000_000_000;
 test('record counts uses and remembers the number', () => {
@@ -41,7 +41,4 @@ test('matches rank by prefix, count, recency; exact typed text is left out', () 
   assert.deepEqual(historyMatches(h.ALL, 'milch').map(e => e.t), ['Hafermilch', 'Vollmilch']);
   assert.deepEqual(historyMatches(h.ALL, 'm').map(e => e.t), []); // one letter: nothing
   assert.deepEqual(historyMatches(h.ALL, 'milch', 1).length, 1);
-});
-test('withoutHistory removes duplicates in VG names', () => {
-  assert.deepEqual(withoutHistory([{ title: 'Milch' }, { title: 'Sahne' }], [{ t: 'milch' }]), [{ title: 'Sahne' }]);
 });

@@ -7,7 +7,7 @@ import { IS_DEV, NS } from './env.js';
 import { BUILD } from './version.js';
 import { loadVg, similarNames } from './vg.js';
 import { t, applyStatic } from './i18n.js';
-import { shouldShowAndroidInstall, shouldShowInstallHint, shouldShowBrowserHint, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, sanitizeHistory, recordHistory, historyMatches, HISTORY_KEY, withoutHistory, createVgLoader, uploadLocalList, checkoutSections, rankPlaces, classifyScan } from './flows.js';
+import { shouldShowAndroidInstall, shouldShowInstallHint, shouldShowBrowserHint, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, sanitizeHistory, recordHistory, historyMatches, HISTORY_KEY, createVgLoader, uploadLocalList, checkoutSections, rankPlaces, classifyScan } from './flows.js';
 import { initDialogs, shortName, menuIndex, visibleFocusables } from './a11y.js';
 
 const $ = s => document.querySelector(s);
@@ -490,7 +490,7 @@ $('#addIn').oninput = () => {
   // Tappable list, tap = add the item: from three digits on for numbers, from two letters on for names (no duplicates)
   const nums = vg && isNum && q.length >= 3 ? vg.searchByNumber(q) : [];
   const hist = !isNum && q.length >= 2 ? historyMatches(history[HISTORY_KEY], q) : []; // own past items come first
-  const names = vg && !isNum && q.length >= 2 ? withoutHistory(vg.searchNames(q), hist) : [];
+  const names = vg && !isNum && q.length >= 2 && !hist.length ? vg.searchNames(q) : []; // one source at a time: VG names only when no own name matches
   const long = tooLongNumber(q); // more than 4 digits can never be a VG number: say so here instead of after the tap
   const miss = vg && isNum && !long && q.length >= 4 && !nums.length && !vg.lookup(q); // an exact placeholder number is accepted silently
   box.classList.toggle('hide', !nums.length && !hist.length && !names.length && !miss && !long);

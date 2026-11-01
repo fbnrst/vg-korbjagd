@@ -203,5 +203,3 @@ export function historyMatches(list, q, limit = 4) {
     .sort((a, b) => (historyKey(b.t).startsWith(words[0]) - historyKey(a.t).startsWith(words[0])) || b.n - a.n || b.ts - a.ts)
     .slice(0, limit);
 }
-// Remove from `names` (VG name suggestions) those the history already shows
-export const withoutHistory = (names, hist) => { const s = new Set(hist.map(e => historyKey(e.t))); return names.filter(p => !s.has(historyKey(p.title))); };
