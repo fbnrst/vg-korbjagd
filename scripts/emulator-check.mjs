@@ -14,11 +14,13 @@ const pub = new URL('../public/', import.meta.url);
 
 // store.js loads the vendored Firebase SDK (public/vendor/firebase/) in the browser; use the npm package with the same version
 // here (test/firebase-version.test.js keeps the two in line).
-// The copy goes into a temp dir next to a copy of env.js, so the repository stays untouched; the SDK is given by URL because
+// The copy goes into a temp dir next to copies of the local modules store.js imports (env.js, order.js, ...: taken from its
+// static imports, so a new one needs no change here), so the repository stays untouched; the SDK is given by URL because
 // the temp dir has no node_modules.
 const dir = mkdtempSync(join(tmpdir(), 'kober-emu-'));
-copyFileSync(new URL('env.js', pub), join(dir, 'env.js'));
-const src = readFileSync(new URL('store.js', pub), 'utf8')
+const storeSrc = readFileSync(new URL('store.js', pub), 'utf8');
+for (const [, f] of storeSrc.matchAll(/^import [^;]*? from '\.\/([\w-]+\.js)';/gm)) copyFileSync(new URL(f, pub), join(dir, f));
+const src = storeSrc
   .replace("import('./vendor/firebase/firebase-app.js')", `import('${import.meta.resolve('firebase/app')}')`)
   .replace("import('./vendor/firebase/firebase-database.js')", `import('${import.meta.resolve('firebase/database')}')`);
 assert.ok(!src.includes("import('./vendor/firebase/"), 'store.js: the SDK import changed, adapt the replacement in this script');
